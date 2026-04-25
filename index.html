@@ -85,26 +85,37 @@
           <div class="kpi-icon">⏱</div>
           <div class="kpi-label">Payback 1ª Máquina</div>
           <div class="kpi-value" id="kpi-payback">—</div>
-          <div class="kpi-hint">Cenário base · 48 produtos/dia</div>
+          <div class="kpi-hint">Média da rede · cenário base</div>
         </article>
         <article class="kpi kpi-b">
           <div class="kpi-icon">%</div>
           <div class="kpi-label">Margem Líquida</div>
           <div class="kpi-value" id="kpi-margem">—</div>
-          <div class="kpi-hint">Sobre o faturamento bruto</div>
+          <div class="kpi-hint">Média da rede · sobre faturamento bruto</div>
         </article>
         <article class="kpi kpi-c">
           <div class="kpi-icon">◎</div>
           <div class="kpi-label">Frota no Horizonte</div>
           <div class="kpi-value" id="kpi-maquinas">—</div>
-          <div class="kpi-hint" id="kpi-maq-hint">Após 5 anos</div>
+          <div class="kpi-hint" id="kpi-maq-hint">Projeção · após 5 anos</div>
         </article>
         <article class="kpi kpi-d">
           <div class="kpi-icon">$</div>
           <div class="kpi-label">Lucro Mensal Final</div>
           <div class="kpi-value" id="kpi-lucro-final">—</div>
-          <div class="kpi-hint" id="kpi-lucro-hint">Mês 60 · frota completa</div>
+          <div class="kpi-hint" id="kpi-lucro-hint">Projeção · mês 60 · frota completa</div>
         </article>
+      </div>
+
+      <div class="legal-banner" role="note">
+        <span class="legal-banner-icon" aria-hidden="true">⚖️</span>
+        <div>
+          <strong>Projeções ilustrativas, não promessa de resultado.</strong>
+          Os números refletem <em>médias observadas na rede AVEND</em> em cenários específicos.
+          Cada operação varia conforme ponto, perfil do franqueado e execução.
+          Os termos vinculantes constam na <strong>Circular de Oferta de Franquia (COF)</strong>,
+          entregue antes da assinatura, conforme <a href="https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2019/lei/L13966.htm" target="_blank" rel="noopener">Lei 13.966/2019</a>.
+        </div>
       </div>
 
       <div class="regime-hint" id="kpi-regime-hint">—</div>
@@ -457,27 +468,26 @@
         <h2 class="page-title">
           <span class="grad-text">Nossa Rede</span>
         </h2>
-        <p class="page-sub">Quem já está operando, como é por dentro e o que falam os franqueados AVEND.</p>
+        <p class="page-sub">Quem já está operando e como é a rede AVEND por dentro.</p>
       </header>
 
       <div class="rede-stats card">
         <div class="rede-stat">
-          <span class="rede-stat-val" data-rede-stat="franqueados">—</span>
+          <span class="rede-stat-val" data-rede-stat="franqueados">+100</span>
           <span class="rede-stat-lbl">Franqueados ativos</span>
         </div>
         <div class="rede-stat">
-          <span class="rede-stat-val" data-rede-stat="maquinas">—</span>
-          <span class="rede-stat-lbl">Máquinas em operação</span>
+          <span class="rede-stat-val" data-rede-stat="maquinas">+150</span>
+          <span class="rede-stat-lbl">Máquinas em operação própria</span>
         </div>
         <div class="rede-stat">
-          <span class="rede-stat-val" data-rede-stat="estados">—</span>
+          <span class="rede-stat-val" data-rede-stat="estados">+14</span>
           <span class="rede-stat-lbl">Estados com presença</span>
         </div>
         <div class="rede-stat">
-          <span class="rede-stat-val" data-rede-stat="anos">—</span>
+          <span class="rede-stat-val" data-rede-stat="anos">+10</span>
           <span class="rede-stat-lbl">Anos de operação</span>
         </div>
-        <p class="rede-stats-hint">Números da rede — atualize via <code>data-rede-stat</code> no HTML ou por script.</p>
       </div>
 
       <!-- DEPOIMENTOS -->
@@ -559,15 +569,15 @@
             <div class="foto-placeholder"><span>💼</span></div>
             <figcaption>Coworking / escritório</figcaption>
           </figure>
-          <figure class="foto-card" data-foto="rede-evento">
-            <div class="foto-placeholder"><span>🎤</span></div>
-            <figcaption>Convenção AVEND</figcaption>
+          <figure class="foto-card" data-foto="rede-pontos">
+            <div class="foto-placeholder"><span>📍</span></div>
+            <figcaption>Outros pontos</figcaption>
           </figure>
         </div>
         <p class="rede-upload-hint">
           Coloque as imagens em <code>assets/rede/</code> com os nomes
           <code>condominio.jpg</code>, <code>academia.jpg</code>, <code>empresa.jpg</code>,
-          <code>hospital.jpg</code>, <code>coworking.jpg</code>, <code>evento.jpg</code>
+          <code>hospital.jpg</code>, <code>coworking.jpg</code>, <code>pontos.jpg</code>
           — o CSS aplica automaticamente.
         </p>
       </div>
@@ -578,67 +588,57 @@
           <span class="rede-block-icon" aria-hidden="true">🎥</span>
           <div>
             <h3 class="card-title">Vídeos</h3>
-            <p class="rede-block-sub">Tour de operação, depoimentos em vídeo e eventos.</p>
+            <p class="rede-block-sub">Conteúdos da rede AVEND.</p>
           </div>
         </header>
 
         <div class="video-grid">
-          <article class="video-card" data-video="tour-operacao">
+          <article class="video-card">
             <div class="video-thumb"><span>▶</span></div>
             <div class="video-info">
-              <div class="video-title">Tour de operação AVEND</div>
-              <div class="video-sub">Como é reabastecer uma rota</div>
+              <div class="video-title">Vídeo</div>
             </div>
           </article>
-          <article class="video-card" data-video="depoimento-1">
+          <article class="video-card">
             <div class="video-thumb"><span>▶</span></div>
             <div class="video-info">
-              <div class="video-title">Depoimento em vídeo</div>
-              <div class="video-sub">Franqueado conta a experiência</div>
+              <div class="video-title">Vídeo</div>
             </div>
           </article>
-          <article class="video-card" data-video="tecnologia">
+          <article class="video-card">
             <div class="video-thumb"><span>▶</span></div>
             <div class="video-info">
-              <div class="video-title">Tecnologia e gestão</div>
-              <div class="video-sub">Sistema, telemetria e rota</div>
+              <div class="video-title">Vídeo</div>
             </div>
           </article>
-          <article class="video-card" data-video="convencao">
+          <article class="video-card">
             <div class="video-thumb"><span>▶</span></div>
             <div class="video-info">
-              <div class="video-title">Convenção AVEND</div>
-              <div class="video-sub">Encontro anual da rede</div>
+              <div class="video-title">Vídeo</div>
             </div>
           </article>
         </div>
         <p class="rede-upload-hint">
-          Substitua <code>data-video</code> pelo ID do YouTube/Vimeo, ou troque
-          <code>.video-thumb</code> por um <code>&lt;iframe&gt;</code> embedado.
+          Substitua <code>.video-thumb</code> por um <code>&lt;iframe&gt;</code> do YouTube/Vimeo
+          e ajuste o título conforme o conteúdo.
         </p>
-      </div>
-
-      <!-- CTA FINAL -->
-      <div class="rede-cta card">
-        <div class="rede-cta-text">
-          <h3 class="card-title">Quer conhecer um franqueado pessoalmente?</h3>
-          <p>
-            Agendamos conversa direta com franqueados ativos e visita técnica a uma máquina em operação.
-            O melhor due diligence é ver o modelo funcionando no mundo real.
-          </p>
-        </div>
-        <div class="rede-cta-actions">
-          <a class="btn btn-primary" href="#" data-cta="whatsapp">Falar no WhatsApp</a>
-          <a class="btn btn-ghost" href="#" data-cta="agendar">Agendar visita</a>
-        </div>
       </div>
     </section>
 
   </main>
 
   <footer class="footer">
-    <span>© 2026 AVEND Franchising · Business Plan Interativo</span>
-    <span class="footer-ver">v1.0 · Cenário oficial do Deck</span>
+    <div class="footer-row">
+      <span>© 2026 AVEND Franchising · Business Plan Interativo</span>
+      <span class="footer-ver">v1.0 · Cenário oficial do Deck</span>
+    </div>
+    <div class="footer-legal">
+      As projeções deste simulador são <strong>ilustrativas</strong> e baseadas em médias da rede AVEND.
+      <strong>Não constituem promessa de resultado</strong>. Cada operação varia conforme ponto, perfil
+      do franqueado e execução. Os termos vinculantes da relação franqueador-franqueado estão na
+      Circular de Oferta de Franquia (COF), entregue com no mínimo 10 dias de antecedência conforme
+      Lei 13.966/2019.
+    </div>
   </footer>
 
   <script src="app.js"></script>
