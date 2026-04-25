@@ -270,6 +270,14 @@ function activateTab(name) {
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === name));
   document.querySelectorAll(".page").forEach(p => p.classList.toggle("active", p.id === name));
   window.scrollTo({ top: 0, behavior: "smooth" });
+
+  // Re-render charts that may have been initialized while hidden
+  if (name === "mercado") {
+    requestAnimationFrame(() => {
+      if (state.charts.density) state.charts.density.resize();
+      else renderMarketChart();
+    });
+  }
 }
 function bindTabs() {
   document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => activateTab(t.dataset.tab)));
@@ -721,12 +729,85 @@ function renderAll() {
   renderCharts(sim);
 }
 
+/* ---------- Mercado: gráfico de densidade global ---------- */
+function renderMarketChart() {
+  const ctxEl = document.getElementById("mkt-chart-density");
+  if (!ctxEl) return;
+  if (state.charts.density) state.charts.density.destroy();
+
+  const ctx = ctxEl.getContext("2d");
+  // hab por máquina — quanto MENOR, mais maduro o mercado
+  const data = [
+    { country: "Japão",          hab: 25,    color: "#39e887" },
+    { country: "EUA",            hab: 65,    color: "#3DD9D6" },
+    { country: "Coreia do Sul",  hab: 65,    color: "#3DD9D6" },
+    { country: "China",          hab: 500,   color: "#4B6CE2" },
+    { country: "Brasil",         hab: 2500,  color: "#ffb020" }
+  ];
+
+  state.charts.density = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: data.map(d => d.country),
+      datasets: [{
+        label: "Habitantes por máquina",
+        data: data.map(d => d.hab),
+        backgroundColor: data.map(d => d.color + "DD"),
+        borderColor: data.map(d => d.color),
+        borderWidth: 2,
+        borderRadius: 8
+      }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ` 1 máquina para cada ${ctx.parsed.x.toLocaleString("pt-BR")} habitantes`
+          },
+          backgroundColor: "rgba(7,8,42,0.95)",
+          borderColor: "rgba(139,48,230,0.45)",
+          borderWidth: 1,
+          padding: 12,
+          titleColor: "#eef1ff",
+          bodyColor: "#eef1ff"
+        }
+      },
+      scales: {
+        x: {
+          type: "logarithmic",
+          ticks: {
+            color: "#a7adca",
+            callback: (v) => v.toLocaleString("pt-BR")
+          },
+          grid: { color: "rgba(139,48,230,0.10)" },
+          title: {
+            display: true,
+            text: "habitantes por máquina (escala logarítmica · menor = mais maduro)",
+            color: "#a7adca",
+            font: { size: 11 }
+          }
+        },
+        y: {
+          ticks: { color: "#eef1ff", font: { weight: 600 } },
+          grid: { display: false }
+        }
+      }
+    }
+  });
+}
+
 /* ---------- Init ---------- */
 document.addEventListener("DOMContentLoaded", () => {
   bindTabs();
   bindSliders();
   updateCenarioLabel();
   renderAll();
+  // Render do gráfico de mercado (independente do simulador)
+  renderMarketChart();
 });
 
 /* Expor para debug no console (opcional) */
