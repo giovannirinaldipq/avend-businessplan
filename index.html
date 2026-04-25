@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AVEND — Business Plan: Flywheel de Expansão 60 Meses</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="bg-orbs" aria-hidden="true">
+    <span class="orb orb-1"></span>
+    <span class="orb orb-2"></span>
+    <span class="orb orb-3"></span>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <img class="brand-logo" src="assets/logo-full.png" alt="AVEND" />
+      <div class="brand-text">
+        <div class="brand-title">AVEND</div>
+        <div class="brand-sub">Business Plan · v1.0</div>
+      </div>
+    </div>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="overview" role="tab">Resumo</button>
+      <button class="tab" data-tab="simulador" role="tab">Simulador</button>
+      <button class="tab" data-tab="timeline" role="tab">Expansão</button>
+      <button class="tab" data-tab="modelos" role="tab">Modelos</button>
+    </nav>
+
+    <div class="topbar-right">
+      <span class="pill">Cenário: <strong id="cenario-label">Base (R$ 10.000/máq)</strong></span>
+    </div>
+  </header>
+
+  <main class="stage">
+    <!-- ==================== OVERVIEW ==================== -->
+    <section class="page active" id="overview">
+      <div class="hero">
+        <img class="hero-watermark" src="assets/logo-full.png" alt="" aria-hidden="true" />
+        <div class="hero-eyebrow">Franquia AVEND · Simulador Financeiro</div>
+        <h1 class="hero-title">
+          Quanto sua <span class="grad-text">1ª máquina</span> pode virar<br />
+          em <em>5 anos</em>?
+        </h1>
+        <p class="hero-sub">
+          Ajuste faturamento, reinvestimento e capacidade. Veja payback, escala da frota,
+          lucro mensal e tudo isso com <strong>tributação real</strong> (MEI → Simples → LP).
+        </p>
+        <div class="hero-cta">
+          <button class="btn btn-primary" data-goto="simulador">Abrir Simulador →</button>
+          <button class="btn btn-ghost" data-goto="modelos">Comparar Modelos</button>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <article class="kpi kpi-a">
+          <div class="kpi-icon">⏱</div>
+          <div class="kpi-label">Payback 1ª Máquina</div>
+          <div class="kpi-value" id="kpi-payback">—</div>
+          <div class="kpi-hint">Cenário base · 48 produtos/dia</div>
+        </article>
+        <article class="kpi kpi-b">
+          <div class="kpi-icon">%</div>
+          <div class="kpi-label">Margem Líquida</div>
+          <div class="kpi-value" id="kpi-margem">—</div>
+          <div class="kpi-hint">Sobre o faturamento bruto</div>
+        </article>
+        <article class="kpi kpi-c">
+          <div class="kpi-icon">◎</div>
+          <div class="kpi-label">Frota no Horizonte</div>
+          <div class="kpi-value" id="kpi-maquinas">—</div>
+          <div class="kpi-hint" id="kpi-maq-hint">Após 5 anos</div>
+        </article>
+        <article class="kpi kpi-d">
+          <div class="kpi-icon">$</div>
+          <div class="kpi-label">Lucro Mensal Final</div>
+          <div class="kpi-value" id="kpi-lucro-final">—</div>
+          <div class="kpi-hint" id="kpi-lucro-hint">Mês 60 · frota completa</div>
+        </article>
+      </div>
+
+      <div class="regime-hint" id="kpi-regime-hint">—</div>
+
+      <!-- ===== Unit Economics breakdown ===== -->
+      <div class="unit-econ card">
+        <div class="unit-econ-head">
+          <h3 class="card-title">Como cada real de faturamento vira lucro</h3>
+          <p class="card-sub">Decomposição do faturamento mensal médio por máquina no cenário atual</p>
+        </div>
+        <div class="unit-econ-bar" id="unit-econ-bar" aria-hidden="true"></div>
+        <div class="unit-econ-grid" id="unit-econ-grid">
+          <!-- preenchido via JS -->
+        </div>
+      </div>
+
+      <div class="stat-strip">
+        <div class="stat">
+          <div class="stat-val" id="strip-invest">R$ 55.000</div>
+          <div class="stat-lbl">Investimento inicial · 1ª máquina + franquia</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="strip-capex">—</div>
+          <div class="stat-lbl">CAPEX por máquina adicional (tudo incluído)</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="strip-lucro-cumul">—</div>
+          <div class="stat-lbl">Lucro líquido acumulado · horizonte total</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="strip-prolabore">—</div>
+          <div class="stat-lbl">Pró-labore acumulado · Fase 2 ativa</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SIMULADOR ==================== -->
+    <section class="page" id="simulador">
+      <div class="section-head">
+        <h2 class="section-title">Simulador de Escala <span class="grad-text" id="sim-title-horizonte">60 Meses</span></h2>
+        <p class="section-sub">
+          Ajuste as variáveis e veja o efeito bola-de-neve do reinvestimento.
+        </p>
+      </div>
+
+      <div class="sim-grid">
+        <!-- Controls -->
+        <aside class="controls card">
+          <h3 class="card-title">Variáveis do Cenário</h3>
+
+          <div class="control">
+            <label for="input_faturamento_maq">
+              Faturamento Médio / Máquina
+              <span class="ctl-unit">R$ / mês</span>
+            </label>
+            <div class="slider-row">
+              <input type="range" id="input_faturamento_maq" min="5000" max="30000" step="500" value="10000" />
+              <output id="out_faturamento_maq">R$ 10.000</output>
+            </div>
+          </div>
+
+          <div class="ctl-group">
+            <div class="ctl-group-title">🚀 Fase 1 — Reinvestimento agressivo</div>
+
+            <div class="control">
+              <label for="input_reinvest_fase1">
+                % do Lucro Reinvestido
+                <span class="ctl-unit">%</span>
+              </label>
+              <div class="slider-row">
+                <input type="range" id="input_reinvest_fase1" min="50" max="100" step="5" value="100" />
+                <output id="out_reinvest_fase1">100%</output>
+              </div>
+            </div>
+
+            <div class="control">
+              <label for="input_duracao_fase1">
+                Duração da Fase 1
+                <span class="ctl-unit">anos</span>
+              </label>
+              <div class="slider-row">
+                <input type="range" id="input_duracao_fase1" min="12" max="120" step="12" value="36" />
+                <output id="out_duracao_fase1">3 anos</output>
+              </div>
+            </div>
+          </div>
+
+          <div class="ctl-group">
+            <div class="ctl-group-title">💰 Fase 2 — Pró-labore + escala</div>
+
+            <div class="control">
+              <label for="input_reinvest_fase2">
+                % do Lucro Reinvestido
+                <span class="ctl-unit">%</span>
+              </label>
+              <div class="slider-row">
+                <input type="range" id="input_reinvest_fase2" min="0" max="100" step="5" value="50" />
+                <output id="out_reinvest_fase2">50%</output>
+              </div>
+            </div>
+          </div>
+
+          <div class="ctl-group">
+            <div class="ctl-group-title">⚙️ Operação</div>
+
+            <div class="control">
+              <label for="input_reserva_capital">
+                Reserva de Capital por Máquina
+                <span class="ctl-unit">R$</span>
+              </label>
+              <div class="slider-row">
+                <input type="range" id="input_reserva_capital" min="2000" max="10000" step="500" value="5000" />
+                <output id="out_reserva_capital">R$ 5.000</output>
+              </div>
+            </div>
+
+            <div class="control">
+              <label for="input_capacidade_implantacao">
+                Capacidade de Implantação
+                <span class="ctl-unit">máq / mês</span>
+              </label>
+              <div class="slider-row">
+                <input type="range" id="input_capacidade_implantacao" min="1" max="5" step="1" value="2" />
+                <output id="out_capacidade_implantacao">2/mês</output>
+              </div>
+            </div>
+
+            <div class="control">
+              <label for="input_horizonte">
+                Horizonte da Projeção
+                <span class="ctl-unit">anos</span>
+              </label>
+              <div class="slider-row">
+                <input type="range" id="input_horizonte" min="36" max="120" step="12" value="60" />
+                <output id="out_horizonte">5 anos</output>
+              </div>
+            </div>
+          </div>
+
+          <div class="presets">
+            <button class="chip" data-preset="conservador">Conservador</button>
+            <button class="chip" data-preset="base">Base</button>
+            <button class="chip" data-preset="otimista">Otimista</button>
+            <button class="chip chip-turbo" data-preset="turbo">Turbo ⚡</button>
+          </div>
+
+          <div class="formula-info">
+            <details>
+              <summary>Estrutura de custos (modelo realista)</summary>
+              <strong>Variáveis (% do faturamento):</strong>
+              <ul>
+                <li>CMV: 40%</li>
+                <li>Aluguel do ponto: 5%</li>
+                <li>Royalties: 5%</li>
+                <li>Taxa de cartões: 1,45%</li>
+                <li>Operacional de rota: 3%</li>
+                <li>Perdas/vandalismo: 1%</li>
+              </ul>
+              <strong>Fixos por máquina (R$/mês):</strong>
+              <ul>
+                <li>Fundo Nacional de Propaganda: R$ 100</li>
+                <li>Sistema de Gestão: R$ 95</li>
+                <li>Manutenção/Suporte: R$ 100</li>
+              </ul>
+              <strong>Imposto dinâmico:</strong>
+              <ul>
+                <li>MEI até R$ 130k/ano → R$ 85/mês fixo</li>
+                <li>Acima: Simples Nacional Anexo I (4–19% efetiva)</li>
+              </ul>
+              <strong>Operação escalável:</strong>
+              <ul>
+                <li>Abastecedor CLT: R$ 4.000/mês a cada 10 máquinas</li>
+                <li>Contratação a partir da 6ª máquina</li>
+              </ul>
+              <strong>CAPEX por nova máquina:</strong>
+              <ul>
+                <li>Máquina adicional: R$ 35.000</li>
+                <li>Reserva capital: configurável (R$ 5.000 default)</li>
+                <li>Frete + instalação: R$ 2.000</li>
+                <li>Abastecimento inicial: R$ 1.500</li>
+              </ul>
+            </details>
+          </div>
+        </aside>
+
+        <!-- Outputs -->
+        <div class="sim-outputs">
+          <div class="kpi-row">
+            <div class="mini-kpi">
+              <span class="mini-lbl">Lucro / Máquina / mês</span>
+              <span class="mini-val" id="mini-lucro-maq">—</span>
+            </div>
+            <div class="mini-kpi">
+              <span class="mini-lbl">Custo nova máquina</span>
+              <span class="mini-val" id="mini-custo-nova">—</span>
+            </div>
+            <div class="mini-kpi">
+              <span class="mini-lbl">Frota final</span>
+              <span class="mini-val" id="mini-frota-final">—</span>
+            </div>
+            <div class="mini-kpi">
+              <span class="mini-lbl">Lucro mensal final</span>
+              <span class="mini-val" id="mini-lucro-final">—</span>
+            </div>
+            <div class="mini-kpi mini-kpi-hl">
+              <span class="mini-lbl">Pró-labore total</span>
+              <span class="mini-val" id="mini-prolabore">—</span>
+            </div>
+          </div>
+
+          <div class="card chart-card">
+            <h3 class="card-title">Crescimento da Frota AVEND</h3>
+            <div class="chart-wrap"><canvas id="chart-frota"></canvas></div>
+          </div>
+
+          <div class="card chart-card">
+            <h3 class="card-title">Faturamento e Lucro Mensal Total</h3>
+            <div class="chart-wrap"><canvas id="chart-financeiro"></canvas></div>
+          </div>
+
+          <div class="card chart-card">
+            <h3 class="card-title">Caixa para Reinvestimento</h3>
+            <div class="chart-wrap"><canvas id="chart-caixa"></canvas></div>
+          </div>
+
+          <div class="card table-card">
+            <h3 class="card-title">Evolução Detalhada · 60 Meses</h3>
+            <div class="table-scroll">
+              <table class="sim-table">
+                <thead>
+                  <tr>
+                    <th>Mês</th>
+                    <th>Fase</th>
+                    <th>Máq.</th>
+                    <th>Faturamento</th>
+                    <th>Imposto</th>
+                    <th>Lucro Líq.</th>
+                    <th>Reinv. / Pró-lab.</th>
+                    <th>Caixa Exp.</th>
+                    <th>Evento</th>
+                  </tr>
+                </thead>
+                <tbody id="sim-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TIMELINE ==================== -->
+    <section class="page" id="timeline">
+      <div class="section-head">
+        <h2 class="section-title">Linha do Tempo da <span class="grad-text">Expansão</span></h2>
+        <p class="section-sub">
+          Marcos de crescimento ao longo dos 60 meses — com base no cenário atual do simulador.
+        </p>
+      </div>
+
+      <div class="timeline" id="timeline-list"></div>
+    </section>
+
+    <!-- ==================== MODELOS ==================== -->
+    <section class="page" id="modelos">
+      <div class="section-head">
+        <h2 class="section-title">Comparativo de <span class="grad-text">Modelos de Aquisição</span></h2>
+        <p class="section-sub">
+          Analise as opções e encontre o caminho ideal para sua expansão.
+        </p>
+      </div>
+
+      <div class="models-note">
+        <span>Valores recalculados dinamicamente a partir do cenário selecionado no simulador.</span>
+      </div>
+
+      <div class="models-grid">
+        <article class="model-card model-1">
+          <div class="model-badge">Entrada</div>
+          <h3>Comprar 1ª Máquina</h3>
+          <div class="model-price" id="cmp-m1-invest">—</div>
+          <ul class="model-features">
+            <li><span class="tick">✓</span> Franquia + 1ª máquina incluídas</li>
+            <li><span class="tick">✓</span> Propriedade total do equipamento</li>
+            <li><span class="tick">✓</span> Payback: <strong id="cmp-m1-payback">—</strong></li>
+            <li><span class="tick">✓</span> Lucro líquido: <strong id="cmp-m1-lucro">—</strong>/mês</li>
+            <li><span class="tick">✓</span> Regime: <strong id="cmp-m1-regime">—</strong></li>
+          </ul>
+          <div class="model-note">Ideal para iniciar e validar o modelo.</div>
+        </article>
+
+        <article class="model-card model-2 highlight">
+          <div class="model-badge">Acelerar</div>
+          <h3>Comprar 2ª Máquina</h3>
+          <div class="model-price" id="cmp-m2-invest">—</div>
+          <ul class="model-features">
+            <li><span class="tick">✓</span> Sem nova taxa de franquia</li>
+            <li><span class="tick">✓</span> Payback: <strong id="cmp-m2-payback">—</strong></li>
+            <li><span class="tick">✓</span> Lucro combinado: <strong id="cmp-m2-lucro">—</strong>/mês</li>
+            <li><span class="tick">✓</span> Regime: <strong id="cmp-m2-regime">—</strong></li>
+          </ul>
+          <div class="model-note">Flywheel ativado — reinvestimento dos lucros da 1ª.</div>
+        </article>
+
+        <article class="model-card model-3">
+          <div class="model-badge selected">Franqueados selecionados</div>
+          <h3>Aluguel com Abatimento</h3>
+          <div class="model-price">Consulte condições</div>
+          <ul class="model-features">
+            <li><span class="tick">✓</span> <strong>CAPEX inicial reduzido</strong> — opere antes de comprar</li>
+            <li><span class="tick">✓</span> 1º ano: opção de compra com <strong>abatimento de ~R$ 22k</strong></li>
+            <li><span class="tick">✓</span> 2º ano: opção de compra com <strong>abatimento de ~R$ 18k</strong></li>
+            <li><span class="tick">✓</span> Flexibilidade de saída durante a locação</li>
+            <li><span class="tick">✓</span> Modelo ideal para <strong>perfis de operação validados</strong></li>
+          </ul>
+          <div class="model-note">
+            Modalidade <strong>exclusiva</strong> — não disponível para todos os perfis.
+            Acesso sujeito à análise AVEND de histórico, perfil do franqueado e qualidade do ponto.
+          </div>
+        </article>
+      </div>
+
+      <div class="compare-table card">
+        <h3 class="card-title">Comparativo rápido</h3>
+        <table class="cmp-table">
+          <thead>
+            <tr>
+              <th>KPI</th>
+              <th>1ª Máquina</th>
+              <th>2ª Máquina</th>
+              <th>Aluguel</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Investimento</td><td id="cmp-tab-invest-1">—</td><td id="cmp-tab-invest-2">—</td><td>—</td></tr>
+            <tr><td>Payback estimado</td><td id="cmp-tab-payback-1">—</td><td id="cmp-tab-payback-2">—</td><td>—</td></tr>
+            <tr><td>Lucro líquido/mês</td><td id="cmp-tab-lucro-1">—</td><td id="cmp-tab-lucro-2">—</td><td>—</td></tr>
+            <tr><td>Margem líquida</td><td id="cmp-tab-margem-1">—</td><td id="cmp-tab-margem-2">—</td><td>—</td></tr>
+            <tr><td>Regime tributário</td><td id="cmp-tab-regime-1">—</td><td id="cmp-tab-regime-2">—</td><td>—</td></tr>
+            <tr><td>Propriedade</td><td>Sim</td><td>Sim</td><td>Não</td></tr>
+            <tr><td>Flexibilidade</td><td>Média</td><td>Alta</td><td>Alta</td></tr>
+            <tr><td>Potencial de escala</td><td>★★★</td><td>★★★★★</td><td>★★</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <span>© 2026 AVEND Franchising · Business Plan Interativo</span>
+    <span class="footer-ver">v1.0 · Cenário oficial do Deck</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
