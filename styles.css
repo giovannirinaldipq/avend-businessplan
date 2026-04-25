@@ -1236,3 +1236,300 @@ input[type="range"]::-moz-range-thumb {
   .gallery-grid { grid-template-columns: 1fr; grid-auto-rows: 200px; }
   .gal-card.gal-wide { grid-column: span 1; }
 }
+
+/* ---------- Nossa Rede ---------- */
+.rede-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 22px 24px;
+  position: relative;
+}
+.rede-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, rgba(61,217,214,0.08), rgba(139,48,230,0.10));
+  border: 1px solid rgba(139,48,230,0.22);
+  border-radius: 14px;
+}
+.rede-stat-val {
+  font-size: 28px;
+  font-weight: 700;
+  background: linear-gradient(90deg, var(--accent-c), var(--accent-b), var(--accent-a));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.5px;
+}
+.rede-stat-lbl {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+}
+.rede-stats-hint {
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.rede-stats-hint code {
+  background: rgba(139,48,230,0.18);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 11px;
+  color: var(--accent-a);
+}
+
+.rede-block {
+  margin-top: 22px;
+  padding: 22px 24px;
+}
+.rede-block-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.rede-block-icon {
+  font-size: 24px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(61,217,214,0.18), rgba(139,48,230,0.22));
+  border: 1px solid rgba(139,48,230,0.30);
+}
+.rede-block-sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.rede-upload-hint {
+  margin: 16px 0 0;
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.rede-upload-hint code {
+  background: rgba(139,48,230,0.18);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 11px;
+  color: var(--accent-a);
+}
+
+/* Depoimentos */
+.depo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.depo-card {
+  padding: 20px 22px;
+  background: rgba(13,14,54,0.55);
+  border: 1px solid rgba(139,48,230,0.20);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  transition: transform 0.25s ease, border-color 0.25s ease;
+}
+.depo-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(61,217,214,0.45);
+}
+.depo-quote {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-main);
+  font-style: italic;
+}
+.depo-quote span { color: var(--text-dim); }
+.depo-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+}
+.depo-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent-c), var(--accent-a));
+  color: #fff;
+  font-size: 14px;
+}
+.depo-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.depo-role {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* Galeria */
+.foto-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.foto-card {
+  margin: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(139,48,230,0.22);
+  background: rgba(13,14,54,0.55);
+  transition: transform 0.25s ease, border-color 0.25s ease;
+}
+.foto-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(61,217,214,0.45);
+}
+.foto-placeholder {
+  aspect-ratio: 4 / 3;
+  display: grid;
+  place-items: center;
+  font-size: 48px;
+  background:
+    linear-gradient(135deg, rgba(61,217,214,0.10), rgba(139,48,230,0.15)),
+    radial-gradient(circle at 30% 20%, rgba(75,108,226,0.18), transparent 60%);
+  opacity: 0.85;
+}
+.foto-card[data-foto] .foto-placeholder {
+  /* Hook: set background-image inline or via CSS if assets/rede/<slug>.jpg exists */
+}
+.foto-card figcaption {
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: center;
+  border-top: 1px solid rgba(139,48,230,0.18);
+}
+
+/* Vídeos */
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.video-card {
+  display: flex;
+  gap: 14px;
+  align-items: stretch;
+  padding: 14px;
+  background: rgba(13,14,54,0.55);
+  border: 1px solid rgba(139,48,230,0.22);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 0.25s ease, border-color 0.25s ease;
+}
+.video-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(61,217,214,0.45);
+}
+.video-thumb {
+  width: 110px;
+  min-height: 70px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  color: #fff;
+  background:
+    linear-gradient(135deg, rgba(61,217,214,0.25), rgba(139,48,230,0.35)),
+    radial-gradient(circle at 30% 30%, rgba(75,108,226,0.45), transparent 65%);
+  border: 1px solid rgba(139,48,230,0.35);
+  flex-shrink: 0;
+}
+.video-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+.video-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.video-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* CTA final */
+.rede-cta {
+  margin-top: 22px;
+  padding: 26px 28px;
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 24px;
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(61,217,214,0.08), rgba(139,48,230,0.12)),
+    rgba(13,14,54,0.70);
+  border: 1px solid rgba(139,48,230,0.30);
+}
+.rede-cta-text p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.55;
+  max-width: 560px;
+}
+.rede-cta-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+}
+.rede-cta-actions .btn {
+  text-align: center;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.rede-cta-actions .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(139,48,230,0.35);
+}
+.btn-primary {
+  background: linear-gradient(90deg, var(--accent-c), var(--accent-b), var(--accent-a));
+  color: #fff;
+  border: none;
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid rgba(139,48,230,0.45);
+}
+
+@media (max-width: 1100px) {
+  .rede-stats { grid-template-columns: repeat(2, 1fr); }
+  .depo-grid { grid-template-columns: repeat(2, 1fr); }
+  .foto-grid { grid-template-columns: repeat(2, 1fr); }
+  .rede-cta { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .rede-stats { grid-template-columns: 1fr 1fr; }
+  .depo-grid,
+  .foto-grid,
+  .video-grid { grid-template-columns: 1fr; }
+  .rede-stat-val { font-size: 24px; }
+}
