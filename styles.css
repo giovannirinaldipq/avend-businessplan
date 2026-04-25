@@ -109,71 +109,108 @@ h1, h2, h3, h4 { margin: 0; letter-spacing: -0.015em; font-weight: 700; }
 }
 
 /* ============================================================
-   Top bar
+   Top bar — minimal, sticky, glassmorphic
+   Inspiração: Linear, Vercel, Stripe, Notion
    ============================================================ */
 .topbar {
   position: sticky;
   top: 0;
-  z-index: 10;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 24px;
-  padding: 14px 28px;
-  background: rgba(8, 10, 28, 0.72);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  border-bottom: 1px solid var(--border);
-}
-
-.brand { display: flex; align-items: center; gap: 12px; }
-.brand-logo {
-  width: 44px; height: 44px;
-  object-fit: contain;
-  filter: drop-shadow(0 6px 16px rgba(139, 48, 230, 0.45));
-  transition: transform 0.3s ease;
-}
-.brand-logo:hover { transform: scale(1.06) rotate(-3deg); }
-.brand-title { font-weight: 800; letter-spacing: 0.1em; }
-.brand-sub { font-size: 11px; color: var(--text-mute); letter-spacing: 0.08em; text-transform: uppercase; }
-
-.tabs {
+  z-index: 20;
   display: flex;
-  gap: 4px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-.tab {
-  background: transparent;
-  color: var(--text-dim);
-  border: 1px solid transparent;
-  padding: 9px 16px;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.22s ease;
-}
-.tab:hover { color: var(--text); background: var(--surface); }
-.tab.active {
-  color: #0a0d24;
-  background: var(--grad-primary);
-  font-weight: 700;
-  box-shadow: 0 6px 20px rgba(139, 48, 230, 0.35);
+  align-items: center;
+  gap: 32px;
+  padding: 12px 32px;
+  background: rgba(7, 8, 42, 0.72);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid rgba(139, 48, 230, 0.18);
 }
 
-.topbar-right { justify-self: end; }
-.pill {
+/* Marca: logo + nome em 1 linha. Clicável → volta ao Resumo */
+.brand {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-size: 12px;
-  color: var(--text-dim);
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
 }
-.pill strong { color: var(--text); font-weight: 600; }
+.brand:hover { opacity: 0.92; }
+.brand-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(139, 48, 230, 0.45));
+  transition: transform 0.3s ease;
+}
+.brand:hover .brand-logo { transform: rotate(-4deg) scale(1.05); }
+.brand-title {
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  background: var(--grad-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Nav central — underline gradient no active (estilo Stripe/Linear) */
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  justify-content: center;
+}
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  position: relative;
+  background: transparent;
+  color: var(--text-dim);
+  border: 0;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.18s ease, background 0.18s ease;
+}
+.tab::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: -2px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--grad-primary);
+  opacity: 0;
+  transform: scaleX(0.4);
+  transform-origin: center;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.tab:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+}
+.tab.active {
+  color: var(--text);
+  font-weight: 600;
+  background: rgba(139, 48, 230, 0.10);
+}
+.tab.active::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
 
 /* ============================================================
    Stage + pages
@@ -945,15 +982,22 @@ input[type="range"]::-moz-range-thumb {
   .models-grid { grid-template-columns: 1fr; }
 }
 
+@media (max-width: 1100px) {
+  .topbar { padding: 10px 20px; gap: 20px; }
+  .tabs { justify-content: flex-start; }
+  .tab { padding: 8px 12px; font-size: 13px; }
+}
+
 @media (max-width: 720px) {
   .topbar {
-    grid-template-columns: 1fr;
+    padding: 10px 14px;
     gap: 12px;
-    padding: 12px 16px;
   }
-  .tabs { justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; }
-  .tab { white-space: nowrap; }
-  .topbar-right { justify-self: start; }
+  .brand-title { display: none; }
+  .brand-logo { width: 32px; height: 32px; }
+  .tabs { justify-content: flex-start; gap: 0; }
+  .tab { padding: 7px 10px; font-size: 12.5px; }
+  .tab::after { left: 10px; right: 10px; }
 
   .stage { padding: 20px 16px 60px; }
   .hero-title { font-size: 34px; }
@@ -2399,56 +2443,198 @@ input[type="range"]::-moz-range-thumb {
 }
 .mkt-why-card p strong { color: var(--text); }
 
-/* SOURCES BLOCK */
+/* ============================================================
+   SOURCES BLOCK — research-style cards (inspirado em Statista,
+   Grand View, Bloomberg research pages)
+   ============================================================ */
 .mkt-sources-block {
-  background: rgba(7,8,42,0.45);
+  background: rgba(7,8,42,0.55);
+  border-color: rgba(139,48,230,0.28);
 }
-.mkt-sources-grid {
+
+/* Strip de metadados no topo */
+.src-meta-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  background: linear-gradient(90deg, rgba(61,217,214,0.06), rgba(139,48,230,0.08));
+  border: 1px solid rgba(139,48,230,0.22);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 22px;
+}
+.src-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 16px;
+  border-left: 1px solid rgba(139,48,230,0.18);
+}
+.src-meta:first-child { border-left: 0; padding-left: 0; }
+.src-meta-num {
+  font-size: 22px;
+  font-weight: 800;
+  background: var(--grad-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.3px;
+  line-height: 1;
+}
+.src-meta-lbl {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.3px;
+}
+
+/* Grid de categorias */
+.src-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 18px 28px;
+  gap: 16px;
   margin-bottom: 18px;
 }
-.mkt-source-cat h5 {
-  margin: 0 0 10px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--accent-cyan);
-  text-transform: uppercase;
-  letter-spacing: 1.2px;
+
+/* Card de categoria */
+.src-cat {
+  background: rgba(13,14,54,0.55);
+  border: 1px solid rgba(139,48,230,0.22);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s ease, transform 0.2s ease;
 }
-.mkt-source-cat ul {
+.src-cat:hover {
+  border-color: rgba(61,217,214,0.40);
+  transform: translateY(-1px);
+}
+
+/* Header colorido por categoria */
+.src-cat-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(139,48,230,0.18);
+  background: linear-gradient(135deg, rgba(13,14,54,0.85), rgba(7,8,42,0.65));
+}
+.src-cat-icon {
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.src-cat-title {
   margin: 0;
-  padding: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.1px;
+}
+.src-cat-count {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+}
+
+/* Tints por categoria */
+.src-cat-a { box-shadow: inset 3px 0 0 var(--accent-cyan); }
+.src-cat-a .src-cat-count { color: var(--accent-cyan); }
+.src-cat-b { box-shadow: inset 3px 0 0 var(--accent-d); }
+.src-cat-b .src-cat-count { color: var(--accent-d); }
+.src-cat-c { box-shadow: inset 3px 0 0 var(--accent-e); }
+.src-cat-c .src-cat-count { color: var(--accent-e); }
+.src-cat-d { box-shadow: inset 3px 0 0 var(--accent-purple); }
+.src-cat-d .src-cat-count { color: var(--accent-purple); }
+
+/* Lista de fontes */
+.src-list {
+  margin: 0;
+  padding: 6px;
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
-.mkt-source-cat li {
-  font-size: 12px;
-  line-height: 1.45;
-}
-.mkt-source-cat a {
-  color: var(--text-dim);
+.src-item a {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 2px 10px;
+  padding: 10px 12px;
   text-decoration: none;
-  border-bottom: 1px dashed rgba(139,48,230,0.30);
-  transition: color 0.2s ease, border-color 0.2s ease;
+  border-radius: 8px;
+  transition: background 0.18s ease;
 }
-.mkt-source-cat a:hover {
+.src-item a:hover {
+  background: rgba(139,48,230,0.10);
+}
+.src-item-veiculo {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
   color: var(--accent-cyan);
-  border-bottom-color: var(--accent-cyan);
 }
+.src-item-titulo {
+  grid-column: 1;
+  grid-row: 2;
+  font-size: 12.5px;
+  color: var(--text);
+  line-height: 1.4;
+}
+.src-item-arrow {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  align-self: center;
+  font-size: 14px;
+  color: var(--text-mute);
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+.src-item a:hover .src-item-arrow {
+  color: var(--accent-cyan);
+  transform: translate(2px, -2px);
+}
+
+/* Tints do veículo por categoria */
+.src-cat-a .src-item-veiculo { color: var(--accent-cyan); }
+.src-cat-b .src-item-veiculo { color: var(--accent-d); }
+.src-cat-c .src-item-veiculo { color: var(--accent-e); }
+.src-cat-d .src-item-veiculo { color: var(--accent-purple); }
+
+/* Nota metodológica final */
 .mkt-sources-note {
   margin: 8px 0 0;
-  padding: 12px 14px;
-  font-size: 11.5px;
-  font-style: italic;
+  padding: 14px 16px;
+  font-size: 12px;
   color: var(--text-dim);
   background: rgba(139,48,230,0.06);
-  border-left: 3px solid rgba(139,48,230,0.40);
-  border-radius: 4px;
-  line-height: 1.5;
+  border: 1px solid rgba(139,48,230,0.22);
+  border-left: 3px solid var(--accent-purple);
+  border-radius: 6px;
+  line-height: 1.55;
+}
+.mkt-sources-note strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* Responsive sources */
+@media (max-width: 1100px) {
+  .src-meta-strip { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .src-meta { border-left: 0; padding-left: 0; padding-right: 0; }
+  .src-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .src-meta-strip { grid-template-columns: 1fr 1fr; padding: 12px; }
+  .src-meta-num { font-size: 18px; }
+  .src-cat-head { padding: 12px 14px; }
+  .src-item a { padding: 9px 10px; }
 }
 
 /* RESPONSIVE */

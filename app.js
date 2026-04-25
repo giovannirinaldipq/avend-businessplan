@@ -358,6 +358,7 @@ function syncInputsFromState() {
 
 function updateCenarioLabel() {
   const label = document.getElementById("cenario-label");
+  if (!label) return; // header foi enxugado — pill removido
   const v = state.faturamentoPorMaquina;
   let nome = "Customizado";
   if (v === 10000) nome = "Base";

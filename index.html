@@ -39,28 +39,21 @@
   </div>
 
   <header class="topbar">
-    <div class="brand">
+    <a class="brand" href="#" data-goto="overview" aria-label="AVEND — voltar ao Resumo">
       <img class="brand-logo" src="assets/logo-full.png" alt="AVEND" />
-      <div class="brand-text">
-        <div class="brand-title">AVEND</div>
-        <div class="brand-sub">Business Plan · v1.0</div>
-      </div>
-    </div>
+      <span class="brand-title">AVEND</span>
+    </a>
 
-    <nav class="tabs" role="tablist">
+    <nav class="tabs" role="tablist" aria-label="Seções do plano">
       <button class="tab active" data-tab="overview" role="tab">Resumo</button>
       <button class="tab" data-tab="simulador" role="tab">Simulador</button>
       <button class="tab" data-tab="timeline" role="tab">Expansão</button>
       <button class="tab" data-tab="modelos" role="tab">Modelos</button>
-      <button class="tab" data-tab="recebe" role="tab">O que você recebe</button>
+      <button class="tab" data-tab="recebe" role="tab">O&nbsp;que&nbsp;você&nbsp;recebe</button>
       <button class="tab" data-tab="mercado" role="tab">Mercado</button>
-      <button class="tab" data-tab="rede" role="tab">Nossa Rede</button>
+      <button class="tab" data-tab="rede" role="tab">Nossa&nbsp;Rede</button>
       <button class="tab" data-tab="faq" role="tab">Dúvidas</button>
     </nav>
-
-    <div class="topbar-right">
-      <span class="pill">Cenário: <strong id="cenario-label">Base (R$ 10.000/máq)</strong></span>
-    </div>
   </header>
 
   <main class="stage">
@@ -1052,60 +1045,218 @@
           <div>
             <h3 class="card-title">Fontes e metodologia</h3>
             <p class="mkt-block-sub">
-              Os dados desta página foram compilados de relatórios públicos de pesquisa de mercado,
-              órgãos oficiais e associações setoriais. Convidamos o investidor a checar a base.
+              Todos os dados desta página vêm de relatórios públicos, órgãos oficiais e
+              associações setoriais — clique em qualquer item para validar a fonte primária.
             </p>
           </div>
         </header>
 
-        <div class="mkt-sources-grid">
-          <div class="mkt-source-cat">
-            <h5>Densidade global e mercado mundial</h5>
-            <ul>
-              <li><a href="https://www.statista.com/statistics/815611/japan-vending-machine-numbers/" target="_blank" rel="noopener">Statista — Japan vending machine numbers (2023)</a></li>
-              <li><a href="https://eathealthy365.com/japan-s-vending-machine-empire-a-2025-deep-dive/" target="_blank" rel="noopener">Japan's Vending Machine Empire — 2025 Deep Dive</a></li>
-              <li><a href="https://www.grandviewresearch.com/horizon/outlook/retail-vending-machine-market/south-korea" target="_blank" rel="noopener">Grand View Research — South Korea Retail Vending Market</a></li>
-              <li><a href="https://www.grandviewresearch.com/horizon/outlook/retail-vending-machine-market/china" target="_blank" rel="noopener">Grand View Research — China Retail Vending Market</a></li>
-              <li><a href="https://www.thebusinessresearchcompany.com/report/vending-machine-global-market-report" target="_blank" rel="noopener">Business Research Company — Global Vending Market 2030</a></li>
-              <li><a href="https://www.bonafideresearch.com/product/250215771/global-vending-machine-market" target="_blank" rel="noopener">Bonafide Research — Global Vending Outlook 2030</a></li>
-            </ul>
+        <div class="src-meta-strip">
+          <div class="src-meta">
+            <span class="src-meta-num">18</span>
+            <span class="src-meta-lbl">fontes consultadas</span>
           </div>
-
-          <div class="mkt-source-cat">
-            <h5>Mercado brasileiro de vending</h5>
-            <ul>
-              <li><a href="https://abvm.ind.br/" target="_blank" rel="noopener">ABVM — Associação Brasileira de Vending Machines</a></li>
-              <li><a href="https://www.qab.com.br/post/cenario-do-mercado-de-vending-machines-2020-2024" target="_blank" rel="noopener">QAB Vending — Cenário do Mercado 2020–2024</a></li>
-              <li><a href="https://blog.balcaourbano.com.br/2023/08/17/entendendo-a-tendencia-das-vending-machines-no-brasil-e-no-mundo-um-panorama-aprofundado/" target="_blank" rel="noopener">Balcão Urbano — Tendência Vending Brasil/Mundo</a></li>
-              <li><a href="https://mapadasfranquias.com.br/noticia/suprindo-pequenas-demandas-mercado-de-vending-machines-cresce-no-brasil-ano-a-ano" target="_blank" rel="noopener">Mapa das Franquias — Crescimento de vending no Brasil</a></li>
-              <li><a href="https://revistafae.fae.edu/revistafae/article/download/403/287" target="_blank" rel="noopener">Revista FAE — Análise do mercado brasileiro</a></li>
-            </ul>
+          <div class="src-meta">
+            <span class="src-meta-num">4</span>
+            <span class="src-meta-lbl">categorias temáticas</span>
           </div>
-
-          <div class="mkt-source-cat">
-            <h5>Mão de obra e custo trabalhista</h5>
-            <ul>
-              <li><a href="https://portaldocomercio.org.br/acoes-institucionais/escassez-de-mao-de-obra-no-comercio-e-a-maior-dos-ultimos-cinco-anos/" target="_blank" rel="noopener">CNC / Portal do Comércio — Escassez recorde de mão de obra (jul/2025)</a></li>
-              <li><a href="https://ces.ibge.gov.br/base-de-dados/metadados/mte/cadastro-geral-de-empregados-e-desempregados-caged.html" target="_blank" rel="noopener">IBGE / CAGED — Base de dados de admissões e demissões</a></li>
-              <li><a href="https://www.noticiasaominuto.com.br/economia/2354351/salario-de-admissao-bate-recorde-com-apagao-de-mao-de-obra-e-alta-do-minimo" target="_blank" rel="noopener">Notícias ao Minuto — Salário de admissão bate recorde</a></li>
-              <li><a href="https://contaja.com.br/blog/quanto-custa-um-funcionario-para-empresa/" target="_blank" rel="noopener">Contaja — Encargos CLT e custo total do empregado</a></li>
-            </ul>
+          <div class="src-meta">
+            <span class="src-meta-num">2020–25</span>
+            <span class="src-meta-lbl">período de referência</span>
           </div>
-
-          <div class="mkt-source-cat">
-            <h5>Automação de varejo e tendências</h5>
-            <ul>
-              <li><a href="https://www.grandviewresearch.com/horizon/outlook/retail-automation-market/brazil" target="_blank" rel="noopener">Grand View Research — Brazil Retail Automation Market</a></li>
-              <li><a href="https://www.fortunebusinessinsights.com/retail-automation-market-110514" target="_blank" rel="noopener">Fortune Business Insights — Retail Automation Global</a></li>
-              <li><a href="https://www.fortunebusinessinsights.com/self-checkout-system-market-106779" target="_blank" rel="noopener">Fortune Business Insights — Self-Checkout System Market</a></li>
-            </ul>
+          <div class="src-meta">
+            <span class="src-meta-num">100%</span>
+            <span class="src-meta-lbl">de fontes públicas verificáveis</span>
           </div>
         </div>
 
+        <div class="src-grid">
+
+          <!-- Categoria 1: Mercado global -->
+          <article class="src-cat">
+            <header class="src-cat-head src-cat-a">
+              <span class="src-cat-icon" aria-hidden="true">🌐</span>
+              <div>
+                <h5 class="src-cat-title">Mercado global &amp; densidade</h5>
+                <span class="src-cat-count">6 fontes</span>
+              </div>
+            </header>
+            <ul class="src-list">
+              <li class="src-item">
+                <a href="https://www.statista.com/statistics/815611/japan-vending-machine-numbers/" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">Statista</span>
+                  <span class="src-item-titulo">Japan vending machine numbers (2023)</span>
+                  <span class="src-item-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
+              <li class="src-item">
+                <a href="https://eathealthy365.com/japan-s-vending-machine-empire-a-2025-deep-dive/" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">EatHealthy365</span>
+                  <span class="src-item-titulo">Japan's Vending Machine Empire — 2025 Deep Dive</span>
+                  <span class="src-item-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
+              <li class="src-item">
+                <a href="https://www.grandviewresearch.com/horizon/outlook/retail-vending-machine-market/south-korea" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">Grand View Research</span>
+                  <span class="src-item-titulo">South Korea Retail Vending Market</span>
+                  <span class="src-item-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
+              <li class="src-item">
+                <a href="https://www.grandviewresearch.com/horizon/outlook/retail-vending-machine-market/china" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">Grand View Research</span>
+                  <span class="src-item-titulo">China Retail Vending Market</span>
+                  <span class="src-item-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
+              <li class="src-item">
+                <a href="https://www.thebusinessresearchcompany.com/report/vending-machine-global-market-report" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">Business Research Company</span>
+                  <span class="src-item-titulo">Global Vending Market Report 2030</span>
+                  <span class="src-item-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
+              <li class="src-item">
+                <a href="https://www.bonafideresearch.com/product/250215771/global-vending-machine-market" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">Bonafide Research</span>
+                  <span class="src-item-titulo">Global Vending Outlook 2030</span>
+                  <span class="src-item-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
+            </ul>
+          </article>
+
+          <!-- Categoria 2: Mercado brasileiro -->
+          <article class="src-cat">
+            <header class="src-cat-head src-cat-b">
+              <span class="src-cat-icon" aria-hidden="true">🇧🇷</span>
+              <div>
+                <h5 class="src-cat-title">Mercado brasileiro de vending</h5>
+                <span class="src-cat-count">5 fontes</span>
+              </div>
+            </header>
+            <ul class="src-list">
+              <li class="src-item">
+                <a href="https://abvm.ind.br/" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">ABVM</span>
+                  <span class="src-item-titulo">Associação Brasileira de Vending Machines (oficial do setor)</span>
+                  <span class="src-item-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
+              <li class="src-item">
+                <a href="https://www.qab.com.br/post/cenario-do-mercado-de-vending-machines-2020-2024" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">QAB Vending</span>
+                  <span class="src-item-titulo">Cenário do Mercado 2020–2024</span>
+                  <span class="src-item-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
+              <li class="src-item">
+                <a href="https://blog.balcaourbano.com.br/2023/08/17/entendendo-a-tendencia-das-vending-machines-no-brasil-e-no-mundo-um-panorama-aprofundado/" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">Balcão Urbano</span>
+                  <span class="src-item-titulo">Tendência Vending Brasil &amp; Mundo</span>
+                  <span class="src-item-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
+              <li class="src-item">
+                <a href="https://mapadasfranquias.com.br/noticia/suprindo-pequenas-demandas-mercado-de-vending-machines-cresce-no-brasil-ano-a-ano" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">Mapa das Franquias</span>
+                  <span class="src-item-titulo">Crescimento de vending no Brasil ano a ano</span>
+                  <span class="src-item-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
+              <li class="src-item">
+                <a href="https://revistafae.fae.edu/revistafae/article/download/403/287" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">Revista FAE (acadêmica)</span>
+                  <span class="src-item-titulo">Análise do mercado brasileiro de vending</span>
+                  <span class="src-item-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
+            </ul>
+          </article>
+
+          <!-- Categoria 3: Mão de obra -->
+          <article class="src-cat">
+            <header class="src-cat-head src-cat-c">
+              <span class="src-cat-icon" aria-hidden="true">⚠️</span>
+              <div>
+                <h5 class="src-cat-title">Mão de obra &amp; custo trabalhista</h5>
+                <span class="src-cat-count">4 fontes</span>
+              </div>
+            </header>
+            <ul class="src-list">
+              <li class="src-item">
+                <a href="https://portaldocomercio.org.br/acoes-institucionais/escassez-de-mao-de-obra-no-comercio-e-a-maior-dos-ultimos-cinco-anos/" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">CNC · Portal do Comércio</span>
+                  <span class="src-item-titulo">Escassez de mão de obra recorde (jul/2025)</span>
+                  <span class="src-item-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
+              <li class="src-item">
+                <a href="https://ces.ibge.gov.br/base-de-dados/metadados/mte/cadastro-geral-de-empregados-e-desempregados-caged.html" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">IBGE · CAGED (oficial)</span>
+                  <span class="src-item-titulo">Base de dados de admissões e demissões</span>
+                  <span class="src-item-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
+              <li class="src-item">
+                <a href="https://www.noticiasaominuto.com.br/economia/2354351/salario-de-admissao-bate-recorde-com-apagao-de-mao-de-obra-e-alta-do-minimo" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">Notícias ao Minuto</span>
+                  <span class="src-item-titulo">Salário de admissão bate recorde · CAGED</span>
+                  <span class="src-item-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
+              <li class="src-item">
+                <a href="https://contaja.com.br/blog/quanto-custa-um-funcionario-para-empresa/" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">Contaja</span>
+                  <span class="src-item-titulo">Encargos CLT e custo total do empregado</span>
+                  <span class="src-item-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
+            </ul>
+          </article>
+
+          <!-- Categoria 4: Automação varejo -->
+          <article class="src-cat">
+            <header class="src-cat-head src-cat-d">
+              <span class="src-cat-icon" aria-hidden="true">🤖</span>
+              <div>
+                <h5 class="src-cat-title">Automação de varejo &amp; tendências</h5>
+                <span class="src-cat-count">3 fontes</span>
+              </div>
+            </header>
+            <ul class="src-list">
+              <li class="src-item">
+                <a href="https://www.grandviewresearch.com/horizon/outlook/retail-automation-market/brazil" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">Grand View Research</span>
+                  <span class="src-item-titulo">Brazil Retail Automation Market</span>
+                  <span class="src-item-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
+              <li class="src-item">
+                <a href="https://www.fortunebusinessinsights.com/retail-automation-market-110514" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">Fortune Business Insights</span>
+                  <span class="src-item-titulo">Retail Automation Market — Global</span>
+                  <span class="src-item-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
+              <li class="src-item">
+                <a href="https://www.fortunebusinessinsights.com/self-checkout-system-market-106779" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">Fortune Business Insights</span>
+                  <span class="src-item-titulo">Self-Checkout System Market Outlook</span>
+                  <span class="src-item-arrow" aria-hidden="true">↗</span>
+                </a>
+              </li>
+            </ul>
+          </article>
+
+        </div>
+
         <p class="mkt-sources-note">
-          Algumas referências apresentam ranges distintos (ex.: 80 a 102 mil máquinas no Brasil).
-          Mantivemos a faixa quando há divergência entre fontes, optando pela leitura mais
-          conservadora para projeções e pela faixa completa para comparativos.
+          <strong>Nota metodológica:</strong> algumas referências apresentam ranges distintos
+          (ex.: 80–102 mil máquinas no Brasil). Em divergências, mantivemos a faixa completa em
+          comparativos e adotamos a leitura mais conservadora em projeções financeiras.
+          Última revisão: abril/2026.
         </p>
       </div>
 
