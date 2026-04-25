@@ -21,6 +21,10 @@ const MODEL = {
     perdas: 0.01
   },
 
+  /* Royalty mínimo por máquina (COF):
+     5% sobre faturamento, com piso de R$ 250 quando fat < R$ 5.000 */
+  royaltyMinimo: 250,
+
   /* Custos fixos por máquina (R$/mês) */
   fixoPorMaquina: {
     fnp: 100,
@@ -101,7 +105,16 @@ function abastecedoresNecessarios(frota) {
 /* ---------- Cálculo mensal consolidado ---------- */
 function calcularMes(frota, faturamentoPorMaquina) {
   const faturamentoTotal = frota * faturamentoPorMaquina;
-  const custoVariavel    = faturamentoTotal * pctVariavelTotal();
+
+  // Royalty: 5% por máquina, com piso de R$ 250 por máquina (COF)
+  const royaltyPorMaq    = Math.max(faturamentoPorMaquina * MODEL.variavel.royalties, MODEL.royaltyMinimo);
+  const royaltyTotal     = royaltyPorMaq * frota;
+
+  // Outros variáveis (todos exceto royalty, que já é tratado com piso)
+  const pctOutrosVar     = pctVariavelTotal() - MODEL.variavel.royalties;
+  const outrosVariaveis  = faturamentoTotal * pctOutrosVar;
+  const custoVariavel    = outrosVariaveis + royaltyTotal;
+
   const fixoMaqTotal     = frota * fixoPorMaquinaTotal();
   const nAbast           = abastecedoresNecessarios(frota);
   const custoAbast       = nAbast * MODEL.abastecedor.salarioMensal;
@@ -111,6 +124,8 @@ function calcularMes(frota, faturamentoPorMaquina) {
   return {
     faturamentoTotal,
     custoVariavel,
+    royaltyTotal,
+    royaltyPorMaq,
     fixoMaqTotal,
     custoAbast,
     nAbast,
@@ -647,7 +662,7 @@ function renderUnitEconomics(sim) {
   const items = [
     { key: "cmv",       label: "CMV (produtos)", valor: fat * v.cmv,           color: "#8B30E6" },
     { key: "aluguel",   label: "Aluguel do ponto", valor: fat * v.aluguelEspaco, color: "#4B6CE2" },
-    { key: "royalties", label: "Royalties",       valor: fat * v.royalties,     color: "#3DD9D6" },
+    { key: "royalties", label: "Royalties",       valor: m.royaltyPorMaq,        color: "#3DD9D6" },
     { key: "cartoes",   label: "Taxa de cartões", valor: fat * v.taxaCartoes,   color: "#61a5ff" },
     { key: "rota",      label: "Operacional de rota", valor: fat * v.operacionalRota, color: "#b88cff" },
     { key: "perdas",    label: "Perdas/vandalismo",   valor: fat * v.perdas,    color: "#ff7aa2" },
