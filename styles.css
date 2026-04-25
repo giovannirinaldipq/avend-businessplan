@@ -1193,9 +1193,53 @@ input[type="range"]::-moz-range-thumb {
   background-clip: text;
   color: transparent;
 }
-.kpi-row { grid-template-columns: repeat(5, 1fr); }
-@media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(3, 1fr); } }
+
+/* Mini-KPI Patrimônio (ativo do franqueado) */
+.mini-kpi-asset {
+  background: linear-gradient(135deg, rgba(255,176,32,0.10), rgba(139,48,230,0.10));
+  border-color: rgba(255,176,32,0.30);
+  box-shadow: 0 0 0 1px rgba(255,176,32,0.14);
+  position: relative;
+}
+.mini-kpi-asset::before {
+  content: "🏦";
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 14px;
+  opacity: 0.55;
+}
+.mini-kpi-asset .mini-val {
+  background: linear-gradient(90deg, #ffb020, #8B30E6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.mini-kpi-asset .mini-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  letter-spacing: 0.2px;
+}
+
+.kpi-row { grid-template-columns: repeat(6, 1fr); }
+@media (max-width: 1300px) { .kpi-row { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 720px)  { .kpi-row { grid-template-columns: 1fr; } }
+
+/* Stat strip — destaque patrimônio */
+.stat-asset .stat-val {
+  background: linear-gradient(90deg, #ffb020, #8B30E6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Tabela detalhada — célula patrimônio */
+.patrimonio-cell {
+  color: #ffb020;
+  font-weight: 600;
+}
 
 /* ============================================================
    Galeria
@@ -1475,8 +1519,9 @@ input[type="range"]::-moz-range-thumb {
 /* Vídeos */
 .video-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+  align-items: stretch;
 }
 .video-card {
   display: flex;
@@ -1485,11 +1530,12 @@ input[type="range"]::-moz-range-thumb {
   border: 1px solid rgba(139,48,230,0.22);
   border-radius: 14px;
   overflow: hidden;
-  transition: transform 0.25s ease, border-color 0.25s ease;
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 .video-card:hover {
   transform: translateY(-2px);
   border-color: rgba(61,217,214,0.45);
+  box-shadow: 0 14px 32px rgba(7,8,42,0.45);
 }
 .video-thumb {
   position: relative;
@@ -1509,6 +1555,119 @@ input[type="range"]::-moz-range-thumb {
 /* Short (vertical 9:16) — letterboxed nicely no card 16:9 */
 .video-card-short .video-thumb {
   background: linear-gradient(135deg, #07082a, #0d0e36);
+}
+
+/* ============================================================
+   AVEND na Mídia
+   ============================================================ */
+.midia-block {
+  margin-top: 22px;
+}
+.midia-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.midia-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 16px 14px;
+  background: linear-gradient(180deg, rgba(13,14,54,0.65), rgba(7,8,42,0.55));
+  border: 1px solid rgba(139,48,230,0.22);
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--text-main);
+  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  min-height: 170px;
+}
+.midia-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(61,217,214,0.50);
+  box-shadow: 0 12px 28px rgba(7,8,42,0.45);
+}
+.midia-veiculo {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--accent-a);
+}
+.midia-titulo {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-main);
+}
+.midia-resumo {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  flex: 1;
+}
+.midia-cta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-c);
+  margin-top: 4px;
+}
+.midia-cta span { transition: transform 0.2s ease; display: inline-block; }
+.midia-card:hover .midia-cta span { transform: translateX(4px); }
+.midia-pill {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+.midia-pill-hl {
+  background: linear-gradient(90deg, var(--accent-c), var(--accent-b));
+  color: #fff;
+}
+.midia-card-hl {
+  border-color: rgba(255,176,32,0.55);
+  background:
+    linear-gradient(180deg, rgba(255,176,32,0.06), rgba(13,14,54,0.65)),
+    rgba(7,8,42,0.55);
+}
+.midia-card-hl .midia-veiculo { color: var(--amber, #ffb020); }
+@media (max-width: 1100px) {
+  .midia-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 720px) {
+  .midia-grid { grid-template-columns: 1fr; }
+}
+/* Marca d'água AVEND nos vídeos (canto superior direito, não bloqueia controles) */
+.video-watermark {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  z-index: 2;
+  pointer-events: none;
+  background: rgba(7,8,42,0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border-radius: 9px;
+  border: 1px solid rgba(139,48,230,0.40);
+  padding: 5px;
+  box-shadow: 0 4px 12px rgba(7,8,42,0.45);
+  opacity: 0.88;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.video-watermark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 /* CTA final */
@@ -1573,6 +1732,7 @@ input[type="range"]::-moz-range-thumb {
   .foto-grid,
   .video-grid { grid-template-columns: 1fr; }
   .rede-stat-val { font-size: 24px; }
+  .video-watermark { width: 30px; height: 30px; top: 8px; right: 8px; }
 }
 
 /* ============================================================

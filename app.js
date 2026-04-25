@@ -38,6 +38,10 @@ const MODEL = {
   custoFreteNova: 2000,              // frete de instalação
   custoAbastecimentoInicial: 1500,   // estoque + setup inicial
 
+  /* Patrimônio (ativo) — valor contábil/de mercado por máquina pertencente ao franqueado.
+     Cada vending machine é ativo do franqueado: compõe o patrimônio do negócio. */
+  valorAtivoPorMaquina: 28500,
+
   /* Regime tributário */
   mei: {
     limiteAnual: 130000,
@@ -211,12 +215,14 @@ function simulate(params) {
       margem: mensal.margem,
       caixaAcumulado: caixa,
       lucroAcumulado,
+      patrimonio: maquinasAtivas * MODEL.valorAtivoPorMaquina,
       evento: eventos.join(" · "),
       novasMaquinas: compradasEsteMes
     });
   }
 
   const totalProLabore = linhas.reduce((s, r) => s + r.proLabore, 0);
+  const frotaFinal = linhas[linhas.length - 1].maquinasAtivas;
 
   return {
     linhas,
@@ -226,10 +232,12 @@ function simulate(params) {
     margem1Maq: linhas[0].margem,
     lucro1Maq: linhas[0].lucroLiquido,
     regime1Maq: linhas[0].imposto.regime,
-    frotaFinal: linhas[linhas.length - 1].maquinasAtivas,
+    frotaFinal,
     lucroMensalFinal: linhas[linhas.length - 1].lucroLiquido,
     regimeFinal: linhas[linhas.length - 1].imposto.regime,
-    totalProLabore
+    totalProLabore,
+    patrimonioFinal: frotaFinal * MODEL.valorAtivoPorMaquina,
+    valorAtivoPorMaquina: MODEL.valorAtivoPorMaquina
   };
 }
 
@@ -400,12 +408,14 @@ function renderKPIs(sim) {
   setKpiAnimated("mini-frota-final", sim.frotaFinal, v => `${Math.round(v)} un.`);
   setKpiAnimated("mini-lucro-final", sim.lucroMensalFinal, v => fmtBRL(v));
   setKpiAnimated("mini-prolabore", sim.totalProLabore, v => fmtBRL(v));
+  setKpiAnimated("mini-patrimonio", sim.patrimonioFinal, v => fmtBRL(v));
 
   // Stat strip do overview
   const lucroCumul = sim.linhas[sim.linhas.length - 1].lucroAcumulado;
   setKpiAnimated("strip-capex", sim.custoNovaMaquina, v => fmtBRL(v));
   setKpiAnimated("strip-lucro-cumul", lucroCumul, v => fmtBRL(v));
   setKpiAnimated("strip-prolabore", sim.totalProLabore, v => fmtBRL(v));
+  setKpiAnimated("strip-patrimonio", sim.patrimonioFinal, v => fmtBRL(v));
 
   // Info tributária dinâmica no hero
   const regimeHint = document.getElementById("kpi-regime-hint");
@@ -433,6 +443,7 @@ function renderTable(sim) {
         <td>${fmtBRL(row.lucroLiquido)} <span class="muted">(${fmtPct(row.margem)})</span></td>
         <td>${fmtBRL(reinvLucro)} ${row.proLabore > 0 ? `<span class="muted">/ ${fmtBRL(row.proLabore)}</span>` : ""}</td>
         <td>${fmtBRL(row.caixaAcumulado)}</td>
+        <td class="patrimonio-cell">${fmtBRL(row.patrimonio)}</td>
         <td class="${row.evento ? "evt" : ""}">${row.evento || ""}</td>
       </tr>
     `;
