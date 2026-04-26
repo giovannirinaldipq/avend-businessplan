@@ -26,6 +26,33 @@
 
 const SHEET_NAME_SESSIONS = "Sessions";
 const SHEET_NAME_EVENTS   = "Events";
+const SHEET_NAME_LEADS    = "Hot Leads";
+
+/* ============================================================
+   NOTIFICAÇÃO DE LEAD QUENTE
+   Configure UM dos webhooks abaixo. Deixe em branco os que não usa.
+   Quando um investidor com perfil OTIMISTA ou TURBO completar o quiz
+   E tiver fornecido nome OU email OU telefone, dispara notificação.
+   ============================================================ */
+
+// Discord — crie um webhook em: Server Settings → Integrations → Webhooks
+const DISCORD_WEBHOOK = ""; // ex: "https://discord.com/api/webhooks/.../..."
+
+// Slack — Incoming Webhook do app: api.slack.com/apps → Incoming Webhooks
+const SLACK_WEBHOOK = "";   // ex: "https://hooks.slack.com/services/T.../B.../..."
+
+// Telegram — fale com @BotFather no Telegram, crie um bot, pegue o token.
+// Pegue o chat ID conversando com @userinfobot ou @get_id_bot
+const TELEGRAM_BOT_TOKEN = "";  // ex: "123456789:ABC-..."
+const TELEGRAM_CHAT_ID   = "";  // ex: "987654321" (seu user ID ou ID de grupo)
+
+// Webhook genérico (Make/Zapier/n8n/CallMeBot — qualquer endpoint que aceita POST JSON)
+const GENERIC_WEBHOOK = ""; // ex: "https://hook.us1.make.com/..."
+
+// Critérios — perfis quentes (modificável)
+const HOT_PROFILES = ["otimista", "turbo"];
+// Considera lead quente também se o tempo na página for >= X minutos (mesmo sem perfil)
+const HOT_TIME_THRESHOLD_MIN = 5;
 
 // Colunas da aba Sessions
 const SESSION_HEADERS = [
@@ -49,6 +76,8 @@ function doPost(e) {
 
     if (payload.type === "session") {
       saveSession_(payload.session);
+      // Avalia se virou lead quente (depois de salvar)
+      maybeNotifyHotLead_(payload.session);
       return jsonResponse_({ ok: true, type: "session" });
     }
 
@@ -167,4 +196,263 @@ function generateSummary() {
   const completed = data.filter((r, i) => i > 0 && r[9] === "yes").length;
   const avgMin = data.slice(1).reduce((s, r) => s + (parseFloat(r[3]) || 0), 0) / Math.max(1, total);
   Logger.log(`Total: ${total} | Quiz completed: ${completed} | Avg time: ${avgMin.toFixed(1)} min`);
+}
+
+/* ============================================================
+   HOT LEAD — detecção e notificação
+   ============================================================ */
+
+const HOT_LEAD_FLAG_PROP = "hot_lead_notified_";
+
+function maybeNotifyHotLead_(s) {
+  if (!s || !s.sessionId) return;
+
+  // Critérios: precisa ter contato + (perfil quente OU tempo alto)
+  const hasContact = !!(s.visitorName || s.visitorEmail || s.visitorPhone);
+  if (!hasContact) return;
+
+  const minutes = (s.totalTimeMs || 0) / 60000;
+  const profileHot = s.profile && HOT_PROFILES.indexOf(s.profile) !== -1;
+  const timeHot    = minutes >= HOT_TIME_THRESHOLD_MIN;
+  const quizDone   = !!s.quizCompleted;
+
+  // Só notifica se completou quiz E perfil quente, OU se ficou muito tempo
+  const shouldNotify = (quizDone && profileHot) || (timeHot && hasContact);
+  if (!shouldNotify) return;
+
+  // Anti-duplicata: só notifica 1x por sessão
+  const props = PropertiesService.getScriptProperties();
+  const flagKey = HOT_LEAD_FLAG_PROP + s.sessionId;
+  if (props.getProperty(flagKey)) return;
+  props.setProperty(flagKey, "1");
+
+  // Registra no sheet de leads
+  saveHotLead_(s);
+
+  // Dispara nos webhooks configurados
+  const summary = buildLeadSummary_(s);
+  if (DISCORD_WEBHOOK)  sendDiscord_(summary);
+  if (SLACK_WEBHOOK)    sendSlack_(summary);
+  if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) sendTelegram_(summary);
+  if (GENERIC_WEBHOOK)  sendGeneric_(summary, s);
+}
+
+function buildLeadSummary_(s) {
+  const minutes = ((s.totalTimeMs || 0) / 60000).toFixed(1);
+  const profile = (s.profile || "—").toUpperCase();
+  const profileEmoji = {
+    "TURBO": "⚡", "OTIMISTA": "🚀", "BASE": "⚖️", "CONSERVADOR": "🌱"
+  }[profile] || "👤";
+
+  const contact = [];
+  if (s.visitorName)  contact.push("👤 " + s.visitorName);
+  if (s.visitorEmail) contact.push("📧 " + s.visitorEmail);
+  if (s.visitorPhone) contact.push("📞 " + s.visitorPhone);
+  if (s.visitorCity)  contact.push("📍 " + s.visitorCity);
+
+  // Quiz answers (se houver)
+  let answersText = "";
+  if (s.events && s.events.length) {
+    const answers = s.events.filter(e => e.type === "quiz_answered");
+    if (answers.length) {
+      const map = {};
+      answers.forEach(a => { map[a.data.q] = a.data.value; });
+      const lines = [];
+      if (map.objetivo) lines.push("• Objetivo: " + map.objetivo);
+      if (map.capital)  lines.push("• Capital: " + map.capital);
+      if (map.meta)     lines.push("• Meta: " + map.meta);
+      if (map.horizonte) lines.push("• Horizonte: " + map.horizonte + " anos");
+      answersText = "\n*Respostas:*\n" + lines.join("\n");
+    }
+  }
+
+  // Tabs visitadas
+  const tabs = s.tabTime ? Object.keys(s.tabTime).map(k =>
+    `${k} (${(s.tabTime[k]/1000).toFixed(0)}s)`).join(", ") : "—";
+
+  // Sliders
+  const sliders = (s.interactions && s.interactions.sliders)
+    ? Object.keys(s.interactions.sliders).length
+    : 0;
+
+  return {
+    title: `🚨 LEAD QUENTE · ${profileEmoji} ${profile}`,
+    contactBlock: contact.join("\n"),
+    profileEmoji,
+    profile,
+    minutes,
+    sliders,
+    tabs,
+    answersText,
+    sessionId: s.sessionId,
+    rawSession: s
+  };
+}
+
+function saveHotLead_(s) {
+  const headers = [
+    "received_at", "session_id", "name", "email", "phone", "city",
+    "profile", "time_min", "user_agent", "referrer"
+  ];
+  const sheet = getSheet_(SHEET_NAME_LEADS, headers);
+  sheet.appendRow([
+    new Date(),
+    s.sessionId,
+    s.visitorName || "",
+    s.visitorEmail || "",
+    s.visitorPhone || "",
+    s.visitorCity || "",
+    s.profile || "",
+    ((s.totalTimeMs || 0) / 60000).toFixed(1),
+    s.userAgent || "",
+    s.referrer || ""
+  ]);
+}
+
+/* ---------- Senders ---------- */
+
+function sendDiscord_(d) {
+  try {
+    const fields = [];
+    if (d.contactBlock) fields.push({ name: "Contato", value: "```\n" + d.contactBlock + "\n```", inline: false });
+    fields.push({ name: "Perfil", value: d.profileEmoji + " " + d.profile, inline: true });
+    fields.push({ name: "Tempo na página", value: d.minutes + " min", inline: true });
+    fields.push({ name: "Sliders mexidos", value: String(d.sliders), inline: true });
+    if (d.tabs) fields.push({ name: "Abas visitadas", value: d.tabs, inline: false });
+    if (d.answersText) fields.push({ name: "Respostas-chave", value: d.answersText.replace("*Respostas:*\n", ""), inline: false });
+
+    const payload = {
+      username: "AVEND Lead Bot",
+      embeds: [{
+        title: d.title,
+        color: 0xffb020, // amber
+        fields: fields,
+        footer: { text: "Session: " + d.sessionId },
+        timestamp: new Date().toISOString()
+      }]
+    };
+    UrlFetchApp.fetch(DISCORD_WEBHOOK, {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+  } catch (err) { Logger.log("Discord webhook error: " + err); }
+}
+
+function sendSlack_(d) {
+  try {
+    const text =
+      `*${d.title}*\n` +
+      `${d.contactBlock}\n\n` +
+      `*Perfil:* ${d.profileEmoji} ${d.profile} · *Tempo:* ${d.minutes} min · *Sliders:* ${d.sliders}\n` +
+      `*Abas:* ${d.tabs}` +
+      d.answersText;
+    UrlFetchApp.fetch(SLACK_WEBHOOK, {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify({ text }),
+      muteHttpExceptions: true
+    });
+  } catch (err) { Logger.log("Slack webhook error: " + err); }
+}
+
+function sendTelegram_(d) {
+  try {
+    const text =
+      `*${escapeMarkdown_(d.title)}*\n\n` +
+      `${escapeMarkdown_(d.contactBlock)}\n\n` +
+      `_Perfil:_ ${d.profileEmoji} ${escapeMarkdown_(d.profile)}\n` +
+      `_Tempo:_ ${d.minutes} min\n` +
+      `_Sliders mexidos:_ ${d.sliders}\n` +
+      `_Abas:_ ${escapeMarkdown_(d.tabs)}` +
+      (d.answersText ? "\n" + escapeMarkdown_(d.answersText) : "");
+
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    UrlFetchApp.fetch(url, {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: text,
+        parse_mode: "Markdown",
+        disable_web_page_preview: true
+      }),
+      muteHttpExceptions: true
+    });
+  } catch (err) { Logger.log("Telegram webhook error: " + err); }
+}
+
+function escapeMarkdown_(s) {
+  return String(s || "").replace(/([_*\[\]()~`>#+\-=|{}.!])/g, "\\$1");
+}
+
+function sendGeneric_(d, session) {
+  try {
+    UrlFetchApp.fetch(GENERIC_WEBHOOK, {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify({
+        type: "hot_lead",
+        title: d.title,
+        profile: d.profile,
+        profile_emoji: d.profileEmoji,
+        minutes: parseFloat(d.minutes),
+        sliders: d.sliders,
+        tabs: d.tabs,
+        contact: {
+          name: session.visitorName,
+          email: session.visitorEmail,
+          phone: session.visitorPhone,
+          city: session.visitorCity,
+          id: session.visitorId
+        },
+        session_id: d.sessionId,
+        raw: session
+      }),
+      muteHttpExceptions: true
+    });
+  } catch (err) { Logger.log("Generic webhook error: " + err); }
+}
+
+/* Útil pra teste manual: dispara webhook com dados fake */
+function testHotLeadWebhook() {
+  const fake = {
+    sessionId: "s_test_" + Date.now(),
+    startedAt: Date.now() - 8 * 60000,
+    lastSeen: Date.now(),
+    totalTimeMs: 8 * 60000,
+    visitorName: "Carlos Mendes (TESTE)",
+    visitorEmail: "carlos.teste@empresa.com",
+    visitorPhone: "11987654321",
+    visitorCity: "São Paulo / SP",
+    profile: "otimista",
+    quizCompleted: true,
+    tabTime: { overview: 60000, simulador: 240000, mercado: 120000 },
+    interactions: { sliders: { faturamentoPorMaquina: {}, percReinvestFase1: {} }, presets: {} },
+    events: [
+      { t: 1000, type: "quiz_answered", data: { q: "objetivo", value: "viver-disso" } },
+      { t: 2000, type: "quiz_answered", data: { q: "capital", value: "100-300" } },
+      { t: 3000, type: "quiz_answered", data: { q: "meta", value: "50-150k" } },
+      { t: 4000, type: "quiz_answered", data: { q: "horizonte", value: "5" } }
+    ]
+  };
+  // remove flag pra forçar disparo
+  PropertiesService.getScriptProperties().deleteProperty(HOT_LEAD_FLAG_PROP + fake.sessionId);
+  maybeNotifyHotLead_(fake);
+  Logger.log("Test fired. Check Discord/Slack/Telegram + Hot Leads sheet.");
+}
+
+/* Limpa flags de notificação (use se quiser re-notificar leads antigos) */
+function clearHotLeadFlags() {
+  const props = PropertiesService.getScriptProperties();
+  const all = props.getProperties();
+  let cleared = 0;
+  for (const k in all) {
+    if (k.indexOf(HOT_LEAD_FLAG_PROP) === 0) {
+      props.deleteProperty(k);
+      cleared++;
+    }
+  }
+  Logger.log("Cleared " + cleared + " hot lead flags");
 }

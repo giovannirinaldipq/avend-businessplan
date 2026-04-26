@@ -133,10 +133,89 @@ Total: 23 | Quiz completed: 12 | Avg time: 4.7 min
 
 ---
 
+---
+
+## 🚨 Notificação de Lead Quente (configurar webhook)
+
+O `Code.gs` já vem com **detecção automática de lead quente** e notificação
+em tempo real via webhook. Sempre que um visitante:
+
+- **Completar o quiz** com perfil `otimista` ou `turbo`
+  **E** tiver fornecido nome/email/telefone, OU
+- **Ficar mais de 5 minutos** na página com algum dado de contato
+
+… você recebe uma notificação no canal que escolher. Só notifica **1 vez por
+sessão** (anti-spam). Os leads também ficam registrados na aba **Hot Leads**
+da planilha pra você acompanhar.
+
+### Opções de canal (escolha 1 ou mais)
+
+#### Opção A · Discord (mais bonito visualmente)
+1. No seu servidor: **Server Settings → Integrations → Webhooks → New Webhook**
+2. Escolha o canal, copie a URL
+3. No `Code.gs`, cole em `DISCORD_WEBHOOK`
+4. Salvar + redeploy
+
+#### Opção B · Slack
+1. <https://api.slack.com/apps> → Create New App → From scratch
+2. Add features → Incoming Webhooks → Activate → Add to Workspace
+3. Copie a URL `https://hooks.slack.com/services/...`
+4. Cole em `SLACK_WEBHOOK`
+
+#### Opção C · Telegram (recomendado pra mobile / WhatsApp-like)
+1. No Telegram, fale com **@BotFather** → `/newbot` → siga as instruções
+2. Copie o **token** que ele dá (`123456789:ABC-DEF...`) → cole em `TELEGRAM_BOT_TOKEN`
+3. Pra pegar seu chat ID: fale com **@userinfobot** ou **@get_id_bot** no Telegram
+4. Cole o ID em `TELEGRAM_CHAT_ID` (pode ser seu próprio user ou um grupo onde adicionou o bot)
+5. **Importante:** mande pelo menos uma mensagem ao seu bot antes do primeiro disparo (senão o Telegram bloqueia)
+
+#### Opção D · Webhook genérico (Make/Zapier/n8n/CallMeBot WhatsApp)
+1. Configure um cenário em qualquer plataforma de automação
+2. Pegue a URL pública do webhook
+3. Cole em `GENERIC_WEBHOOK`
+4. O payload chega como JSON com `type: "hot_lead"` + todos os dados
+
+#### 🎁 BÔNUS: WhatsApp via CallMeBot (gratuito)
+1. Salve o número **+34 644 51 95 23** nos contatos como "CallMeBot"
+2. No WhatsApp, mande **"I allow callmebot to send me messages"** pra esse número
+3. Você recebe um `apikey` no retorno
+4. Use como `GENERIC_WEBHOOK`:
+   ```
+   https://api.callmebot.com/whatsapp.php?phone=SEUNUMERO&apikey=SEUAPIKEY&text=
+   ```
+   *(o site vai fazer URL-encode da mensagem automaticamente — funciona com mensagens curtas)*
+
+### Testar antes de ir pra produção
+
+No editor do Apps Script, com tudo configurado:
+
+1. Selecione a função `testHotLeadWebhook` no dropdown
+2. Clique em **Run**
+3. Você deve receber a notificação em ~5 segundos no canal configurado
+4. Uma linha de teste aparece em **Hot Leads** sheet
+
+### Critérios e ajustes
+
+No topo do `Code.gs`:
+```js
+const HOT_PROFILES = ["otimista", "turbo"];   // perfis considerados quentes
+const HOT_TIME_THRESHOLD_MIN = 5;             // OU >= 5min com contato
+```
+
+Mude conforme sua estratégia. Pra ser mais agressivo, adicione `"base"` em
+`HOT_PROFILES` ou reduza o threshold de tempo.
+
+### Re-notificar leads antigos
+Se quiser reenviar notificação de uma sessão (ex.: depois de configurar o webhook
+pela primeira vez), rode `clearHotLeadFlags()` no editor → limpa os marcadores
+"já notificado" e o próximo POST do mesmo visitante dispara novamente.
+
+---
+
 ## Próximas evoluções sugeridas
 
 - [ ] Dashboard nativo no Sheets com gráficos (segmentação por perfil, conversão)
-- [ ] Webhook pro WhatsApp/Slack quando perfil **arrojado/turbo** completar quiz
+- [x] ~~Webhook pro WhatsApp/Slack quando perfil arrojado/turbo completar quiz~~ ✅
 - [ ] Funil: visitas → quiz aberto → quiz completo → plano aplicado
 - [ ] Heatmap de cliques (`mousemove` agregado)
 - [ ] A/B test da copy do hero
