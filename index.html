@@ -71,7 +71,15 @@
           lucro mensal e tudo isso com <strong>tributação real</strong> (MEI → Simples → LP).
         </p>
         <div class="hero-cta">
-          <button class="btn btn-primary" data-goto="simulador">Abrir Simulador →</button>
+          <button class="btn btn-quiz" id="open-quiz-hero" type="button">
+            <span class="btn-quiz-icon" aria-hidden="true">🎯</span>
+            <span class="btn-quiz-text">
+              <span class="btn-quiz-title">Diagnóstico Personalizado</span>
+              <span class="btn-quiz-sub">7 perguntas · plano sob medida em 90 segundos</span>
+            </span>
+            <span class="btn-quiz-arrow" aria-hidden="true">→</span>
+          </button>
+          <button class="btn btn-primary" data-goto="simulador">Abrir Simulador</button>
           <button class="btn btn-ghost" data-goto="modelos">Comparar Modelos</button>
         </div>
       </div>
@@ -1716,6 +1724,105 @@
       Lei 13.966/2019.
     </div>
   </footer>
+
+  <!-- ============================================================
+       QUIZ — Diagnóstico de Investidor
+       Aparece automaticamente na 1ª visita ou via CTA na hero.
+       ============================================================ -->
+  <div id="quiz-overlay" class="quiz-overlay" hidden aria-hidden="true">
+    <div class="quiz-modal" role="dialog" aria-modal="true" aria-labelledby="quiz-q-title">
+      <header class="quiz-header">
+        <div class="quiz-brand-row">
+          <img src="assets/logo-mark.webp" alt="" class="quiz-brand-icon" />
+          <div>
+            <span class="quiz-brand-name">AVEND</span>
+            <span class="quiz-brand-tag">Diagnóstico Personalizado</span>
+          </div>
+        </div>
+        <button class="quiz-skip" id="quiz-skip" type="button">
+          Pular questionário <span aria-hidden="true">✕</span>
+        </button>
+      </header>
+
+      <div class="quiz-progress">
+        <span class="quiz-progress-label">
+          Pergunta <strong id="quiz-cur">1</strong> de <strong id="quiz-tot">7</strong>
+        </span>
+        <div class="quiz-progress-track">
+          <span class="quiz-progress-fill" id="quiz-fill"></span>
+        </div>
+      </div>
+
+      <div class="quiz-stage" id="quiz-stage" aria-live="polite">
+        <!-- Slide ativo gerado dinamicamente -->
+      </div>
+
+      <footer class="quiz-footer">
+        <button class="quiz-nav quiz-nav-back" id="quiz-back" type="button" disabled>
+          <span aria-hidden="true">←</span> Voltar
+        </button>
+        <span class="quiz-foot-hint" id="quiz-hint">Selecione uma opção para continuar</span>
+        <button class="quiz-nav quiz-nav-next" id="quiz-next" type="button" disabled>
+          Próxima <span aria-hidden="true">→</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Modal de Resultado -->
+  <div id="quiz-result" class="quiz-result-overlay" hidden aria-hidden="true">
+    <div class="quiz-result-modal" id="quiz-result-modal" role="dialog" aria-modal="true">
+
+      <header class="quiz-result-head">
+        <span class="quiz-result-eyebrow">SEU PERFIL DE INVESTIDOR</span>
+        <div class="quiz-result-avatar" id="quiz-result-emoji">🌱</div>
+        <h2 class="quiz-result-title" id="quiz-result-label">—</h2>
+        <p class="quiz-result-desc" id="quiz-result-desc">—</p>
+      </header>
+
+      <section class="quiz-result-section">
+        <header class="qr-section-head">
+          <span class="qr-section-num">01</span>
+          <h3 class="qr-section-title">Plano sugerido</h3>
+        </header>
+        <p class="qr-section-sub">Parâmetros calibrados a partir das suas respostas — você poderá ajustar depois.</p>
+        <div class="quiz-result-params" id="quiz-result-params"></div>
+      </section>
+
+      <section class="quiz-result-section">
+        <header class="qr-section-head">
+          <span class="qr-section-num">02</span>
+          <h3 class="qr-section-title">Projeção pra você</h3>
+        </header>
+        <p class="qr-section-sub">O que esse plano entrega no horizonte definido.</p>
+        <div class="quiz-result-projection" id="quiz-result-projection"></div>
+      </section>
+
+      <section class="quiz-result-section">
+        <header class="qr-section-head">
+          <span class="qr-section-num">03</span>
+          <h3 class="qr-section-title">Por que esse plano?</h3>
+        </header>
+        <p class="qr-section-sub">A lógica por trás de cada calibração.</p>
+        <ul class="quiz-result-rationale" id="quiz-result-rationale"></ul>
+      </section>
+
+      <footer class="quiz-result-foot">
+        <div class="quiz-result-actions">
+          <button class="quiz-result-action quiz-result-secondary" id="quiz-redo" type="button">
+            <span aria-hidden="true">↺</span> Refazer questionário
+          </button>
+          <button class="quiz-result-action quiz-result-primary" id="quiz-apply" type="button">
+            Simular esse plano <span aria-hidden="true">→</span>
+          </button>
+        </div>
+        <p class="quiz-result-note">
+          Você poderá ajustar todos os parâmetros depois — esse é seu ponto de partida.
+        </p>
+      </footer>
+
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

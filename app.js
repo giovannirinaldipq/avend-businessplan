@@ -278,6 +278,9 @@ function activateTab(name) {
       else renderMarketChart();
     });
   }
+
+  // Telemetria
+  if (typeof TELEMETRY !== "undefined") TELEMETRY.setTab(name);
 }
 function bindTabs() {
   document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => activateTab(t.dataset.tab)));
@@ -313,10 +316,12 @@ function bindSliders() {
     output.textContent = fmt(Number(input.value));
     input.addEventListener("input", () => {
       const v = Number(input.value);
+      const prev = state[stateKey];
       state[stateKey] = v;
       output.textContent = fmt(v);
       updateCenarioLabel();
       renderAll();
+      if (typeof TELEMETRY !== "undefined") TELEMETRY.trackSliderChange(stateKey, prev, v);
     });
   });
 
@@ -346,6 +351,7 @@ function bindSliders() {
       syncInputsFromState();
       updateCenarioLabel();
       renderAll();
+      if (typeof TELEMETRY !== "undefined") TELEMETRY.trackPreset(preset);
     });
   });
 }
@@ -589,6 +595,83 @@ function destroyIfExists(key) {
   if (state.charts[key]) { state.charts[key].destroy(); delete state.charts[key]; }
 }
 
+/* ---------- Tooltip rico estilo Google Finance ----------
+   External HTML tooltip que mostra todos os dados daquele mês:
+   máquinas, faturamento, imposto, lucro, fase, eventos.
+*/
+function getOrCreateRichTooltip() {
+  let el = document.getElementById("rich-tooltip");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "rich-tooltip";
+    el.className = "rich-tooltip";
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+function richTooltipHandler(currentSim) {
+  return function(context) {
+    const tooltipEl = getOrCreateRichTooltip();
+    const tooltip = context.tooltip;
+
+    if (tooltip.opacity === 0) {
+      tooltipEl.style.opacity = 0;
+      tooltipEl.style.pointerEvents = "none";
+      return;
+    }
+
+    const idx = tooltip.dataPoints[0]?.dataIndex;
+    if (idx == null || !currentSim?.linhas?.[idx]) return;
+    const r = currentSim.linhas[idx];
+
+    const fase = r.fase === 1 ? "F1" : "F2";
+    const faseTone = r.fase === 1 ? "fase-1" : "fase-2";
+    const reinvestPct = r.percReinvestAtivo;
+    const proLab = r.proLabore > 0 ? r.proLabore : 0;
+
+    tooltipEl.innerHTML = `
+      <header class="rt-head">
+        <span class="rt-mes">Mês ${r.mes}</span>
+        <span class="rt-fase ${faseTone}">${fase} · ${reinvestPct}% reinvest</span>
+      </header>
+      <div class="rt-body">
+        <div class="rt-row"><span>Frota</span><strong>${r.maquinasAtivas} máq</strong></div>
+        <div class="rt-row"><span>Faturamento</span><strong>${fmtBRL(r.faturamentoTotal)}</strong></div>
+        <div class="rt-row"><span>Imposto (${(r.imposto.aliquota * 100).toFixed(1).replace(".", ",")}%)</span><strong class="rt-neg">−${fmtBRL(r.imposto.valor)}</strong></div>
+        <div class="rt-row rt-row-hl"><span>Lucro líquido</span><strong class="rt-pos">${fmtBRL(r.lucroLiquido)}</strong></div>
+        ${proLab > 0 ? `<div class="rt-row"><span>Pró-labore</span><strong>${fmtBRL(proLab)}</strong></div>` : ""}
+        <div class="rt-row"><span>Caixa expansão</span><strong>${fmtBRL(r.caixaAcumulado)}</strong></div>
+        <div class="rt-row"><span>Patrimônio</span><strong class="rt-asset">${fmtBRL(r.patrimonio)}</strong></div>
+        ${r.evento ? `<div class="rt-event">⭐ ${r.evento}</div>` : ""}
+      </div>
+      <footer class="rt-foot">
+        Margem ${(r.margem * 100).toFixed(1).replace(".", ",")}% · ${r.imposto.regime.split(" (")[0]}
+      </footer>
+    `;
+
+    const canvasRect = context.chart.canvas.getBoundingClientRect();
+    const x = canvasRect.left + window.scrollX + tooltip.caretX;
+    const y = canvasRect.top + window.scrollY + tooltip.caretY;
+
+    // Smart positioning: keep tooltip inside viewport
+    tooltipEl.style.opacity = 1;
+    tooltipEl.style.pointerEvents = "none";
+    tooltipEl.style.left = x + "px";
+    tooltipEl.style.top  = y + "px";
+    // Position via translate (mais performático)
+    requestAnimationFrame(() => {
+      const tw = tooltipEl.offsetWidth;
+      const th = tooltipEl.offsetHeight;
+      let translateX = 14;
+      let translateY = -th / 2;
+      if (x + tw + 24 > window.innerWidth) translateX = -tw - 14;
+      if (y + translateY < 8) translateY = 8 - (y - canvasRect.top);
+      tooltipEl.style.transform = `translate(${translateX}px, ${translateY}px)`;
+    });
+  };
+}
+
 function renderCharts(sim) {
   const labels = sim.linhas.map(r => r.mes);
   const frota = sim.linhas.map(r => r.maquinasAtivas);
@@ -596,6 +679,8 @@ function renderCharts(sim) {
   const lucro = sim.linhas.map(r => r.lucroLiquido);
   const imposto = sim.linhas.map(r => r.imposto.valor);
   const caixa = sim.linhas.map(r => r.caixaAcumulado);
+
+  const tooltipHandler = richTooltipHandler(sim);
 
   /* Frota */
   destroyIfExists("frota");
@@ -616,6 +701,11 @@ function renderCharts(sim) {
     },
     options: {
       responsive: true, maintainAspectRatio: false, ...CHART_DEFAULTS,
+      interaction: { mode: "index", intersect: false, axis: "x" },
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        tooltip: { enabled: false, external: tooltipHandler }
+      },
       scales: { ...CHART_DEFAULTS.scales,
         y: { ...CHART_DEFAULTS.scales.y, beginAtZero: true, ticks: { ...CHART_DEFAULTS.scales.y.ticks, stepSize: 1 } } }
     }
@@ -645,6 +735,11 @@ function renderCharts(sim) {
     },
     options: {
       responsive: true, maintainAspectRatio: false, ...CHART_DEFAULTS,
+      interaction: { mode: "index", intersect: false, axis: "x" },
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        tooltip: { enabled: false, external: tooltipHandler }
+      },
       scales: { ...CHART_DEFAULTS.scales,
         y: { ...CHART_DEFAULTS.scales.y, ticks: { ...CHART_DEFAULTS.scales.y.ticks, callback: v => fmtBRL(v) } } }
     }
@@ -676,6 +771,11 @@ function renderCharts(sim) {
     },
     options: {
       responsive: true, maintainAspectRatio: false, ...CHART_DEFAULTS,
+      interaction: { mode: "index", intersect: false, axis: "x" },
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        tooltip: { enabled: false, external: tooltipHandler }
+      },
       scales: { ...CHART_DEFAULTS.scales,
         y: { ...CHART_DEFAULTS.scales.y, ticks: { ...CHART_DEFAULTS.scales.y.ticks, callback: v => fmtBRL(v) } } }
     }
@@ -810,14 +910,663 @@ function renderMarketChart() {
   });
 }
 
+/* ============================================================
+   QUIZ — Diagnóstico de perfil de investidor
+   Mapeia respostas → parâmetros calibrados do simulador.
+   Lógica determinística, debugável, com rationale legível.
+   ============================================================ */
+
+const QUIZ_QUESTIONS = [
+  {
+    id: "objetivo",
+    title: "O que você quer construir com a AVEND?",
+    hint: "Não tem resposta certa. Suas escolhas moldam a projeção pra você.",
+    options: [
+      { value: "renda-extra",  icon: "💼", title: "Uma renda extra",
+        desc: "Mantenho minha atividade principal e diversifico com algo passivo." },
+      { value: "sair-clt",     icon: "🪜", title: "Sair da CLT em alguns anos",
+        desc: "Construir uma operação que substitua meu salário aos poucos." },
+      { value: "viver-disso",  icon: "🏆", title: "Viver disso integralmente",
+        desc: "Quero que essa seja minha principal fonte de renda — desde o início." },
+      { value: "patrimonio",   icon: "🏗️", title: "Construir patrimônio escalável",
+        desc: "Reinvestir tudo, escalar agressivamente, montar uma rede grande." }
+    ]
+  },
+  {
+    id: "capital",
+    title: "Quanto capital adicional você tem nos próximos 12 meses?",
+    hint: "Além dos R$ 55k da 1ª máquina. Capital que pode acelerar a expansão sem depender só do reinvestimento.",
+    options: [
+      { value: "so-1a",   icon: "🌱", title: "Só a 1ª máquina",
+        desc: "R$ 55k iniciais. Quero que o próprio negócio gere caixa para crescer." },
+      { value: "50-100",  icon: "🌿", title: "R$ 50–100 mil adicionais",
+        desc: "Posso comprar 1–2 máquinas extras nos primeiros meses se fizer sentido." },
+      { value: "100-300", icon: "🌳", title: "R$ 100–300 mil adicionais",
+        desc: "Capital pra acelerar sem depender só do reinvestimento." },
+      { value: "300+",    icon: "🚀", title: "Acima de R$ 300 mil",
+        desc: "Quero montar uma operação grande desde o início." }
+    ]
+  },
+  {
+    id: "reinvest",
+    title: "O lucro que vier — você consegue reinvestir?",
+    hint: "Pensando nos primeiros 2–3 anos. Quanto mais reinvest, mais rápido o flywheel acelera.",
+    options: [
+      { value: "preciso-tirar", icon: "👨‍👩‍👦", title: "Vou precisar tirar pra viver",
+        desc: "Conto com essa renda no orçamento mensal desde o início." },
+      { value: "meio-meio",     icon: "⚖️", title: "Posso reinvestir 70–80%",
+        desc: "Aceito tirar uma parte, mas a maior parte volta pro negócio." },
+      { value: "reinvesto-tudo", icon: "🔁", title: "Reinvesto 100% nos primeiros anos",
+        desc: "Tenho outras fontes de renda, deixo a operação rodar sozinha pra escalar." }
+    ]
+  },
+  {
+    id: "meta",
+    title: "Quanto você quer ter de lucro mensal em 5 anos?",
+    hint: "Lucro líquido depois de impostos. Vamos calibrar o plano para perseguir isso.",
+    options: [
+      { value: "ate-15k",  icon: "🎯",     title: "R$ 5–15 mil/mês",
+        desc: "Substituir um salário ou complementar a renda da família." },
+      { value: "15-50k",   icon: "🎯🎯",   title: "R$ 15–50 mil/mês",
+        desc: "Renda confortável, equivalente a um cargo médio-alto." },
+      { value: "50-150k",  icon: "🎯🎯🎯", title: "R$ 50–150 mil/mês",
+        desc: "Renda de empresário com operação de médio porte." },
+      { value: "150+",     icon: "🏆",     title: "Acima de R$ 150 mil/mês",
+        desc: "Construir uma operação grande, com equipe estruturada." }
+    ]
+  },
+  {
+    id: "horizonte",
+    title: "Em quanto tempo você quer atingir essa meta?",
+    hint: "Quanto mais tempo, mais o flywheel de reinvestimento trabalha a seu favor.",
+    options: [
+      { value: "3",  icon: "⏰", title: "3 anos",
+        desc: "Quero acelerar — meta agressiva no curto prazo." },
+      { value: "5",  icon: "🗓️", title: "5 anos",
+        desc: "Horizonte equilibrado, é o que a maioria escolhe." },
+      { value: "7",  icon: "📅", title: "7 anos",
+        desc: "Construir com calma, sem pressa." },
+      { value: "10", icon: "🌳", title: "10 anos",
+        desc: "Maratona — patrimônio sólido, risco controlado." }
+    ]
+  },
+  {
+    id: "dedicacao",
+    title: "Quanto tempo você pretende dedicar à operação?",
+    hint: "AVEND tem suporte e telemetria, mas envolvimento ativo do franqueado é o que gera resultado.",
+    options: [
+      { value: "horas-semana", icon: "⏳", title: "Algumas horas por semana",
+        desc: "Negócio paralelo. Supervisão remota, abastecedor faz a rota." },
+      { value: "meio-periodo", icon: "🕐", title: "Meio período",
+        desc: "Posso visitar pontos, negociar locais, acompanhar de perto." },
+      { value: "integral",     icon: "💪", title: "Tempo integral",
+        desc: "Quero que essa seja minha atividade principal." }
+    ]
+  },
+  {
+    id: "risco",
+    title: "Como você se sente com risco em investimentos?",
+    hint: "Não muda a operação em si — calibra a velocidade da expansão sugerida.",
+    options: [
+      { value: "conservador", icon: "🛡️", title: "Prefiro segurança",
+        desc: "Aceito retorno menor em troca de previsibilidade." },
+      { value: "equilibrado", icon: "⚖️", title: "Equilibrado",
+        desc: "Aceito risco calculado se a recompensa for proporcional." },
+      { value: "arrojado",    icon: "🎲", title: "Tenho perfil arrojado",
+        desc: "Disposto a apostar mais alto se a oportunidade compensar." }
+    ]
+  }
+];
+
+/* ---------- Mapeamento de respostas → parâmetros do simulador ---------- */
+function calcSuggestion(answers) {
+  // Default: cenário base
+  const p = {
+    faturamentoPorMaquina: 10000,
+    percReinvestFase1: 100,
+    duracaoFase1Meses: 36,
+    percReinvestFase2: 50,
+    reservaCapital: 5000,
+    capacidadeImplantacao: 2,
+    horizonteMeses: 60
+  };
+  const rationale = [];
+
+  // === Horizonte (direto) ===
+  const horMap = { "3": 36, "5": 60, "7": 84, "10": 120 };
+  if (answers.horizonte) {
+    p.horizonteMeses = horMap[answers.horizonte] || 60;
+    rationale.push(`Horizonte de <strong>${answers.horizonte} ano${answers.horizonte === "1" ? "" : "s"}</strong> — alinhado à sua resposta.`);
+  }
+
+  // === Objetivo (afeta reinvest e fat) ===
+  if (answers.objetivo === "renda-extra") {
+    p.percReinvestFase2 = 30;
+    p.faturamentoPorMaquina = 8000;
+    rationale.push("Foco em <strong>renda extra</strong> → Fase 2 com 30% reinvest, pró-labore aparece cedo.");
+  } else if (answers.objetivo === "sair-clt") {
+    p.percReinvestFase2 = 70;
+    p.duracaoFase1Meses = 36;
+    rationale.push("Para <strong>sair da CLT</strong>, deixei Fase 1 em 3 anos com 100% reinvest e Fase 2 a 70% — escala consistente sem sufocar caixa.");
+  } else if (answers.objetivo === "viver-disso") {
+    p.percReinvestFase2 = 50;
+    p.faturamentoPorMaquina = 12000;
+    p.duracaoFase1Meses = 24;
+    rationale.push("Para <strong>viver disso</strong>, Fase 1 mais curta (2 anos) — pró-labore consistente entra antes.");
+  } else if (answers.objetivo === "patrimonio") {
+    p.percReinvestFase1 = 100;
+    p.percReinvestFase2 = 100;
+    p.faturamentoPorMaquina = 12000;
+    p.duracaoFase1Meses = 60;
+    rationale.push("Foco em <strong>patrimônio escalável</strong> → 100% reinvest nas duas fases, flywheel total.");
+  }
+
+  // === Capital ===
+  if (answers.capital === "so-1a") {
+    p.capacidadeImplantacao = 1;
+    p.reservaCapital = 3000;
+    rationale.push("Sem capital adicional, expansão depende 100% do reinvestimento — capacidade conservadora de <strong>1 máq/mês</strong>.");
+  } else if (answers.capital === "50-100") {
+    p.capacidadeImplantacao = Math.max(p.capacidadeImplantacao, 1);
+  } else if (answers.capital === "100-300") {
+    p.capacidadeImplantacao = Math.max(p.capacidadeImplantacao, 2);
+    rationale.push("Capital adicional permite manter capacidade de <strong>2 máq/mês</strong> mesmo nos primeiros meses.");
+  } else if (answers.capital === "300+") {
+    p.capacidadeImplantacao = 3;
+    p.reservaCapital = 8000;
+    rationale.push("R$ 300k+ em capital → expansão acelerada para <strong>3 máq/mês</strong> independente do reinvestimento.");
+  }
+
+  // === Reinvest (refina objetivo) ===
+  if (answers.reinvest === "preciso-tirar") {
+    p.percReinvestFase1 = Math.min(p.percReinvestFase1, 70);
+    p.percReinvestFase2 = Math.min(p.percReinvestFase2, 30);
+    rationale.push("Como você precisa tirar pra viver, Fase 1 a <strong>70%</strong> e Fase 2 a 30% — pró-labore aparece desde o início.");
+  } else if (answers.reinvest === "reinvesto-tudo") {
+    p.percReinvestFase1 = 100;
+    p.percReinvestFase2 = Math.max(p.percReinvestFase2, 70);
+  }
+
+  // === Meta de lucro ===
+  if (answers.meta === "ate-15k") {
+    p.faturamentoPorMaquina = Math.min(p.faturamentoPorMaquina, 8000);
+  } else if (answers.meta === "50-150k") {
+    p.faturamentoPorMaquina = Math.max(p.faturamentoPorMaquina, 12000);
+    p.capacidadeImplantacao = Math.max(p.capacidadeImplantacao, 2);
+    rationale.push("Meta R$ 50–150k/mês → faturamento médio R$ 12k/máq e capacidade ≥ 2/mês.");
+  } else if (answers.meta === "150+") {
+    p.faturamentoPorMaquina = 15000;
+    p.capacidadeImplantacao = Math.max(p.capacidadeImplantacao, 3);
+    p.percReinvestFase1 = 100;
+    p.percReinvestFase2 = Math.max(p.percReinvestFase2, 70);
+    rationale.push("Meta acima de R$ 150k/mês → plano arrojado: R$ 15k/máq, 3+ máq/mês, 70%+ reinvest.");
+  }
+
+  // === Risco ===
+  if (answers.risco === "conservador") {
+    p.faturamentoPorMaquina = Math.min(p.faturamentoPorMaquina, 9000);
+    p.capacidadeImplantacao = Math.max(1, p.capacidadeImplantacao - 1);
+    rationale.push("Perfil conservador → faturamento em cenário pessimista (R$ 9k/máq) e capacidade reduzida em 1.");
+  } else if (answers.risco === "arrojado") {
+    p.faturamentoPorMaquina = Math.max(p.faturamentoPorMaquina, 12000);
+  }
+
+  // === Dedicação ===
+  if (answers.dedicacao === "horas-semana") {
+    p.capacidadeImplantacao = Math.min(p.capacidadeImplantacao, 1);
+    rationale.push("Dedicação reduzida → capacidade de implantação limitada a 1 máq/mês.");
+  } else if (answers.dedicacao === "integral") {
+    p.capacidadeImplantacao = Math.max(p.capacidadeImplantacao, 2);
+  }
+
+  // Garantir bounds dos sliders
+  p.faturamentoPorMaquina = Math.max(5000, Math.min(30000, p.faturamentoPorMaquina));
+  p.percReinvestFase1     = Math.max(50, Math.min(100, p.percReinvestFase1));
+  p.percReinvestFase2     = Math.max(0, Math.min(100, p.percReinvestFase2));
+  p.duracaoFase1Meses     = Math.max(12, Math.min(120, p.duracaoFase1Meses));
+  p.reservaCapital        = Math.max(2000, Math.min(10000, p.reservaCapital));
+  p.capacidadeImplantacao = Math.max(1, Math.min(5, p.capacidadeImplantacao));
+  p.horizonteMeses        = Math.max(36, Math.min(120, p.horizonteMeses));
+
+  return { params: p, rationale };
+}
+
+function classifyProfile(p) {
+  let score = 0;
+  if (p.faturamentoPorMaquina >= 12000) score += 2;
+  else if (p.faturamentoPorMaquina >= 10000) score += 1;
+  if (p.capacidadeImplantacao >= 3) score += 2;
+  else if (p.capacidadeImplantacao >= 2) score += 1;
+  if (p.percReinvestFase1 >= 100) score += 1;
+  if (p.percReinvestFase2 >= 70) score += 2;
+  else if (p.percReinvestFase2 >= 50) score += 1;
+  if (p.horizonteMeses >= 84) score += 1;
+
+  if (score <= 2) return {
+    key: "conservador", emoji: "🌱",
+    label: "Construtor Cauteloso",
+    desc: "Crescimento controlado, renda previsível desde o início. Você prioriza segurança e caixa no bolso."
+  };
+  if (score <= 5) return {
+    key: "base", emoji: "⚖️",
+    label: "Empreendedor Equilibrado",
+    desc: "Equilíbrio entre escala e segurança — o caminho da maioria da rede AVEND."
+  };
+  if (score <= 7) return {
+    key: "otimista", emoji: "🚀",
+    label: "Investidor Arrojado",
+    desc: "Expansão acelerada com alto reinvestimento. Você joga pra ganhar grande no médio prazo."
+  };
+  return {
+    key: "turbo", emoji: "⚡",
+    label: "Acelerador Turbo",
+    desc: "Máxima escala — flywheel total, ambição agressiva. Construindo uma operação de porte."
+  };
+}
+
+/* ---------- Quiz state machine ---------- */
+const quizState = {
+  current: 0,
+  answers: {},
+  total: QUIZ_QUESTIONS.length
+};
+
+function openQuiz(reset = true) {
+  if (reset) {
+    quizState.current = 0;
+    quizState.answers = {};
+  }
+  document.getElementById("quiz-result").hidden = true;
+  const ov = document.getElementById("quiz-overlay");
+  ov.hidden = false;
+  ov.setAttribute("aria-hidden", "false");
+  document.body.classList.add("quiz-open");
+  renderQuizSlide();
+  TELEMETRY.track("quiz_opened", { reset });
+}
+
+function closeQuiz() {
+  const ov = document.getElementById("quiz-overlay");
+  const rs = document.getElementById("quiz-result");
+  ov.hidden = true;
+  rs.hidden = true;
+  ov.setAttribute("aria-hidden", "true");
+  rs.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("quiz-open");
+}
+
+function renderQuizSlide() {
+  const q = QUIZ_QUESTIONS[quizState.current];
+  document.getElementById("quiz-cur").textContent = quizState.current + 1;
+  document.getElementById("quiz-tot").textContent = quizState.total;
+  const pct = ((quizState.current + 1) / quizState.total) * 100;
+  document.getElementById("quiz-fill").style.width = pct + "%";
+
+  const stage = document.getElementById("quiz-stage");
+  const selected = quizState.answers[q.id];
+
+  stage.innerHTML = `
+    <div class="quiz-question" data-q="${q.id}">
+      <h2 id="quiz-q-title" class="quiz-q-title">${q.title}</h2>
+      <p class="quiz-q-hint">${q.hint}</p>
+      <div class="quiz-opts">
+        ${q.options.map(o => `
+          <button class="quiz-opt ${selected === o.value ? "is-selected" : ""}"
+                  type="button" data-value="${o.value}">
+            <span class="quiz-opt-icon" aria-hidden="true">${o.icon}</span>
+            <span class="quiz-opt-body">
+              <span class="quiz-opt-title">${o.title}</span>
+              <span class="quiz-opt-desc">${o.desc}</span>
+            </span>
+            <span class="quiz-opt-check" aria-hidden="true">✓</span>
+          </button>
+        `).join("")}
+      </div>
+    </div>
+  `;
+
+  // wiring
+  stage.querySelectorAll(".quiz-opt").forEach(btn => {
+    btn.addEventListener("click", () => {
+      stage.querySelectorAll(".quiz-opt").forEach(b => b.classList.remove("is-selected"));
+      btn.classList.add("is-selected");
+      quizState.answers[q.id] = btn.dataset.value;
+      document.getElementById("quiz-next").disabled = false;
+      document.getElementById("quiz-hint").textContent =
+        quizState.current + 1 === quizState.total
+          ? "Última pergunta — clique em Ver meu plano →"
+          : "Ótimo. Clique em Próxima →";
+      TELEMETRY.track("quiz_answered", { q: q.id, value: btn.dataset.value, step: quizState.current + 1 });
+    });
+  });
+
+  // Buttons state
+  document.getElementById("quiz-back").disabled = quizState.current === 0;
+  const nextBtn = document.getElementById("quiz-next");
+  nextBtn.disabled = !selected;
+  nextBtn.textContent = quizState.current + 1 === quizState.total ? "Ver meu plano →" : "Próxima →";
+  document.getElementById("quiz-hint").textContent = selected
+    ? (quizState.current + 1 === quizState.total ? "Última pergunta — clique em Ver meu plano →" : "Ótimo. Clique em Próxima →")
+    : "Selecione uma opção para continuar";
+}
+
+function quizNext() {
+  if (quizState.current + 1 < quizState.total) {
+    quizState.current++;
+    renderQuizSlide();
+  } else {
+    showQuizResult();
+  }
+}
+function quizBack() {
+  if (quizState.current > 0) {
+    quizState.current--;
+    renderQuizSlide();
+  }
+}
+
+function showQuizResult() {
+  const sug = calcSuggestion(quizState.answers);
+  const profile = classifyProfile(sug.params);
+  const sim = simulate(sug.params);
+
+  // Persistir
+  try {
+    localStorage.setItem("avend-quiz-completed", "1");
+    localStorage.setItem("avend-quiz-data", JSON.stringify({
+      answers: quizState.answers,
+      params: sug.params,
+      profile: profile.key,
+      ts: Date.now()
+    }));
+  } catch (e) { /* ignore */ }
+
+  // Render
+  document.getElementById("quiz-result-emoji").textContent = profile.emoji;
+  document.getElementById("quiz-result-label").textContent = profile.label;
+  document.getElementById("quiz-result-desc").textContent  = profile.desc;
+  document.getElementById("quiz-result-modal").dataset.profile = profile.key;
+
+  const params = sug.params;
+  document.getElementById("quiz-result-params").innerHTML = `
+    <div class="qr-param"><span class="qr-param-lbl">Faturamento médio / máq</span><span class="qr-param-val">${fmtBRL(params.faturamentoPorMaquina)}<small>/mês</small></span></div>
+    <div class="qr-param"><span class="qr-param-lbl">Reinvest Fase 1</span><span class="qr-param-val">${params.percReinvestFase1}%</span></div>
+    <div class="qr-param"><span class="qr-param-lbl">Reinvest Fase 2</span><span class="qr-param-val">${params.percReinvestFase2}%</span></div>
+    <div class="qr-param"><span class="qr-param-lbl">Duração Fase 1</span><span class="qr-param-val">${formatDuracao(params.duracaoFase1Meses)}</span></div>
+    <div class="qr-param"><span class="qr-param-lbl">Capacidade implantação</span><span class="qr-param-val">${params.capacidadeImplantacao}<small>máq/mês</small></span></div>
+    <div class="qr-param"><span class="qr-param-lbl">Horizonte</span><span class="qr-param-val">${params.horizonteMeses / 12}<small>anos</small></span></div>
+  `;
+
+  document.getElementById("quiz-result-projection").innerHTML = `
+    <div class="qr-proj"><span class="qr-proj-lbl">Frota final</span><span class="qr-proj-val">${sim.frotaFinal} máquinas</span></div>
+    <div class="qr-proj qr-proj-hl"><span class="qr-proj-lbl">Lucro mensal final</span><span class="qr-proj-val">${fmtBRL(sim.lucroMensalFinal)}</span></div>
+    <div class="qr-proj"><span class="qr-proj-lbl">Payback 1ª máq</span><span class="qr-proj-val">${sim.paybackMeses ? sim.paybackMeses + " meses" : "—"}</span></div>
+    <div class="qr-proj"><span class="qr-proj-lbl">Patrimônio final</span><span class="qr-proj-val">${fmtBRL(sim.patrimonioFinal)}</span></div>
+    <div class="qr-proj"><span class="qr-proj-lbl">Lucro acumulado</span><span class="qr-proj-val">${fmtBRL(sim.linhas[sim.linhas.length - 1].lucroAcumulado)}</span></div>
+    <div class="qr-proj"><span class="qr-proj-lbl">Pró-labore total</span><span class="qr-proj-val">${fmtBRL(sim.totalProLabore)}</span></div>
+  `;
+
+  const rationaleList = document.getElementById("quiz-result-rationale");
+  rationaleList.innerHTML = sug.rationale.length
+    ? sug.rationale.map(r => `<li>${r}</li>`).join("")
+    : `<li>Plano calibrado a partir do cenário base da rede.</li>`;
+
+  // Save pending application
+  quizState.pendingParams = sug.params;
+  quizState.pendingProfile = profile;
+
+  // Switch view
+  document.getElementById("quiz-overlay").hidden = true;
+  const rs = document.getElementById("quiz-result");
+  rs.hidden = false;
+  rs.setAttribute("aria-hidden", "false");
+
+  TELEMETRY.track("quiz_completed", {
+    profile: profile.key,
+    answers: quizState.answers,
+    params: sug.params
+  });
+}
+
+function applyQuizSuggestion() {
+  const params = quizState.pendingParams;
+  if (!params) return;
+  Object.assign(state, params);
+  syncInputsFromState();
+  updateCenarioLabel();
+  renderAll();
+  closeQuiz();
+  activateTab("simulador");
+  // smooth highlight pulse no chip
+  setTimeout(() => {
+    const chip = document.querySelector(".cenario-chip");
+    if (chip) {
+      chip.classList.add("cenario-chip-pulse");
+      setTimeout(() => chip.classList.remove("cenario-chip-pulse"), 2400);
+    }
+  }, 600);
+  TELEMETRY.track("quiz_plan_applied", { profile: quizState.pendingProfile?.key });
+}
+
+function bindQuiz() {
+  document.getElementById("quiz-next")?.addEventListener("click", quizNext);
+  document.getElementById("quiz-back")?.addEventListener("click", quizBack);
+  document.getElementById("quiz-skip")?.addEventListener("click", () => {
+    closeQuiz();
+    TELEMETRY.track("quiz_skipped", { step: quizState.current + 1 });
+    try { localStorage.setItem("avend-quiz-skipped", "1"); } catch (e) {}
+  });
+  document.getElementById("quiz-redo")?.addEventListener("click", () => openQuiz(true));
+  document.getElementById("quiz-apply")?.addEventListener("click", applyQuizSuggestion);
+  document.getElementById("open-quiz")?.addEventListener("click", () => openQuiz(true));
+  document.getElementById("open-quiz-hero")?.addEventListener("click", () => openQuiz(true));
+  // ESC fecha
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && document.body.classList.contains("quiz-open")) {
+      closeQuiz();
+    }
+  });
+}
+
+function maybeAutoOpenQuiz() {
+  try {
+    const completed = localStorage.getItem("avend-quiz-completed");
+    const skipped   = localStorage.getItem("avend-quiz-skipped");
+    if (!completed && !skipped) {
+      // Primeira visita: abrir após hero animar
+      setTimeout(() => openQuiz(true), 1200);
+    }
+  } catch (e) { /* ignore */ }
+}
+
+/* ============================================================
+   TELEMETRY — sessão, tempo, interações
+   Persistência: localStorage. Estrutura pronta para POST a Apps
+   Script no futuro (basta ligar TELEMETRY.endpoint).
+   ============================================================ */
+const TELEMETRY = (() => {
+  const SESSION_ID = (() => {
+    const key = "avend-session-id";
+    let id = null;
+    try {
+      id = sessionStorage.getItem(key);
+      if (!id) {
+        id = "s_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 9);
+        sessionStorage.setItem(key, id);
+      }
+    } catch (e) { id = "s_anon_" + Date.now(); }
+    return id;
+  })();
+
+  const session = {
+    sessionId: SESSION_ID,
+    startedAt: Date.now(),
+    lastSeen: Date.now(),
+    visitorId: null,           // será preenchido via querystring
+    visitorName: null,
+    visitorEmail: null,
+    visitorPhone: null,
+    visitorCity: null,
+    events: [],
+    tabTime: {},               // tempo acumulado por aba (ms)
+    interactions: { sliders: {}, presets: {}, ctas: 0 },
+    quizCompleted: false,
+    profile: null
+  };
+
+  // Captura visitante via query string (?name=&email=&phone=&city=&id=)
+  try {
+    const u = new URL(window.location.href);
+    session.visitorId    = u.searchParams.get("id");
+    session.visitorName  = u.searchParams.get("name") || u.searchParams.get("nome");
+    session.visitorEmail = u.searchParams.get("email");
+    session.visitorPhone = u.searchParams.get("phone") || u.searchParams.get("tel");
+    session.visitorCity  = u.searchParams.get("city")  || u.searchParams.get("cidade");
+  } catch (e) {}
+
+  // Tab tracking
+  let currentTab = "overview";
+  let tabEnteredAt = Date.now();
+
+  function commitTabTime() {
+    const elapsed = Date.now() - tabEnteredAt;
+    session.tabTime[currentTab] = (session.tabTime[currentTab] || 0) + elapsed;
+    tabEnteredAt = Date.now();
+  }
+
+  function track(type, data = {}) {
+    session.lastSeen = Date.now();
+    session.events.push({ t: Date.now() - session.startedAt, type, data });
+    persist();
+  }
+
+  function persist() {
+    try {
+      localStorage.setItem("avend-tel-" + SESSION_ID, JSON.stringify(session));
+      // mantém um índice de sessões
+      const idx = JSON.parse(localStorage.getItem("avend-tel-index") || "[]");
+      if (!idx.includes(SESSION_ID)) {
+        idx.push(SESSION_ID);
+        localStorage.setItem("avend-tel-index", JSON.stringify(idx.slice(-50))); // últimas 50
+      }
+    } catch (e) {}
+  }
+
+  function setTab(name) {
+    commitTabTime();
+    currentTab = name;
+    tabEnteredAt = Date.now();
+    track("tab_view", { tab: name });
+  }
+
+  function trackSliderChange(stateKey, oldValue, newValue) {
+    if (!session.interactions.sliders[stateKey]) {
+      session.interactions.sliders[stateKey] = { firstChangeAt: Date.now(), changes: 0, initial: oldValue, last: newValue };
+    }
+    session.interactions.sliders[stateKey].changes++;
+    session.interactions.sliders[stateKey].last = newValue;
+  }
+
+  function trackPreset(name) {
+    session.interactions.presets[name] = (session.interactions.presets[name] || 0) + 1;
+    track("preset_clicked", { preset: name });
+  }
+
+  // Tempo total / unload
+  window.addEventListener("beforeunload", () => {
+    commitTabTime();
+    session.totalTimeMs = Date.now() - session.startedAt;
+    persist();
+  });
+
+  // Heartbeat (a cada 15s persiste)
+  setInterval(() => {
+    if (document.visibilityState === "visible") {
+      commitTabTime();
+      session.totalTimeMs = Date.now() - session.startedAt;
+      persist();
+    }
+  }, 15000);
+
+  return { session, track, setTab, trackSliderChange, trackPreset, commitTabTime, persist, SESSION_ID };
+})();
+
+/* ============================================================
+   ADMIN — painel de telemetria via ?admin=1
+   ============================================================ */
+function maybeShowAdmin() {
+  try {
+    const u = new URL(window.location.href);
+    if (u.searchParams.get("admin") !== "1") return;
+    const idx = JSON.parse(localStorage.getItem("avend-tel-index") || "[]");
+    const sessions = idx.map(id => {
+      try { return JSON.parse(localStorage.getItem("avend-tel-" + id)); } catch { return null; }
+    }).filter(Boolean).reverse();
+
+    const html = `
+      <div class="admin-panel">
+        <header class="admin-head">
+          <h2>📊 Telemetria · Painel Admin</h2>
+          <button class="admin-close" type="button" aria-label="Fechar">✕</button>
+        </header>
+        <div class="admin-summary">
+          <span><strong>${sessions.length}</strong> sessões registradas</span>
+          <button class="admin-export" type="button">⬇ Exportar JSON</button>
+          <button class="admin-clear" type="button">🗑 Limpar tudo</button>
+        </div>
+        <div class="admin-list">
+          ${sessions.map(s => {
+            const dur = (s.totalTimeMs || (Date.now() - s.startedAt)) / 1000;
+            const visitorTag = s.visitorName || s.visitorEmail || s.visitorId || "anônimo";
+            const quizTag = s.quizCompleted ? `<span class="admin-tag admin-tag-ok">${s.profile || "completou"}</span>` : `<span class="admin-tag">não respondeu</span>`;
+            return `
+              <details class="admin-session">
+                <summary>
+                  <span class="admin-session-id">${s.sessionId}</span>
+                  <span class="admin-session-visitor">${visitorTag}</span>
+                  <span class="admin-session-time">${(dur / 60).toFixed(1)} min</span>
+                  ${quizTag}
+                  <span class="admin-session-events">${s.events?.length || 0} eventos</span>
+                </summary>
+                <pre>${JSON.stringify(s, null, 2)}</pre>
+              </details>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+    const div = document.createElement("div");
+    div.className = "admin-overlay";
+    div.innerHTML = html;
+    document.body.appendChild(div);
+    div.querySelector(".admin-close").addEventListener("click", () => div.remove());
+    div.querySelector(".admin-export").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(sessions, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `avend-telemetry-${Date.now()}.json`;
+      a.click();
+    });
+    div.querySelector(".admin-clear").addEventListener("click", () => {
+      if (!confirm("Limpar todas as sessões registradas?")) return;
+      idx.forEach(id => localStorage.removeItem("avend-tel-" + id));
+      localStorage.removeItem("avend-tel-index");
+      div.remove();
+    });
+  } catch (e) {}
+}
+
 /* ---------- Init ---------- */
 document.addEventListener("DOMContentLoaded", () => {
   bindTabs();
   bindSliders();
   updateCenarioLabel();
   renderAll();
-  // Render do gráfico de mercado (independente do simulador)
   renderMarketChart();
+  bindQuiz();
+  maybeAutoOpenQuiz();
+  maybeShowAdmin();
+  TELEMETRY.track("page_loaded", { url: location.href });
 });
 
 /* Expor para debug no console (opcional) */
