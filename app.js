@@ -926,9 +926,9 @@ const QUIZ_QUESTIONS = [
         desc: "Mantenho minha atividade principal e diversifico com algo passivo." },
       { value: "sair-clt",     icon: "🪜", title: "Sair da CLT em alguns anos",
         desc: "Construir uma operação que substitua meu salário aos poucos." },
-      { value: "viver-disso",  icon: "🏆", title: "Viver disso integralmente",
+      { value: "viver-disso",  icon: "🌟", title: "Viver disso integralmente",
         desc: "Quero que essa seja minha principal fonte de renda — desde o início." },
-      { value: "patrimonio",   icon: "🏗️", title: "Construir patrimônio escalável",
+      { value: "patrimonio",   icon: "🏗", title: "Construir patrimônio escalável",
         desc: "Reinvestir tudo, escalar agressivamente, montar uma rede grande." }
     ]
   },
@@ -952,9 +952,9 @@ const QUIZ_QUESTIONS = [
     title: "O lucro que vier — você consegue reinvestir?",
     hint: "Pensando nos primeiros 2–3 anos. Quanto mais reinvest, mais rápido o flywheel acelera.",
     options: [
-      { value: "preciso-tirar", icon: "👨‍👩‍👦", title: "Vou precisar tirar pra viver",
+      { value: "preciso-tirar",  icon: "🏠", title: "Vou precisar tirar pra viver",
         desc: "Conto com essa renda no orçamento mensal desde o início." },
-      { value: "meio-meio",     icon: "⚖️", title: "Posso reinvestir 70–80%",
+      { value: "meio-meio",      icon: "⚖", title: "Posso reinvestir 70–80%",
         desc: "Aceito tirar uma parte, mas a maior parte volta pro negócio." },
       { value: "reinvesto-tudo", icon: "🔁", title: "Reinvesto 100% nos primeiros anos",
         desc: "Tenho outras fontes de renda, deixo a operação rodar sozinha pra escalar." }
@@ -965,13 +965,13 @@ const QUIZ_QUESTIONS = [
     title: "Quanto você quer ter de lucro mensal em 5 anos?",
     hint: "Lucro líquido depois de impostos. Vamos calibrar o plano para perseguir isso.",
     options: [
-      { value: "ate-15k",  icon: "🎯",     title: "R$ 5–15 mil/mês",
+      { value: "ate-15k",  icon: "💵", title: "R$ 5–15 mil/mês",
         desc: "Substituir um salário ou complementar a renda da família." },
-      { value: "15-50k",   icon: "🎯🎯",   title: "R$ 15–50 mil/mês",
+      { value: "15-50k",   icon: "💰", title: "R$ 15–50 mil/mês",
         desc: "Renda confortável, equivalente a um cargo médio-alto." },
-      { value: "50-150k",  icon: "🎯🎯🎯", title: "R$ 50–150 mil/mês",
+      { value: "50-150k",  icon: "💸", title: "R$ 50–150 mil/mês",
         desc: "Renda de empresário com operação de médio porte." },
-      { value: "150+",     icon: "🏆",     title: "Acima de R$ 150 mil/mês",
+      { value: "150+",     icon: "🏆", title: "Acima de R$ 150 mil/mês",
         desc: "Construir uma operação grande, com equipe estruturada." }
     ]
   },
@@ -982,11 +982,11 @@ const QUIZ_QUESTIONS = [
     options: [
       { value: "3",  icon: "⏰", title: "3 anos",
         desc: "Quero acelerar — meta agressiva no curto prazo." },
-      { value: "5",  icon: "🗓️", title: "5 anos",
+      { value: "5",  icon: "🗓", title: "5 anos",
         desc: "Horizonte equilibrado, é o que a maioria escolhe." },
       { value: "7",  icon: "📅", title: "7 anos",
         desc: "Construir com calma, sem pressa." },
-      { value: "10", icon: "🌳", title: "10 anos",
+      { value: "10", icon: "🏛", title: "10 anos",
         desc: "Maratona — patrimônio sólido, risco controlado." }
     ]
   },
@@ -1008,9 +1008,9 @@ const QUIZ_QUESTIONS = [
     title: "Como você se sente com risco em investimentos?",
     hint: "Não muda a operação em si — calibra a velocidade da expansão sugerida.",
     options: [
-      { value: "conservador", icon: "🛡️", title: "Prefiro segurança",
+      { value: "conservador", icon: "🛡", title: "Prefiro segurança",
         desc: "Aceito retorno menor em troca de previsibilidade." },
-      { value: "equilibrado", icon: "⚖️", title: "Equilibrado",
+      { value: "equilibrado", icon: "⚖", title: "Equilibrado",
         desc: "Aceito risco calculado se a recompensa for proporcional." },
       { value: "arrojado",    icon: "🎲", title: "Tenho perfil arrojado",
         desc: "Disposto a apostar mais alto se a oportunidade compensar." }
@@ -1360,6 +1360,7 @@ function bindQuiz() {
   document.getElementById("quiz-apply")?.addEventListener("click", applyQuizSuggestion);
   document.getElementById("open-quiz")?.addEventListener("click", () => openQuiz(true));
   document.getElementById("open-quiz-hero")?.addEventListener("click", () => openQuiz(true));
+  document.getElementById("open-quiz-header")?.addEventListener("click", () => openQuiz(true));
   // ESC fecha
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && document.body.classList.contains("quiz-open")) {

@@ -213,6 +213,37 @@ h1, h2, h3, h4 { margin: 0; letter-spacing: -0.015em; font-weight: 700; }
   transform: scaleX(1);
 }
 
+/* Botão Diagnóstico no header — sempre visível, refazer a qualquer hora */
+.topbar-quiz {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, rgba(57,232,135,0.16), rgba(139,48,230,0.18));
+  border: 1px solid rgba(57,232,135,0.45);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  box-shadow: 0 0 0 1px rgba(57,232,135,0.18), 0 4px 14px rgba(57,232,135,0.18);
+}
+.topbar-quiz:hover {
+  transform: translateY(-1px);
+  border-color: rgba(57,232,135,0.70);
+  box-shadow: 0 0 0 1px rgba(57,232,135,0.35), 0 8px 22px rgba(57,232,135,0.30);
+}
+.topbar-quiz-icon { font-size: 14px; line-height: 1; }
+.topbar-quiz-text { white-space: nowrap; }
+@media (max-width: 1100px) {
+  .topbar-quiz-text { display: none; }
+  .topbar-quiz { padding: 8px 10px; }
+  .topbar-quiz-icon { font-size: 16px; }
+}
+
 /* ============================================================
    Stage + pages
    ============================================================ */
@@ -1442,19 +1473,24 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 14px;
 }
 .rede-stat-val {
-  font-size: 28px;
-  font-weight: 700;
-  background: linear-gradient(90deg, var(--accent-c), var(--accent-b), var(--accent-a));
+  font-size: 32px;
+  font-weight: 800;
+  /* gradient claro → claro pra garantir contraste no fundo escuro */
+  background: linear-gradient(90deg, var(--accent-d) 0%, var(--accent-cyan) 55%, var(--accent-blue) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   letter-spacing: -0.5px;
+  line-height: 1.1;
+  filter: drop-shadow(0 2px 12px rgba(61,217,214,0.20));
 }
 .rede-stat-lbl {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: var(--text-dim);
+  color: var(--text);
+  font-weight: 600;
+  opacity: 0.78;
 }
 .rede-stats-hint {
   grid-column: 1 / -1;
@@ -2959,13 +2995,18 @@ body.quiz-open { overflow: hidden; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1;
   width: 44px;
   height: 44px;
+  flex-shrink: 0;
   background: rgba(139,48,230,0.12);
   border: 1px solid rgba(139,48,230,0.30);
   border-radius: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "EmojiOne Color", sans-serif;
+  font-variant-emoji: emoji;
 }
 .quiz-opt-body {
   display: flex;
