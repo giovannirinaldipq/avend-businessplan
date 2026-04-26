@@ -1670,48 +1670,241 @@ const TELEMETRY = (() => {
 
 /* ============================================================
    ADMIN — painel de telemetria via ?admin=1
+   Funil de conversão · Score de calor · Distribuição de perfis
    ============================================================ */
+
+/* Score de calor (0-100): pondera tempo, identificação, quiz, perfil */
+function computeHeatScore(s) {
+  let score = 0;
+  // Tempo (0-40 pontos): cada minuto vale 4 pontos, capa em 10min
+  const min = (s.totalTimeMs || 0) / 60000;
+  score += Math.min(40, min * 4);
+  // Identificação (0-25 pontos)
+  if (s.visitorName)  score += 7;
+  if (s.visitorEmail) score += 8;
+  if (s.visitorPhone) score += 8;
+  if (s.visitorCity)  score += 2;
+  // Quiz (0-15 pontos)
+  if (s.quizCompleted) score += 15;
+  // Perfil (0-20 pontos)
+  if (s.profile === "turbo")    score += 20;
+  else if (s.profile === "otimista") score += 15;
+  else if (s.profile === "base")     score += 8;
+  else if (s.profile === "conservador") score += 4;
+  return Math.round(score);
+}
+
+function heatLevel(score) {
+  if (score >= 70) return { key: "fire",  label: "🔥 Quente", color: "#ff6b6b" };
+  if (score >= 45) return { key: "warm",  label: "♨ Morno",   color: "#ffb020" };
+  if (score >= 20) return { key: "cool",  label: "🌤 Tépido", color: "#3DD9D6" };
+  return { key: "cold", label: "❄ Frio", color: "#a7adca" };
+}
+
+function computeFunnel(sessions) {
+  const total = sessions.length;
+  const quizOpened = sessions.filter(s => (s.events || []).some(e => e.type === "quiz_opened")).length;
+  const identified = sessions.filter(s =>
+    (s.events || []).some(e => e.type === "quiz_identified") ||
+    s.visitorName || s.visitorEmail
+  ).length;
+  const quizCompleted = sessions.filter(s => s.quizCompleted).length;
+  const planApplied   = sessions.filter(s => (s.events || []).some(e => e.type === "quiz_plan_applied")).length;
+
+  return [
+    { key: "visit",     label: "Visitou",          n: total,         pct: 100 },
+    { key: "opened",    label: "Abriu quiz",       n: quizOpened,    pct: total ? (quizOpened / total) * 100 : 0 },
+    { key: "id",        label: "Identificou-se",   n: identified,    pct: total ? (identified / total) * 100 : 0 },
+    { key: "completed", label: "Completou quiz",   n: quizCompleted, pct: total ? (quizCompleted / total) * 100 : 0 },
+    { key: "applied",   label: "Aplicou plano",    n: planApplied,   pct: total ? (planApplied / total) * 100 : 0 }
+  ];
+}
+
+function computeProfileDist(sessions) {
+  const all = sessions.filter(s => s.profile);
+  const total = all.length || 1;
+  const counts = { conservador: 0, base: 0, otimista: 0, turbo: 0 };
+  all.forEach(s => { if (counts[s.profile] !== undefined) counts[s.profile]++; });
+  const order = [
+    { key: "conservador", label: "Conservador", emoji: "🌱", color: "#a7adca" },
+    { key: "base",        label: "Base",        emoji: "⚖", color: "#4B6CE2" },
+    { key: "otimista",    label: "Otimista",    emoji: "🚀", color: "#39e887" },
+    { key: "turbo",       label: "Turbo",       emoji: "⚡", color: "#ffb020" }
+  ];
+  return order.map(p => ({ ...p, n: counts[p.key], pct: (counts[p.key] / total) * 100 }));
+}
+
+function computeTopSliders(sessions) {
+  const counts = {};
+  const friendly = {
+    faturamentoPorMaquina: "Faturamento / máquina",
+    percReinvestFase1: "Reinvest Fase 1",
+    duracaoFase1Meses: "Duração Fase 1",
+    percReinvestFase2: "Reinvest Fase 2",
+    reservaCapital: "Reserva de capital",
+    capacidadeImplantacao: "Capacidade implantação",
+    horizonteMeses: "Horizonte"
+  };
+  sessions.forEach(s => {
+    const sliders = (s.interactions && s.interactions.sliders) || {};
+    Object.keys(sliders).forEach(k => {
+      counts[k] = (counts[k] || 0) + (sliders[k].changes || 1);
+    });
+  });
+  return Object.entries(counts)
+    .map(([k, n]) => ({ key: k, label: friendly[k] || k, n }))
+    .sort((a, b) => b.n - a.n);
+}
+
+function computeAvgTime(sessions) {
+  const times = sessions.map(s => s.totalTimeMs || 0).filter(t => t > 0);
+  if (!times.length) return 0;
+  return times.reduce((a, b) => a + b, 0) / times.length / 60000;
+}
+
 function maybeShowAdmin() {
   try {
     const u = new URL(window.location.href);
     if (u.searchParams.get("admin") !== "1") return;
+
     const idx = JSON.parse(localStorage.getItem("avend-tel-index") || "[]");
     const sessions = idx.map(id => {
       try { return JSON.parse(localStorage.getItem("avend-tel-" + id)); } catch { return null; }
-    }).filter(Boolean).reverse();
+    }).filter(Boolean);
+
+    // Computações
+    const funnel       = computeFunnel(sessions);
+    const profileDist  = computeProfileDist(sessions);
+    const topSliders   = computeTopSliders(sessions);
+    const avgMin       = computeAvgTime(sessions);
+    const totalQuizCompleted = sessions.filter(s => s.quizCompleted).length;
+    const totalIdentified = sessions.filter(s => s.visitorName || s.visitorEmail).length;
+
+    // Sessões com score, ordenadas DESC por calor
+    const enriched = sessions.map(s => ({ s, score: computeHeatScore(s), heat: heatLevel(computeHeatScore(s)) }))
+      .sort((a, b) => b.score - a.score);
+
+    const fmtPct = v => v.toFixed(0) + "%";
+    const fmtMin = ms => (ms / 60000).toFixed(1);
 
     const html = `
-      <div class="admin-panel">
+      <div class="admin-panel admin-panel-pro">
         <header class="admin-head">
-          <h2>📊 Telemetria · Painel Admin</h2>
+          <div>
+            <h2>📊 AVEND · Painel de Telemetria</h2>
+            <p class="admin-subtitle">Análise de comportamento e leads — dados locais (${sessions.length} sessões)</p>
+          </div>
           <button class="admin-close" type="button" aria-label="Fechar">✕</button>
         </header>
-        <div class="admin-summary">
-          <span><strong>${sessions.length}</strong> sessões registradas</span>
-          <button class="admin-export" type="button">⬇ Exportar JSON</button>
-          <button class="admin-clear" type="button">🗑 Limpar tudo</button>
+
+        <!-- KPIs gerais -->
+        <div class="admin-kpis">
+          <div class="admin-kpi"><div class="admin-kpi-val">${sessions.length}</div><div class="admin-kpi-lbl">Sessões totais</div></div>
+          <div class="admin-kpi"><div class="admin-kpi-val">${totalIdentified}</div><div class="admin-kpi-lbl">Identificados</div></div>
+          <div class="admin-kpi"><div class="admin-kpi-val">${totalQuizCompleted}</div><div class="admin-kpi-lbl">Quiz completos</div></div>
+          <div class="admin-kpi"><div class="admin-kpi-val">${avgMin.toFixed(1)}<small>min</small></div><div class="admin-kpi-lbl">Tempo médio</div></div>
+          <div class="admin-kpi admin-kpi-hot"><div class="admin-kpi-val">${enriched.filter(e => e.score >= 70).length}</div><div class="admin-kpi-lbl">🔥 Leads quentes</div></div>
         </div>
-        <div class="admin-list">
-          ${sessions.map(s => {
-            const dur = (s.totalTimeMs || (Date.now() - s.startedAt)) / 1000;
-            const visitorTag = s.visitorName || s.visitorEmail || s.visitorId || "anônimo";
-            const quizTag = s.quizCompleted ? `<span class="admin-tag admin-tag-ok">${s.profile || "completou"}</span>` : `<span class="admin-tag">não respondeu</span>`;
-            return `
-              <details class="admin-session">
-                <summary>
-                  <span class="admin-session-id">${s.sessionId}</span>
-                  <span class="admin-session-visitor">${visitorTag}</span>
-                  <span class="admin-session-time">${(dur / 60).toFixed(1)} min</span>
-                  ${quizTag}
-                  <span class="admin-session-events">${s.events?.length || 0} eventos</span>
-                </summary>
-                <pre>${JSON.stringify(s, null, 2)}</pre>
-              </details>
-            `;
-          }).join("")}
-        </div>
+
+        <!-- Funil -->
+        <section class="admin-section">
+          <h3 class="admin-section-title">Funil de conversão</h3>
+          <div class="admin-funnel">
+            ${funnel.map((f, i) => {
+              const prev = i > 0 ? funnel[i-1].n : f.n;
+              const dropoff = i > 0 && prev > 0 ? ((prev - f.n) / prev) * 100 : 0;
+              return `
+                <div class="admin-funnel-row">
+                  <div class="admin-funnel-label">${f.label}</div>
+                  <div class="admin-funnel-bar">
+                    <span class="admin-funnel-fill" style="width:${Math.max(2, f.pct)}%"></span>
+                    <span class="admin-funnel-num">${f.n}</span>
+                  </div>
+                  <div class="admin-funnel-pct">${fmtPct(f.pct)}</div>
+                  ${i > 0 ? `<div class="admin-funnel-drop">${dropoff > 0 ? `↓ ${fmtPct(dropoff)} drop` : "—"}</div>` : `<div class="admin-funnel-drop">base</div>`}
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </section>
+
+        <!-- Distribuição de perfis + Top sliders (lado a lado) -->
+        <section class="admin-section admin-grid-2">
+          <div>
+            <h3 class="admin-section-title">Distribuição de perfis</h3>
+            ${profileDist.every(p => p.n === 0) ? `<p class="admin-empty">Nenhum perfil identificado ainda.</p>` : `
+              <div class="admin-profiles">
+                ${profileDist.map(p => `
+                  <div class="admin-profile-row">
+                    <span class="admin-profile-emoji" aria-hidden="true">${p.emoji}</span>
+                    <span class="admin-profile-label">${p.label}</span>
+                    <span class="admin-profile-bar">
+                      <span class="admin-profile-fill" style="width:${p.pct}%; background:${p.color};"></span>
+                    </span>
+                    <span class="admin-profile-num">${p.n}</span>
+                    <span class="admin-profile-pct">${fmtPct(p.pct)}</span>
+                  </div>
+                `).join("")}
+              </div>
+            `}
+          </div>
+          <div>
+            <h3 class="admin-section-title">Top sliders mexidos</h3>
+            ${topSliders.length === 0 ? `<p class="admin-empty">Ninguém mexeu em sliders ainda.</p>` : `
+              <ol class="admin-sliders">
+                ${topSliders.slice(0, 7).map((sl, i) => `
+                  <li>
+                    <span class="admin-slider-rank">${i + 1}</span>
+                    <span class="admin-slider-label">${sl.label}</span>
+                    <span class="admin-slider-count">${sl.n} mexidas</span>
+                  </li>
+                `).join("")}
+              </ol>
+            `}
+          </div>
+        </section>
+
+        <!-- Sessões -->
+        <section class="admin-section">
+          <header class="admin-list-head">
+            <h3 class="admin-section-title">Sessões (ordenadas por calor)</h3>
+            <div class="admin-actions">
+              <button class="admin-btn admin-export" type="button">⬇ Exportar JSON</button>
+              <button class="admin-btn admin-btn-danger admin-clear" type="button">🗑 Limpar tudo</button>
+            </div>
+          </header>
+          <div class="admin-list">
+            ${enriched.map(({ s, score, heat }) => {
+              const dur = (s.totalTimeMs || (Date.now() - s.startedAt));
+              const visitorTag = s.visitorName || s.visitorEmail || s.visitorId || "anônimo";
+              const subTag = [s.visitorEmail, s.visitorPhone, s.visitorCity].filter(Boolean).join(" · ");
+              const profileTag = s.quizCompleted
+                ? `<span class="admin-tag admin-tag-ok">${(s.profile || "completou").toUpperCase()}</span>`
+                : (s.events||[]).some(e=>e.type==="quiz_opened")
+                  ? `<span class="admin-tag admin-tag-warn">abriu quiz</span>`
+                  : `<span class="admin-tag">não respondeu</span>`;
+              return `
+                <details class="admin-session" data-heat="${heat.key}">
+                  <summary>
+                    <span class="admin-heat" style="background:${heat.color}; box-shadow:0 0 12px ${heat.color}55;">${score}</span>
+                    <span class="admin-session-visitor-block">
+                      <span class="admin-session-visitor">${visitorTag}</span>
+                      ${subTag ? `<span class="admin-session-sub">${subTag}</span>` : ""}
+                    </span>
+                    <span class="admin-session-time">${fmtMin(dur)} min</span>
+                    ${profileTag}
+                    <span class="admin-session-events">${(s.events||[]).length} eventos</span>
+                  </summary>
+                  <pre>${JSON.stringify(s, null, 2)}</pre>
+                </details>
+              `;
+            }).join("")}
+          </div>
+        </section>
+
       </div>
     `;
+
     const div = document.createElement("div");
     div.className = "admin-overlay";
     div.innerHTML = html;
@@ -1725,12 +1918,12 @@ function maybeShowAdmin() {
       a.click();
     });
     div.querySelector(".admin-clear").addEventListener("click", () => {
-      if (!confirm("Limpar todas as sessões registradas?")) return;
+      if (!confirm("Limpar todas as sessões registradas localmente?\n\nIsso NÃO afeta os dados na sua planilha Google.")) return;
       idx.forEach(id => localStorage.removeItem("avend-tel-" + id));
       localStorage.removeItem("avend-tel-index");
       div.remove();
     });
-  } catch (e) {}
+  } catch (e) { console.error("Admin panel error:", e); }
 }
 
 /* ---------- Init ---------- */
