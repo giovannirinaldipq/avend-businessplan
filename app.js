@@ -1224,21 +1224,35 @@ function renderQuizSlide() {
             <span class="quiz-id-lbl">Nome</span>
             <input type="text" id="qid-name" class="quiz-id-input" placeholder="João da Silva"
                    autocomplete="name" maxlength="80" value="${escapeAttr(id.name || "")}" />
+            <span class="quiz-id-feedback" data-for="name"></span>
           </label>
           <label class="quiz-id-field">
             <span class="quiz-id-lbl">E-mail</span>
             <input type="email" id="qid-email" class="quiz-id-input" placeholder="seu@email.com"
-                   autocomplete="email" maxlength="120" value="${escapeAttr(id.email || "")}" />
+                   autocomplete="email" maxlength="120" inputmode="email"
+                   value="${escapeAttr(id.email || "")}" />
+            <span class="quiz-id-feedback" data-for="email"></span>
           </label>
           <label class="quiz-id-field">
             <span class="quiz-id-lbl">Telefone / WhatsApp</span>
             <input type="tel" id="qid-phone" class="quiz-id-input" placeholder="(11) 99999-9999"
-                   autocomplete="tel" maxlength="32" value="${escapeAttr(id.phone || "")}" />
+                   autocomplete="tel" maxlength="16" inputmode="tel"
+                   value="${escapeAttr(id.phone || "")}" />
+            <span class="quiz-id-feedback" data-for="phone"></span>
           </label>
           <label class="quiz-id-field">
             <span class="quiz-id-lbl">Cidade / UF</span>
             <input type="text" id="qid-city" class="quiz-id-input" placeholder="São Paulo / SP"
                    autocomplete="address-level2" maxlength="80" value="${escapeAttr(id.city || "")}" />
+            <span class="quiz-id-feedback" data-for="city"></span>
+          </label>
+
+          <!-- Honeypot anti-spam: campo invisível que bots preenchem.
+               Se vier preenchido, o "lead" é descartado silenciosamente. -->
+          <label class="quiz-id-honeypot" aria-hidden="true">
+            Não preencha este campo
+            <input type="text" id="qid-website" name="website" tabindex="-1"
+                   autocomplete="off" />
           </label>
         </div>
         <div class="quiz-id-privacy">
@@ -1248,19 +1262,44 @@ function renderQuizSlide() {
       </div>
     `;
 
-    // Wiring inputs — atualiza state em tempo real
+    // Setup máscara de telefone
+    const phoneInput = document.getElementById("qid-phone");
+    if (phoneInput) {
+      const applyPhoneMask = () => {
+        const raw = phoneInput.value.replace(/\D/g, "").slice(0, 11);
+        phoneInput.value = formatPhoneBR(raw);
+      };
+      phoneInput.addEventListener("input", applyPhoneMask);
+      // Aplica logo se já tem valor
+      if (phoneInput.value) applyPhoneMask();
+    }
+
+    // Setup feedback visual + sync state
     ["name", "email", "phone", "city"].forEach(field => {
       const inp = document.getElementById("qid-" + field);
       if (!inp) return;
       inp.addEventListener("input", () => {
-        quizState.identity[field] = inp.value.trim();
-        // sync com TELEMETRY
+        const value = inp.value.trim();
+        quizState.identity[field] = value;
+        // Validação visual em tempo real
+        const feedback = stage.querySelector(`.quiz-id-feedback[data-for="${field}"]`);
+        const validity = validateIdentityField(field, value);
+        inp.classList.toggle("is-valid", validity.state === "valid");
+        inp.classList.toggle("is-error", validity.state === "error");
+        if (feedback) {
+          feedback.textContent = validity.message || "";
+          feedback.dataset.state = validity.state || "";
+        }
+        // Sync TELEMETRY
         if (typeof TELEMETRY !== "undefined") {
           const map = { name: "visitorName", email: "visitorEmail", phone: "visitorPhone", city: "visitorCity" };
-          TELEMETRY.session[map[field]] = inp.value.trim() || null;
+          // Salva sempre o valor digitado, mesmo se inválido (usuário pode estar terminando de digitar)
+          TELEMETRY.session[map[field]] = value || null;
           TELEMETRY.persist();
         }
       });
+      // Trigger inicial pra mostrar valid no que veio prefilled
+      inp.dispatchEvent(new Event("input"));
     });
 
     // Footer: identificação é sempre permite avançar
@@ -1326,14 +1365,91 @@ function escapeAttr(s) {
   return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
+/* ---------- Validações da identificação ---------- */
+
+// Máscara de telefone brasileiro: (11) 99999-9999 ou (11) 9999-9999
+function formatPhoneBR(digits) {
+  const d = String(digits || "").replace(/\D/g, "").slice(0, 11);
+  if (d.length === 0) return "";
+  if (d.length <= 2)  return `(${d}`;
+  if (d.length <= 6)  return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
+// Regex de e-mail simples — pega 99% dos casos sem ser draconiano
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+function validateIdentityField(field, value) {
+  if (!value) return { state: null, message: "" }; // vazio = neutro (campo é opcional)
+
+  if (field === "name") {
+    if (value.length < 2)
+      return { state: "error", message: "Nome muito curto" };
+    if (!/[a-zà-ú]/i.test(value))
+      return { state: "error", message: "Nome inválido" };
+    return { state: "valid", message: "" };
+  }
+
+  if (field === "email") {
+    if (!EMAIL_RE.test(value))
+      return { state: "error", message: "E-mail incompleto" };
+    return { state: "valid", message: "" };
+  }
+
+  if (field === "phone") {
+    const digits = value.replace(/\D/g, "");
+    if (digits.length < 10)
+      return { state: "error", message: "Faltam dígitos (DDD + número)" };
+    if (digits.length > 11)
+      return { state: "error", message: "Telefone com dígitos a mais" };
+    // DDD válido (11-99)
+    const ddd = parseInt(digits.slice(0, 2), 10);
+    if (ddd < 11 || ddd > 99)
+      return { state: "error", message: "DDD inválido" };
+    return { state: "valid", message: "" };
+  }
+
+  if (field === "city") {
+    if (value.length < 2)
+      return { state: "error", message: "Cidade muito curta" };
+    return { state: "valid", message: "" };
+  }
+
+  return { state: null, message: "" };
+}
+
+// Check do honeypot: se preenchido, é bot
+function isHoneypotTriggered() {
+  const hp = document.getElementById("qid-website");
+  return !!(hp && hp.value && hp.value.trim().length > 0);
+}
+
 function quizNext() {
-  // Se está no slide 0 (identificação) e tem dados, registra evento
-  if (quizState.current === 0 && typeof TELEMETRY !== "undefined") {
-    const provided = ["name", "email", "phone", "city"].filter(f => quizState.identity[f]);
-    if (provided.length > 0) {
-      TELEMETRY.track("quiz_identified", { fields: provided });
-    } else {
-      TELEMETRY.track("quiz_identification_skipped", {});
+  if (quizState.current === 0) {
+    // Honeypot: se preencheu o campo invisível, é bot. Limpa identificação
+    // silenciosamente (sem dar feedback pro bot saber que foi pego).
+    if (isHoneypotTriggered()) {
+      quizState.identity = {};
+      if (typeof TELEMETRY !== "undefined") {
+        TELEMETRY.track("honeypot_triggered", {});
+        // limpa visitor info no telemetry também
+        TELEMETRY.session.visitorName = null;
+        TELEMETRY.session.visitorEmail = null;
+        TELEMETRY.session.visitorPhone = null;
+        TELEMETRY.session.visitorCity = null;
+        TELEMETRY.session.botSuspected = true;
+        TELEMETRY.persist();
+      }
+    }
+    // Registra evento de identificação
+    if (typeof TELEMETRY !== "undefined") {
+      const provided = ["name", "email", "phone", "city"].filter(f => quizState.identity[f]);
+      if (provided.length > 0) {
+        TELEMETRY.track("quiz_identified", { fields: provided });
+      } else {
+        TELEMETRY.track("quiz_identification_skipped", {});
+      }
     }
   }
   if (quizState.current + 1 < quizState.total) {
