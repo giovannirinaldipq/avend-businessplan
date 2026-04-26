@@ -281,7 +281,11 @@ function activateTab(name) {
 }
 function bindTabs() {
   document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => activateTab(t.dataset.tab)));
-  document.querySelectorAll("[data-goto]").forEach(el => el.addEventListener("click", () => activateTab(el.dataset.goto)));
+  document.querySelectorAll("[data-goto]").forEach(el => el.addEventListener("click", (e) => {
+    // se for link <a>, prevenir o jump pra "#"
+    if (el.tagName === "A") e.preventDefault();
+    activateTab(el.dataset.goto);
+  }));
 }
 
 /* ---------- Sliders ---------- */
@@ -358,13 +362,18 @@ function syncInputsFromState() {
 
 function updateCenarioLabel() {
   const label = document.getElementById("cenario-label");
-  if (!label) return; // header foi enxugado — pill removido
+  if (!label) return;
   const v = state.faturamentoPorMaquina;
   let nome = "Customizado";
-  if (v === 10000) nome = "Base";
-  else if (v === 15000) nome = "Otimista";
-  else if (v === 7000) nome = "Conservador";
-  label.textContent = `${nome} (${fmtBRL(v)}/máq)`;
+  let key  = "custom";
+  if (v === 10000)      { nome = "Base";          key = "base"; }
+  else if (v === 15000) { nome = "Otimista";      key = "otimista"; }
+  else if (v === 7000)  { nome = "Conservador";   key = "conservador"; }
+  else if (v === 12000) { nome = "Turbo ⚡";       key = "turbo"; }
+  label.textContent = `${nome} · ${fmtBRL(v)}/máq`;
+  // tag visual no chip pai
+  const chip = label.closest(".cenario-chip");
+  if (chip) chip.dataset.cenario = key;
 }
 
 /* ---------- Count-up numérico nos KPIs ---------- */

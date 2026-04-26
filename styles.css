@@ -14,6 +14,7 @@
   --border-hi:   rgba(255, 255, 255, 0.18);
 
   --text:        #eef1ff;
+  --text-main:   #eef1ff;   /* alias compat — usado em legado */
   --text-dim:    #a7adca;
   --text-mute:   #6d7396;
 
@@ -245,6 +246,51 @@ h1, h2, h3, h4 { margin: 0; letter-spacing: -0.015em; font-weight: 700; }
   font-size: 15px;
   max-width: 720px;
 }
+
+/* Cenário ativo — chip discreto, contextual ao Simulador */
+.cenario-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 6px 14px 6px 10px;
+  background: rgba(13,14,54,0.7);
+  border: 1px solid rgba(139,48,230,0.35);
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  transition: border-color 0.25s ease, background 0.25s ease;
+}
+.cenario-chip strong {
+  color: var(--text);
+  font-weight: 700;
+}
+.cenario-chip-lbl {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-mute);
+}
+.cenario-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--grad-primary);
+  box-shadow: 0 0 0 3px rgba(139,48,230,0.18);
+  animation: chipPulse 2.4s ease-in-out infinite;
+}
+@keyframes chipPulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(139,48,230,0.15); }
+  50%      { box-shadow: 0 0 0 6px rgba(139,48,230,0.05); }
+}
+.cenario-chip[data-cenario="base"]        { border-color: rgba(75,108,226,0.45); }
+.cenario-chip[data-cenario="otimista"]    { border-color: rgba(57,232,135,0.45); background: rgba(57,232,135,0.06); }
+.cenario-chip[data-cenario="conservador"] { border-color: rgba(167,173,202,0.35); }
+.cenario-chip[data-cenario="turbo"]       { border-color: rgba(255,176,32,0.55); background: rgba(255,176,32,0.06); }
+.cenario-chip[data-cenario="custom"]      { border-color: rgba(139,48,230,0.55); background: rgba(139,48,230,0.06); }
+.cenario-chip[data-cenario="otimista"] .cenario-chip-dot    { background: var(--grad-success); }
+.cenario-chip[data-cenario="turbo"] .cenario-chip-dot       { background: linear-gradient(90deg, #ffb020, #ff6b6b); }
+.cenario-chip[data-cenario="custom"] .cenario-chip-dot      { background: var(--grad-secondary); }
 
 .grad-text {
   background: var(--grad-primary);
