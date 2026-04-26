@@ -1164,11 +1164,17 @@ function classifyProfile(p) {
   };
 }
 
-/* ---------- Quiz state machine ---------- */
+/* ---------- Quiz state machine ----------
+   Slide 0 = identificação (opcional). Depois 7 perguntas (1..7).
+   Total de slides = 8.
+*/
+const QUIZ_TOTAL_SLIDES = QUIZ_QUESTIONS.length + 1; // 1 slide de identificação + 7 perguntas
+
 const quizState = {
-  current: 0,
+  current: 0,                // 0 = identificação, 1..7 = perguntas
   answers: {},
-  total: QUIZ_QUESTIONS.length
+  identity: {},              // { name, email, phone, city }
+  total: QUIZ_TOTAL_SLIDES
 };
 
 function openQuiz(reset = true) {
@@ -1196,13 +1202,78 @@ function closeQuiz() {
 }
 
 function renderQuizSlide() {
-  const q = QUIZ_QUESTIONS[quizState.current];
   document.getElementById("quiz-cur").textContent = quizState.current + 1;
   document.getElementById("quiz-tot").textContent = quizState.total;
   const pct = ((quizState.current + 1) / quizState.total) * 100;
   document.getElementById("quiz-fill").style.width = pct + "%";
 
   const stage = document.getElementById("quiz-stage");
+
+  // Slide 0: Identificação
+  if (quizState.current === 0) {
+    const id = quizState.identity;
+    stage.innerHTML = `
+      <div class="quiz-question quiz-identity">
+        <h2 id="quiz-q-title" class="quiz-q-title">Antes de começar — como podemos te chamar?</h2>
+        <p class="quiz-q-hint">
+          Identificação <strong>opcional</strong>. Serve só pra personalizar seu plano e permitir
+          que nosso time te procure depois, se você quiser. Você pode pular essa etapa.
+        </p>
+        <div class="quiz-identity-grid">
+          <label class="quiz-id-field">
+            <span class="quiz-id-lbl">Nome</span>
+            <input type="text" id="qid-name" class="quiz-id-input" placeholder="João da Silva"
+                   autocomplete="name" maxlength="80" value="${escapeAttr(id.name || "")}" />
+          </label>
+          <label class="quiz-id-field">
+            <span class="quiz-id-lbl">E-mail</span>
+            <input type="email" id="qid-email" class="quiz-id-input" placeholder="seu@email.com"
+                   autocomplete="email" maxlength="120" value="${escapeAttr(id.email || "")}" />
+          </label>
+          <label class="quiz-id-field">
+            <span class="quiz-id-lbl">Telefone / WhatsApp</span>
+            <input type="tel" id="qid-phone" class="quiz-id-input" placeholder="(11) 99999-9999"
+                   autocomplete="tel" maxlength="32" value="${escapeAttr(id.phone || "")}" />
+          </label>
+          <label class="quiz-id-field">
+            <span class="quiz-id-lbl">Cidade / UF</span>
+            <input type="text" id="qid-city" class="quiz-id-input" placeholder="São Paulo / SP"
+                   autocomplete="address-level2" maxlength="80" value="${escapeAttr(id.city || "")}" />
+          </label>
+        </div>
+        <div class="quiz-id-privacy">
+          <span aria-hidden="true">🔒</span>
+          <span>Seus dados são tratados conforme a LGPD. Não compartilhamos com terceiros.</span>
+        </div>
+      </div>
+    `;
+
+    // Wiring inputs — atualiza state em tempo real
+    ["name", "email", "phone", "city"].forEach(field => {
+      const inp = document.getElementById("qid-" + field);
+      if (!inp) return;
+      inp.addEventListener("input", () => {
+        quizState.identity[field] = inp.value.trim();
+        // sync com TELEMETRY
+        if (typeof TELEMETRY !== "undefined") {
+          const map = { name: "visitorName", email: "visitorEmail", phone: "visitorPhone", city: "visitorCity" };
+          TELEMETRY.session[map[field]] = inp.value.trim() || null;
+          TELEMETRY.persist();
+        }
+      });
+    });
+
+    // Footer: identificação é sempre permite avançar
+    document.getElementById("quiz-back").disabled = true;
+    document.getElementById("quiz-next").disabled = false;
+    document.getElementById("quiz-next").innerHTML = `Começar questionário <span aria-hidden="true">→</span>`;
+    document.getElementById("quiz-hint").innerHTML =
+      `Você pode <strong>pular</strong> e continuar anônimo — basta clicar em Começar questionário.`;
+    return;
+  }
+
+  // Slide 1..N: perguntas
+  const q = QUIZ_QUESTIONS[quizState.current - 1];
   const selected = quizState.answers[q.id];
 
   stage.innerHTML = `
@@ -1226,6 +1297,7 @@ function renderQuizSlide() {
   `;
 
   // wiring
+  const isLast = quizState.current === quizState.total - 1;
   stage.querySelectorAll(".quiz-opt").forEach(btn => {
     btn.addEventListener("click", () => {
       stage.querySelectorAll(".quiz-opt").forEach(b => b.classList.remove("is-selected"));
@@ -1233,24 +1305,37 @@ function renderQuizSlide() {
       quizState.answers[q.id] = btn.dataset.value;
       document.getElementById("quiz-next").disabled = false;
       document.getElementById("quiz-hint").textContent =
-        quizState.current + 1 === quizState.total
-          ? "Última pergunta — clique em Ver meu plano →"
-          : "Ótimo. Clique em Próxima →";
-      TELEMETRY.track("quiz_answered", { q: q.id, value: btn.dataset.value, step: quizState.current + 1 });
+        isLast ? "Última pergunta — clique em Ver meu plano →" : "Ótimo. Clique em Próxima →";
+      if (typeof TELEMETRY !== "undefined")
+        TELEMETRY.track("quiz_answered", { q: q.id, value: btn.dataset.value, step: quizState.current });
     });
   });
 
   // Buttons state
-  document.getElementById("quiz-back").disabled = quizState.current === 0;
+  document.getElementById("quiz-back").disabled = false; // sempre pode voltar pra identidade
   const nextBtn = document.getElementById("quiz-next");
   nextBtn.disabled = !selected;
-  nextBtn.textContent = quizState.current + 1 === quizState.total ? "Ver meu plano →" : "Próxima →";
+  nextBtn.innerHTML = isLast ? `Ver meu plano <span aria-hidden="true">→</span>` : `Próxima <span aria-hidden="true">→</span>`;
   document.getElementById("quiz-hint").textContent = selected
-    ? (quizState.current + 1 === quizState.total ? "Última pergunta — clique em Ver meu plano →" : "Ótimo. Clique em Próxima →")
+    ? (isLast ? "Última pergunta — clique em Ver meu plano →" : "Ótimo. Clique em Próxima →")
     : "Selecione uma opção para continuar";
 }
 
+// Escape básico pra atributos HTML
+function escapeAttr(s) {
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
 function quizNext() {
+  // Se está no slide 0 (identificação) e tem dados, registra evento
+  if (quizState.current === 0 && typeof TELEMETRY !== "undefined") {
+    const provided = ["name", "email", "phone", "city"].filter(f => quizState.identity[f]);
+    if (provided.length > 0) {
+      TELEMETRY.track("quiz_identified", { fields: provided });
+    } else {
+      TELEMETRY.track("quiz_identification_skipped", {});
+    }
+  }
   if (quizState.current + 1 < quizState.total) {
     quizState.current++;
     renderQuizSlide();
@@ -1275,15 +1360,32 @@ function showQuizResult() {
     localStorage.setItem("avend-quiz-completed", "1");
     localStorage.setItem("avend-quiz-data", JSON.stringify({
       answers: quizState.answers,
+      identity: quizState.identity,
       params: sug.params,
       profile: profile.key,
       ts: Date.now()
     }));
   } catch (e) { /* ignore */ }
 
+  // Atualiza session da telemetria com os dados de identificação
+  if (typeof TELEMETRY !== "undefined") {
+    TELEMETRY.session.quizCompleted = true;
+    TELEMETRY.session.profile = profile.key;
+    if (quizState.identity.name)  TELEMETRY.session.visitorName  = quizState.identity.name;
+    if (quizState.identity.email) TELEMETRY.session.visitorEmail = quizState.identity.email;
+    if (quizState.identity.phone) TELEMETRY.session.visitorPhone = quizState.identity.phone;
+    if (quizState.identity.city)  TELEMETRY.session.visitorCity  = quizState.identity.city;
+    TELEMETRY.persist();
+  }
+
   // Render
   document.getElementById("quiz-result-emoji").textContent = profile.emoji;
-  document.getElementById("quiz-result-label").textContent = profile.label;
+  // Personaliza o título com o primeiro nome se foi informado
+  const firstName = (quizState.identity.name || "").split(/\s+/)[0];
+  const labelEl = document.getElementById("quiz-result-label");
+  labelEl.innerHTML = firstName
+    ? `${firstName}, seu perfil é<br><span class="qr-profile-name">${profile.label}</span>`
+    : profile.label;
   document.getElementById("quiz-result-desc").textContent  = profile.desc;
   document.getElementById("quiz-result-modal").dataset.profile = profile.key;
 
@@ -1382,9 +1484,15 @@ function maybeAutoOpenQuiz() {
 
 /* ============================================================
    TELEMETRY — sessão, tempo, interações
-   Persistência: localStorage. Estrutura pronta para POST a Apps
-   Script no futuro (basta ligar TELEMETRY.endpoint).
+   Persistência: localStorage + (opcional) POST para Apps Script
+   Configure TELEMETRY_ENDPOINT abaixo com a URL do seu Web App.
    ============================================================ */
+
+/* >>> URL do endpoint (Apps Script Web App). Vazio = só local. <<<
+   Como configurar: veja apps-script/Code.gs e apps-script/README.md
+*/
+const TELEMETRY_ENDPOINT = ""; // ex: "https://script.google.com/macros/s/AKfy.../exec"
+
 const TELEMETRY = (() => {
   const SESSION_ID = (() => {
     const key = "avend-session-id";
@@ -1403,16 +1511,18 @@ const TELEMETRY = (() => {
     sessionId: SESSION_ID,
     startedAt: Date.now(),
     lastSeen: Date.now(),
-    visitorId: null,           // será preenchido via querystring
+    visitorId: null,
     visitorName: null,
     visitorEmail: null,
     visitorPhone: null,
     visitorCity: null,
     events: [],
-    tabTime: {},               // tempo acumulado por aba (ms)
+    tabTime: {},
     interactions: { sliders: {}, presets: {}, ctas: 0 },
     quizCompleted: false,
-    profile: null
+    profile: null,
+    userAgent: (typeof navigator !== "undefined" ? navigator.userAgent : ""),
+    referrer: (typeof document !== "undefined" ? document.referrer : "")
   };
 
   // Captura visitante via query string (?name=&email=&phone=&city=&id=)
@@ -1435,20 +1545,70 @@ const TELEMETRY = (() => {
     tabEnteredAt = Date.now();
   }
 
+  /* ---------- HTTP transport ---------- */
+  // Eventos críticos são enviados imediatamente; outros são "batched" em
+  // intervalos. No unload, manda snapshot completo via sendBeacon.
+  const CRITICAL_EVENTS = new Set([
+    "quiz_completed", "quiz_plan_applied", "quiz_identified", "page_loaded"
+  ]);
+
+  function postJSON_(payload) {
+    if (!TELEMETRY_ENDPOINT) return;
+    try {
+      // Apps Script aceita text/plain (evita CORS preflight)
+      const body = JSON.stringify(payload);
+      if (navigator.sendBeacon) {
+        const blob = new Blob([body], { type: "text/plain;charset=UTF-8" });
+        navigator.sendBeacon(TELEMETRY_ENDPOINT, blob);
+        return;
+      }
+      fetch(TELEMETRY_ENDPOINT, {
+        method: "POST",
+        body,
+        headers: { "Content-Type": "text/plain;charset=UTF-8" },
+        keepalive: true,
+        mode: "no-cors"
+      }).catch(() => {});
+    } catch (e) { /* ignore */ }
+  }
+
+  function sendSessionSnapshot() {
+    postJSON_({ type: "session", session });
+  }
+  function sendEvent(evt) {
+    postJSON_({
+      type: "event",
+      session_id: SESSION_ID,
+      event: evt,
+      visitor: {
+        name:  session.visitorName,
+        email: session.visitorEmail,
+        phone: session.visitorPhone,
+        city:  session.visitorCity
+      }
+    });
+  }
+
   function track(type, data = {}) {
     session.lastSeen = Date.now();
-    session.events.push({ t: Date.now() - session.startedAt, type, data });
+    const evt = { t: Date.now() - session.startedAt, type, data };
+    session.events.push(evt);
     persist();
+    if (CRITICAL_EVENTS.has(type)) {
+      sendEvent(evt);
+      sendSessionSnapshot();
+    } else {
+      sendEvent(evt);
+    }
   }
 
   function persist() {
     try {
       localStorage.setItem("avend-tel-" + SESSION_ID, JSON.stringify(session));
-      // mantém um índice de sessões
       const idx = JSON.parse(localStorage.getItem("avend-tel-index") || "[]");
       if (!idx.includes(SESSION_ID)) {
         idx.push(SESSION_ID);
-        localStorage.setItem("avend-tel-index", JSON.stringify(idx.slice(-50))); // últimas 50
+        localStorage.setItem("avend-tel-index", JSON.stringify(idx.slice(-50)));
       }
     } catch (e) {}
   }
@@ -1473,23 +1633,39 @@ const TELEMETRY = (() => {
     track("preset_clicked", { preset: name });
   }
 
-  // Tempo total / unload
+  // Snapshot quando esconder a aba (mobile não dispara beforeunload)
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      commitTabTime();
+      session.totalTimeMs = Date.now() - session.startedAt;
+      persist();
+      sendSessionSnapshot();
+    }
+  });
+
+  // beforeunload: snapshot final via sendBeacon
   window.addEventListener("beforeunload", () => {
     commitTabTime();
     session.totalTimeMs = Date.now() - session.startedAt;
     persist();
+    sendSessionSnapshot();
   });
 
-  // Heartbeat (a cada 15s persiste)
+  // Heartbeat a cada 30s persiste local + manda snapshot remoto
   setInterval(() => {
     if (document.visibilityState === "visible") {
       commitTabTime();
       session.totalTimeMs = Date.now() - session.startedAt;
       persist();
+      sendSessionSnapshot();
     }
-  }, 15000);
+  }, 30000);
 
-  return { session, track, setTab, trackSliderChange, trackPreset, commitTabTime, persist, SESSION_ID };
+  return {
+    session, track, setTab, trackSliderChange, trackPreset,
+    commitTabTime, persist, sendSessionSnapshot, SESSION_ID,
+    endpoint: TELEMETRY_ENDPOINT
+  };
 })();
 
 /* ============================================================
