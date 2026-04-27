@@ -1679,7 +1679,7 @@ const TELEMETRY_ENDPOINT = "https://script.google.com/macros/s/AKfycbwdC4YKekPo6
    Ex: 5511999998888 (Brasil + SP + número). Sem espaços, traços ou parênteses.
    Deixe vazio "" para esconder o botão "Quero conversar" do resultado do quiz.
 */
-const AVEND_WHATSAPP = "5517996716088"; // ⚠ TROCAR PELO NÚMERO REAL DA AVEND
+const AVEND_WHATSAPP = "5517996003377"; // ⚠ TROCAR PELO NÚMERO REAL DA AVEND
 
 const TELEMETRY = (() => {
   const SESSION_ID = (() => {
