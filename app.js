@@ -425,7 +425,7 @@ function renderKPIs(sim) {
   // Hints dinâmicos do horizonte
   const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
   setText("kpi-maq-hint", `Após ${anos} ano${anos>1?"s":""}`);
-  setText("kpi-lucro-hint", `Mês ${sim.horizonteMeses} · frota completa`);
+  setText("kpi-lucro-hint", `Mês ${sim.horizonteMeses} · operação madura`);
 
   setKpiAnimated("mini-lucro-maq", sim.lucro1Maq, v => fmtBRL(v));
   setKpiAnimated("mini-custo-nova", sim.custoNovaMaquina, v => fmtBRL(v));
@@ -512,7 +512,7 @@ function renderTimeline(sim) {
         <div class="tl-month">Mês ${r.mes} → ativação mês ${ativacao}</div>
         <div class="tl-title">${r.evento}</div>
         <div class="tl-meta">
-          <span>Frota após ativação: <strong>${frotaDepois} máq.</strong></span>
+          <span>Máquinas após ativação: <strong>${frotaDepois} un.</strong></span>
           ${lucroProj != null ? `<span>Lucro projetado: <strong>${fmtBRL(lucroProj)}</strong></span>` : ""}
           <span>CAPEX unit.: <strong>${fmtBRL(sim.custoNovaMaquina)}</strong></span>
         </div>
@@ -636,7 +636,7 @@ function richTooltipHandler(currentSim) {
         <span class="rt-fase ${faseTone}">${fase} · ${reinvestPct}% reinvest</span>
       </header>
       <div class="rt-body">
-        <div class="rt-row"><span>Frota</span><strong>${r.maquinasAtivas} máq</strong></div>
+        <div class="rt-row"><span>Máquinas</span><strong>${r.maquinasAtivas} un</strong></div>
         <div class="rt-row"><span>Faturamento</span><strong>${fmtBRL(r.faturamentoTotal)}</strong></div>
         <div class="rt-row"><span>Imposto (${(r.imposto.aliquota * 100).toFixed(1).replace(".", ",")}%)</span><strong class="rt-neg">−${fmtBRL(r.imposto.valor)}</strong></div>
         <div class="rt-row rt-row-hl"><span>Lucro líquido</span><strong class="rt-pos">${fmtBRL(r.lucroLiquido)}</strong></div>
@@ -1516,7 +1516,7 @@ function showQuizResult() {
   `;
 
   document.getElementById("quiz-result-projection").innerHTML = `
-    <div class="qr-proj"><span class="qr-proj-lbl">Frota final</span><span class="qr-proj-val">${sim.frotaFinal} máquinas</span></div>
+    <div class="qr-proj"><span class="qr-proj-lbl">Total de máquinas</span><span class="qr-proj-val">${sim.frotaFinal} unidades</span></div>
     <div class="qr-proj qr-proj-hl"><span class="qr-proj-lbl">Lucro mensal final</span><span class="qr-proj-val">${fmtBRL(sim.lucroMensalFinal)}</span></div>
     <div class="qr-proj"><span class="qr-proj-lbl">Payback 1ª máq</span><span class="qr-proj-val">${sim.paybackMeses ? sim.paybackMeses + " meses" : "—"}</span></div>
     <div class="qr-proj"><span class="qr-proj-lbl">Patrimônio final</span><span class="qr-proj-val">${fmtBRL(sim.patrimonioFinal)}</span></div>
@@ -1569,7 +1569,7 @@ function buildWhatsAppMessage(profile, params, sim) {
   if (sim) {
     lines.push("");
     lines.push("📈 *Projeção desse plano:*");
-    lines.push(`• Frota final: ${sim.frotaFinal} máquinas`);
+    lines.push(`• Total de máquinas: ${sim.frotaFinal} unidades`);
     lines.push(`• Lucro mensal final estimado: ${fmtBRL(sim.lucroMensalFinal)}`);
     if (sim.paybackMeses) lines.push(`• Payback da 1ª máquina: ${sim.paybackMeses} meses`);
     lines.push(`• Patrimônio em equipamentos: ${fmtBRL(sim.patrimonioFinal)}`);
