@@ -248,6 +248,48 @@ pela primeira vez), rode `clearHotLeadFlags()` no editor → limpa os marcadores
 
 ---
 
+## 🚫 Ignorar visitantes internos (você + equipe)
+
+Pra parar de receber notificação cada vez que **você mesmo** ou alguém da equipe
+testar o site, configure uma **Ignore List** via Script Properties.
+
+### Como configurar
+
+1. Apps Script editor → **⚙ Project Settings** (engrenagem na esquerda)
+2. Role até **Script Properties** → **Add script property**
+3. Adicione:
+
+   | Property | Valor |
+   |---|---|
+   | `IGNORE_LIST` | `giovannirinaldipq@gmail.com,17991440473,equipe@grupoavend.com` |
+
+   Separe múltiplos itens por **vírgula**. Aceita:
+   - **E-mails** (match exato): `giovannirinaldipq@gmail.com`
+   - **Telefones** (substring de dígitos — ignora máscara): `17991440473`
+   - **Nomes** (substring case-insensitive, mín. 3 chars): `giovanni rinaldi`
+
+4. Save
+
+### Como funciona
+- Tanto `maybeNotifyHotLead_` quanto `maybeNotifySpecialEvent_` checam a IGNORE_LIST
+- Se bater com algum item, a notificação é descartada silenciosamente
+- O lead **continua sendo salvo** na planilha (pra você ver no admin se quiser)
+- Apenas o webhook (Telegram/Discord/etc) não dispara
+
+### Exemplo prático
+```
+IGNORE_LIST = giovannirinaldipq@gmail.com,17991440473,thiago artibale,gabriel stuqui
+```
+
+Resultado: Giovanni e Thiago (nome), e Gabriel (nome) são ignorados.
+Qualquer outro lead notifica normalmente.
+
+### Trocar/limpar
+- Pra remover um item: edite o valor do property removendo da lista
+- Pra desligar tudo: **Delete property** ou deixe valor vazio
+
+---
+
 ## Próximas evoluções sugeridas
 
 - [ ] Dashboard nativo no Sheets com gráficos (segmentação por perfil, conversão)

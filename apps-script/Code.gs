@@ -311,6 +311,12 @@ function maybeNotifyHotLead_(s) {
   const hasContact = !!(s.visitorName || s.visitorEmail || s.visitorPhone);
   if (!hasContact) return;
 
+  // Ignore list — não notifica visitas internas (Giovanni, equipe)
+  if (isIgnoredVisitor_({ name: s.visitorName, email: s.visitorEmail, phone: s.visitorPhone })) {
+    Logger.log("HotLead ignored (in IGNORE_LIST): " + (s.visitorEmail || s.visitorPhone || s.visitorName));
+    return;
+  }
+
   const minutes = (s.totalTimeMs || 0) / 60000;
   const profileHot = s.profile && HOT_PROFILES.indexOf(s.profile) !== -1;
   const timeHot    = minutes >= HOT_TIME_THRESHOLD_MIN;
@@ -1036,19 +1042,174 @@ function maybeNotifySpecialEvent_(sessionId, evt, visitor) {
   const hasContact = !!(visitor.name || visitor.email || visitor.phone);
   if (!hasContact && evt.type !== "deep_engagement") return;
 
+  // Ignore list — não notifica visitas internas (Giovanni, equipe, etc)
+  if (isIgnoredVisitor_(visitor)) {
+    Logger.log("Ignored visitor (in IGNORE_LIST): " + (visitor.email || visitor.phone || visitor.name));
+    return;
+  }
+
   // Anti-duplicata: 1x por (sessao + evento)
   const props = PropertiesService.getScriptProperties();
   const flagKey = SPECIAL_EVENT_FLAG_PROP + sessionId + "_" + evt.type;
   if (props.getProperty(flagKey)) return;
   props.setProperty(flagKey, "1");
 
-  // Monta mensagem específica por tipo
-  const summary = buildSpecialEventSummary_(evt, visitor, sessionId);
+  // Recupera a sessão completa da planilha pra ter perfil, tempo, etc
+  const fullSession = getSessionFromSheet_(sessionId) || {};
+  // Mescla dados de visitor (vindos do evento) com a sessão recuperada
+  const session = Object.assign({}, fullSession, {
+    visitorName:  visitor.name  || fullSession.visitorName,
+    visitorEmail: visitor.email || fullSession.visitorEmail,
+    visitorPhone: visitor.phone || fullSession.visitorPhone,
+    visitorCity:  visitor.city  || fullSession.visitorCity,
+    sessionId: sessionId
+  });
+
+  // Monta summary unificado (mesma estrutura do hot lead) e adiciona contexto do evento
+  const summary = buildLeadSummary_(session);
+  // Override do título com a label do evento especial
+  summary.title = specialEventTitle_(evt.type, summary);
+  summary.eventType = evt.type;
+  summary.eventData = evt.data || {};
 
   if (DISCORD_WEBHOOK)  sendDiscordSpecial_(summary, evt.type);
   if (SLACK_WEBHOOK)    sendSlack_(summary);
-  if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) sendTelegram_(summary);
+  if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) sendTelegramSpecial_(summary);
   if (GENERIC_WEBHOOK)  sendGenericSpecial_(summary, evt, visitor, sessionId);
+}
+
+function specialEventTitle_(eventType, summary) {
+  const labels = {
+    "lead_intent":         `🔥🔥🔥 LEAD ${summary.score}/10 QUER FALAR · clicou no WhatsApp`,
+    "returning_visitor":   `🔄 Visitante retornou · ${summary.score}/10`,
+    "dwell_milestone_10m": `⏱ ${summary.score}/10 · +10 min na página`,
+    "dwell_milestone_15m": `⏱ ${summary.score}/10 · +15 min (super engajado!)`,
+    "deep_engagement":     `🎯 ${summary.score}/10 · Engajamento profundo`,
+    "quiz_abandoned":      `💤 Abandonou o quiz no meio`
+  };
+  return labels[eventType] || eventType;
+}
+
+/* Recupera uma sessão da planilha por sessionId (busca por header pra ser robusto) */
+function getSessionFromSheet_(sessionId) {
+  if (!sessionId) return null;
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAME_SESSIONS);
+  if (!sheet) return null;
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return null;
+  const headers = data[0];
+  const sidIdx = headers.indexOf("session_id");
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][sidIdx] === sessionId) {
+      const row = data[i];
+      const col = (name) => { const j = headers.indexOf(name); return j >= 0 ? row[j] : null; };
+      // Tenta hidratar do raw_json (mais completo)
+      try {
+        const raw = col("raw_json");
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      // Fallback: monta a partir das colunas
+      return {
+        sessionId: col("session_id"),
+        startedAt: new Date(col("started_at")).getTime(),
+        lastSeen:  new Date(col("last_seen")).getTime(),
+        totalTimeMs: (parseFloat(col("total_time_min")) || 0) * 60000,
+        visitorName:  col("visitor_name"),
+        visitorEmail: col("visitor_email"),
+        visitorPhone: col("visitor_phone"),
+        visitorCity:  col("visitor_city"),
+        quizCompleted: col("quiz_completed") === "yes",
+        profile: col("profile"),
+        tabTime: {},
+        interactions: { sliders: {}, presets: {} },
+        events: []
+      };
+    }
+  }
+  return null;
+}
+
+/* Ignore list — leads de teste interno (Giovanni + equipe) */
+function isIgnoredVisitor_(visitor) {
+  if (!visitor) return false;
+  // Lê de Script Properties (formato: "email1@x.com,email2@x.com,phone1,phone2")
+  const props = PropertiesService.getScriptProperties();
+  const ignoreRaw = (props.getProperty("IGNORE_LIST") || "").toLowerCase();
+  if (!ignoreRaw) return false;
+  const ignoreList = ignoreRaw.split(",").map(s => s.trim()).filter(Boolean);
+  if (!ignoreList.length) return false;
+
+  const email = (visitor.email || "").toLowerCase();
+  const phoneDigits = String(visitor.phone || "").replace(/\D/g, "");
+  const name = (visitor.name || "").toLowerCase();
+
+  return ignoreList.some(item => {
+    if (!item) return false;
+    if (item.includes("@") && email && email === item) return true;          // email match exato
+    if (/^\d{10,}$/.test(item.replace(/\D/g, ""))) {
+      const itemDigits = item.replace(/\D/g, "");
+      if (phoneDigits && phoneDigits.includes(itemDigits)) return true;       // phone substring match
+    }
+    if (item.length > 2 && name.includes(item)) return true;                  // name substring match
+    return false;
+  });
+}
+
+/* Versão Telegram dedicada pra eventos especiais (com info do evento como header) */
+function sendTelegramSpecial_(d) {
+  try {
+    const lines = [];
+    lines.push(`*${d.title}*`);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+
+    if (d.contactBlock) {
+      lines.push("");
+      lines.push("👋 *Contato:*");
+      lines.push(d.contactBlock);
+    }
+
+    lines.push("");
+    lines.push("📊 *Engajamento:*");
+    lines.push(`• Perfil: ${d.profileEmoji} ${d.profile}`);
+    lines.push(`• Tempo na página: *${d.minutes} min*`);
+    lines.push(`• Sliders mexidos: ${d.sliders}`);
+    if (d.presets > 0) lines.push(`• Presets clicados: ${d.presets}`);
+    lines.push(`• Abas top 3: ${d.tabs}`);
+
+    if (d.eventData) {
+      const lines2 = [];
+      if (d.eventData.visitNumber)     lines2.push(`• Esta é a *${d.eventData.visitNumber}ª* visita`);
+      if (d.eventData.previousProfile) lines2.push(`• Perfil anterior: *${d.eventData.previousProfile.toUpperCase()}*`);
+      if (d.eventData.tabsVisited)     lines2.push(`• Abas visitadas: ${d.eventData.tabsVisited}`);
+      if (d.eventData.answeredCount !== undefined)
+        lines2.push(`• Respondeu ${d.eventData.answeredCount} pergunta(s) antes de sair`);
+      if (lines2.length) {
+        lines.push("");
+        lines.push("⚡ *Detalhes do evento:*");
+        lines.push(lines2.join("\n"));
+      }
+    }
+
+    if (d.answersText) lines.push(d.answersText);
+
+    lines.push("");
+    lines.push(`_Score AVEND: ${d.score}/10_ · _session ${(d.sessionId || "").slice(0, 16)}…_`);
+
+    const text = lines.join("\n");
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const r = UrlFetchApp.fetch(url, {
+      method: "post", contentType: "application/json",
+      payload: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID, text: text,
+        parse_mode: "Markdown", disable_web_page_preview: true
+      }),
+      muteHttpExceptions: true
+    });
+    if (r.getResponseCode() !== 200) {
+      Logger.log("Telegram special event FALHOU (status " + r.getResponseCode() + "): " + r.getContentText().slice(0, 300));
+    }
+  } catch (err) { Logger.log("Telegram special event error: " + err); }
 }
 
 function buildSpecialEventSummary_(evt, visitor, sessionId) {
