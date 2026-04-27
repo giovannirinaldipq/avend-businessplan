@@ -467,8 +467,24 @@ function sendGeneric_(d, session) {
   } catch (err) { Logger.log("Generic webhook error: " + err); }
 }
 
-/* Útil pra teste manual: dispara webhook com dados fake */
+/* Útil pra teste manual: dispara webhook com dados fake e LOGA cada tentativa */
 function testHotLeadWebhook() {
+  Logger.log("=== AVEND TELEMETRY · TESTE DE WEBHOOK ===");
+
+  // 1. Diagnóstico de configuração
+  Logger.log("\n--- Configuração detectada ---");
+  Logger.log("DISCORD_WEBHOOK:    " + (DISCORD_WEBHOOK ? "✓ configurado (" + DISCORD_WEBHOOK.slice(0, 50) + "...)" : "✗ vazio"));
+  Logger.log("SLACK_WEBHOOK:      " + (SLACK_WEBHOOK ? "✓ configurado" : "✗ vazio"));
+  Logger.log("TELEGRAM_BOT_TOKEN: " + (TELEGRAM_BOT_TOKEN ? "✓ configurado (" + TELEGRAM_BOT_TOKEN.slice(0, 12) + "...)" : "✗ vazio"));
+  Logger.log("TELEGRAM_CHAT_ID:   " + (TELEGRAM_CHAT_ID ? "✓ configurado (" + TELEGRAM_CHAT_ID + ")" : "✗ vazio"));
+  Logger.log("GENERIC_WEBHOOK:    " + (GENERIC_WEBHOOK ? "✓ configurado" : "✗ vazio"));
+
+  if (!DISCORD_WEBHOOK && !SLACK_WEBHOOK && !TELEGRAM_BOT_TOKEN && !GENERIC_WEBHOOK) {
+    Logger.log("\n⚠ NENHUM webhook configurado. Preencha pelo menos um no topo do Code.gs.");
+    return;
+  }
+
+  // 2. Constrói payload de teste
   const fake = {
     sessionId: "s_test_" + Date.now(),
     startedAt: Date.now() - 8 * 60000,
@@ -483,16 +499,151 @@ function testHotLeadWebhook() {
     tabTime: { overview: 60000, simulador: 240000, mercado: 120000 },
     interactions: { sliders: { faturamentoPorMaquina: {}, percReinvestFase1: {} }, presets: {} },
     events: [
-      { t: 1000, type: "quiz_answered", data: { q: "objetivo", value: "viver-disso" } },
-      { t: 2000, type: "quiz_answered", data: { q: "capital", value: "100-300" } },
-      { t: 3000, type: "quiz_answered", data: { q: "meta", value: "50-150k" } },
+      { t: 1000, type: "quiz_answered", data: { q: "objetivo",  value: "viver-disso" } },
+      { t: 2000, type: "quiz_answered", data: { q: "capital",   value: "100-300" } },
+      { t: 3000, type: "quiz_answered", data: { q: "meta",      value: "50-150k" } },
       { t: 4000, type: "quiz_answered", data: { q: "horizonte", value: "5" } }
     ]
   };
-  // remove flag pra forçar disparo
+
+  // Limpa flag pra forçar disparo
   PropertiesService.getScriptProperties().deleteProperty(HOT_LEAD_FLAG_PROP + fake.sessionId);
-  maybeNotifyHotLead_(fake);
-  Logger.log("Test fired. Check Discord/Slack/Telegram + Hot Leads sheet.");
+
+  // 3. Tenta cada webhook EXPLICITAMENTE com response logging
+  const summary = buildLeadSummary_(fake);
+  Logger.log("\n--- Disparando webhooks ---");
+
+  if (DISCORD_WEBHOOK) {
+    Logger.log("\n→ DISCORD: testando...");
+    testDiscord_(summary);
+  }
+  if (SLACK_WEBHOOK) {
+    Logger.log("\n→ SLACK: testando...");
+    testSlack_(summary);
+  }
+  if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+    Logger.log("\n→ TELEGRAM: testando...");
+    testTelegram_(summary);
+  } else if (TELEGRAM_BOT_TOKEN || TELEGRAM_CHAT_ID) {
+    Logger.log("\n⚠ TELEGRAM: token OU chat_id está faltando — preciso dos DOIS");
+  }
+  if (GENERIC_WEBHOOK) {
+    Logger.log("\n→ GENERIC: testando...");
+    testGeneric_(summary, fake);
+  }
+
+  // 4. Salva também na aba Hot Leads
+  saveHotLead_(fake);
+  Logger.log("\n✓ Linha adicionada na aba 'Hot Leads' da planilha");
+
+  Logger.log("\n=== FIM DO TESTE ===");
+}
+
+/* Versões dos senders com logging detalhado (só usadas pelo teste) */
+function testDiscord_(d) {
+  try {
+    const fields = [];
+    if (d.contactBlock) fields.push({ name: "Contato", value: "```\n" + d.contactBlock + "\n```", inline: false });
+    fields.push({ name: "Perfil", value: d.profileEmoji + " " + d.profile, inline: true });
+    fields.push({ name: "Tempo", value: d.minutes + " min", inline: true });
+    const payload = {
+      username: "AVEND Lead Bot (TESTE)",
+      embeds: [{ title: d.title, color: 0xffb020, fields: fields, timestamp: new Date().toISOString() }]
+    };
+    const r = UrlFetchApp.fetch(DISCORD_WEBHOOK, {
+      method: "post", contentType: "application/json",
+      payload: JSON.stringify(payload), muteHttpExceptions: true
+    });
+    const code = r.getResponseCode();
+    const body = r.getContentText();
+    if (code >= 200 && code < 300) {
+      Logger.log("  ✓ Discord OK (status " + code + ")");
+    } else {
+      Logger.log("  ✗ Discord FALHOU (status " + code + "): " + body.slice(0, 300));
+    }
+  } catch (err) { Logger.log("  ✗ Discord exception: " + err); }
+}
+
+function testSlack_(d) {
+  try {
+    const text = `*${d.title}*\n${d.contactBlock}\n\n*Perfil:* ${d.profileEmoji} ${d.profile} · *Tempo:* ${d.minutes} min`;
+    const r = UrlFetchApp.fetch(SLACK_WEBHOOK, {
+      method: "post", contentType: "application/json",
+      payload: JSON.stringify({ text }), muteHttpExceptions: true
+    });
+    const code = r.getResponseCode();
+    const body = r.getContentText();
+    if (code >= 200 && code < 300) {
+      Logger.log("  ✓ Slack OK (status " + code + ")");
+    } else {
+      Logger.log("  ✗ Slack FALHOU (status " + code + "): " + body.slice(0, 300));
+    }
+  } catch (err) { Logger.log("  ✗ Slack exception: " + err); }
+}
+
+function testTelegram_(d) {
+  try {
+    const text =
+      `*${escapeMarkdown_(d.title)}*\n\n` +
+      `${escapeMarkdown_(d.contactBlock)}\n\n` +
+      `_Perfil:_ ${d.profileEmoji} ${escapeMarkdown_(d.profile)}\n` +
+      `_Tempo:_ ${d.minutes} min`;
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const r = UrlFetchApp.fetch(url, {
+      method: "post", contentType: "application/json",
+      payload: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: text,
+        parse_mode: "Markdown",
+        disable_web_page_preview: true
+      }),
+      muteHttpExceptions: true
+    });
+    const code = r.getResponseCode();
+    const body = r.getContentText();
+    if (code === 200) {
+      Logger.log("  ✓ Telegram OK — mensagem enviada");
+    } else {
+      Logger.log("  ✗ Telegram FALHOU (status " + code + "): " + body.slice(0, 400));
+      // Diagnóstico de erros comuns
+      try {
+        const json = JSON.parse(body);
+        if (json.error_code === 400 && /chat not found/i.test(json.description || "")) {
+          Logger.log("  💡 SOLUÇÃO: O TELEGRAM_CHAT_ID está errado ou você nunca falou com o bot.");
+          Logger.log("     1. Abra o Telegram, procure seu bot pelo nome (@SeuBot)");
+          Logger.log("     2. Mande qualquer mensagem (ex: 'oi') pro bot");
+          Logger.log("     3. Confirme o chat_id em @userinfobot");
+          Logger.log("     4. Rode esta função novamente");
+        } else if (json.error_code === 401) {
+          Logger.log("  💡 SOLUÇÃO: TELEGRAM_BOT_TOKEN inválido. Confira no @BotFather.");
+        } else if (json.error_code === 403) {
+          Logger.log("  💡 SOLUÇÃO: Bot bloqueado pelo usuário. Desbloqueie no Telegram e mande /start pro bot.");
+        } else if (/can't parse entities/i.test(json.description || "")) {
+          Logger.log("  💡 SOLUÇÃO: Erro de markdown — geralmente passageiro, tente de novo.");
+        }
+      } catch (e) {}
+    }
+  } catch (err) { Logger.log("  ✗ Telegram exception: " + err); }
+}
+
+function testGeneric_(d, session) {
+  try {
+    const r = UrlFetchApp.fetch(GENERIC_WEBHOOK, {
+      method: "post", contentType: "application/json",
+      payload: JSON.stringify({
+        type: "hot_lead", title: d.title, profile: d.profile,
+        minutes: parseFloat(d.minutes), session_id: d.sessionId, raw: session
+      }),
+      muteHttpExceptions: true
+    });
+    const code = r.getResponseCode();
+    const body = r.getContentText();
+    if (code >= 200 && code < 300) {
+      Logger.log("  ✓ Generic OK (status " + code + ")");
+    } else {
+      Logger.log("  ✗ Generic FALHOU (status " + code + "): " + body.slice(0, 300));
+    }
+  } catch (err) { Logger.log("  ✗ Generic exception: " + err); }
 }
 
 /* Limpa flags de notificação (use se quiser re-notificar leads antigos) */
