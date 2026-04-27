@@ -1607,7 +1607,7 @@ function maybeAutoOpenQuiz() {
 /* >>> URL do endpoint (Apps Script Web App). Vazio = só local. <<<
    Como configurar: veja apps-script/Code.gs e apps-script/README.md
 */
-const TELEMETRY_ENDPOINT = ""; // ex: "https://script.google.com/macros/s/AKfycbwdC4YKekPo6qliAs1QtbLwBm4zuwh2PPIBOFJC5MTDOSwRgViQFMPbvjZlCnSwUKsB/exec"
+const TELEMETRY_ENDPOINT = "https://script.google.com/macros/s/AKfycbwdC4YKekPo6qliAs1QtbLwBm4zuwh2PPIBOFJC5MTDOSwRgViQFMPbvjZlCnSwUKsB/exec";
 
 const TELEMETRY = (() => {
   const SESSION_ID = (() => {
