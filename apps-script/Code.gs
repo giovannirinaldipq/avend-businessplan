@@ -71,23 +71,34 @@ const EVENT_HEADERS = [
 
 function doPost(e) {
   try {
-    const body = e.postData && e.postData.contents ? e.postData.contents : "{}";
+    // Proteção contra Run manual do editor (e === undefined)
+    if (!e || !e.postData) {
+      Logger.log("doPost called without event/postData. " +
+        "Se você clicou 'Run' no editor, isso é esperado — testes só funcionam via runTest_doPost().");
+      return jsonResponse_({ ok: false, error: "no postData (chamada manual? use runTest_doPost)" });
+    }
+
+    const body = e.postData.contents || "{}";
+    Logger.log("doPost received: " + body.slice(0, 200) + (body.length > 200 ? "..." : ""));
+
     const payload = JSON.parse(body);
 
     if (payload.type === "session") {
       saveSession_(payload.session);
-      // Avalia se virou lead quente (depois de salvar)
       maybeNotifyHotLead_(payload.session);
-      return jsonResponse_({ ok: true, type: "session" });
+      Logger.log("✓ Session saved: " + (payload.session && payload.session.sessionId));
+      return jsonResponse_({ ok: true, type: "session", id: payload.session && payload.session.sessionId });
     }
 
     if (payload.type === "event") {
       saveEvent_(payload.session_id, payload.event, payload.visitor || {});
       maybeNotifySpecialEvent_(payload.session_id, payload.event, payload.visitor || {});
-      return jsonResponse_({ ok: true, type: "event" });
+      Logger.log("✓ Event saved: " + (payload.event && payload.event.type));
+      return jsonResponse_({ ok: true, type: "event", evt: payload.event && payload.event.type });
     }
 
-    return jsonResponse_({ ok: false, error: "unknown payload.type" });
+    Logger.log("Unknown payload.type: " + payload.type);
+    return jsonResponse_({ ok: false, error: "unknown payload.type", got: payload.type });
   } catch (err) {
     Logger.log("doPost error: " + err);
     return jsonResponse_({ ok: false, error: String(err) });
@@ -95,8 +106,48 @@ function doPost(e) {
 }
 
 function doGet(e) {
-  // Healthcheck simples
-  return jsonResponse_({ ok: true, service: "avend-telemetry", version: "1.0" });
+  // Healthcheck — abra a URL do Web App no browser pra ver isso
+  return jsonResponse_({
+    ok: true,
+    service: "avend-telemetry",
+    version: "1.1",
+    sheetsConnected: !!SpreadsheetApp.getActiveSpreadsheet(),
+    timestamp: new Date().toISOString()
+  });
+}
+
+/* ============================================================
+   TESTE MANUAL — rode esta função (não doPost) no editor
+   ============================================================ */
+function runTest_doPost() {
+  // Simula uma chamada de session real
+  const fakeEvent = {
+    postData: {
+      contents: JSON.stringify({
+        type: "session",
+        session: {
+          sessionId: "s_test_manual_" + Date.now(),
+          startedAt: Date.now() - 120000,
+          lastSeen: Date.now(),
+          totalTimeMs: 120000,
+          visitorName: "Teste Manual",
+          visitorEmail: "teste@avend.com",
+          visitorPhone: "11999999999",
+          visitorCity: "São Paulo / SP",
+          quizCompleted: true,
+          profile: "base",
+          tabTime: { overview: 60000, simulador: 60000 },
+          interactions: { sliders: { faturamentoPorMaquina: { changes: 2 } }, presets: {} },
+          events: [],
+          userAgent: "Manual Test",
+          referrer: ""
+        }
+      })
+    }
+  };
+  const result = doPost(fakeEvent);
+  Logger.log("Result: " + result.getContent());
+  Logger.log("Verifique a aba 'Sessions' da planilha — deve ter uma linha nova com 'Teste Manual'.");
 }
 
 function jsonResponse_(obj) {
