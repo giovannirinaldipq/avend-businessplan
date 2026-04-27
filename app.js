@@ -918,6 +918,38 @@ function renderMarketChart() {
 
 const QUIZ_QUESTIONS = [
   {
+    id: "atividade",
+    title: "Qual sua situação profissional hoje?",
+    hint: "Ajuda a entender seu contexto e calibrar a abordagem do nosso time.",
+    options: [
+      { value: "clt",          icon: "💼", title: "CLT (carteira assinada)",
+        desc: "Trabalho com vínculo formal e quero diversificar a renda." },
+      { value: "autonomo",     icon: "🛠", title: "Autônomo / freelancer",
+        desc: "Trabalho por conta — médico, advogado, consultor, prestador, etc." },
+      { value: "empresario",   icon: "🏢", title: "Empresário / sócio",
+        desc: "Já tenho negócio próprio rodando e quero expandir/diversificar." },
+      { value: "aposentado",   icon: "🌴", title: "Aposentado / pensionista",
+        desc: "Quero usar o tempo e capital pra construir algo." },
+      { value: "transicao",    icon: "🪜", title: "Em transição",
+        desc: "Saindo de um trabalho, planejando o próximo passo." }
+    ]
+  },
+  {
+    id: "experiencia",
+    title: "Você já investiu em franquia ou negócio próprio?",
+    hint: "Sem julgamento — ajuda nosso time a calibrar a complexidade da explicação.",
+    options: [
+      { value: "primeira",     icon: "🌱", title: "Será meu primeiro",
+        desc: "Sem experiência prévia. Vou precisar de orientação completa." },
+      { value: "ja-tive",      icon: "📚", title: "Já tive negócio próprio",
+        desc: "Tenho ou tive um negócio (não-franquia), conheço a operação básica." },
+      { value: "ja-franquia",  icon: "🏆", title: "Já tenho/tive franquia",
+        desc: "Conheço o modelo de franquia e já operei pelo menos uma." },
+      { value: "investidor",   icon: "📈", title: "Sou investidor",
+        desc: "Avalio negócios como investimento — comparo retorno e risco." }
+    ]
+  },
+  {
     id: "objetivo",
     title: "O que você quer construir com a AVEND?",
     hint: "Não tem resposta certa. Suas escolhas moldam a projeção pra você.",
@@ -1116,6 +1148,35 @@ function calcSuggestion(answers) {
     p.capacidadeImplantacao = Math.min(p.capacidadeImplantacao, 1);
     rationale.push("Dedicação reduzida → capacidade de implantação limitada a 1 máq/mês.");
   } else if (answers.dedicacao === "integral") {
+    p.capacidadeImplantacao = Math.max(p.capacidadeImplantacao, 2);
+  }
+
+  // === Atividade atual ===
+  // CLT/transição com perfil "renda extra" tendem a ser mais cautelosos
+  if (answers.atividade === "clt" && answers.objetivo === "renda-extra") {
+    p.percReinvestFase2 = Math.min(p.percReinvestFase2, 30);
+  }
+  // Empresários/investidores com capital tendem a ser mais arrojados
+  if ((answers.atividade === "empresario" || answers.atividade === "investidor")
+      && p.capacidadeImplantacao < 2) {
+    p.capacidadeImplantacao = 2;
+    rationale.push("Como você já tem outro negócio/é investidor, a expansão acompanha esse perfil — capacidade ≥ 2 máq/mês.");
+  }
+  // Aposentado tende a querer renda passiva estável
+  if (answers.atividade === "aposentado") {
+    p.percReinvestFase2 = Math.min(p.percReinvestFase2, 40);
+    rationale.push("Como aposentado, o plano prioriza renda mensal sobre escala agressiva — Fase 2 limitada a 40% reinvest.");
+  }
+
+  // === Experiência prévia ===
+  // Primeira vez tende a ser mais cauteloso
+  if (answers.experiencia === "primeira") {
+    p.faturamentoPorMaquina = Math.min(p.faturamentoPorMaquina, 10000);
+    p.capacidadeImplantacao = Math.min(p.capacidadeImplantacao, 2);
+    rationale.push("Como será sua primeira franquia, calibrei a velocidade pra um ritmo aprendível — sem sobrecarregar a curva.");
+  }
+  // Investidor experiente pode ir mais forte
+  if (answers.experiencia === "investidor" || answers.experiencia === "ja-franquia") {
     p.capacidadeImplantacao = Math.max(p.capacidadeImplantacao, 2);
   }
 
@@ -1624,11 +1685,7 @@ function applyQuizSuggestion() {
 function bindQuiz() {
   document.getElementById("quiz-next")?.addEventListener("click", quizNext);
   document.getElementById("quiz-back")?.addEventListener("click", quizBack);
-  document.getElementById("quiz-skip")?.addEventListener("click", () => {
-    closeQuiz();
-    TELEMETRY.track("quiz_skipped", { step: quizState.current + 1 });
-    try { localStorage.setItem("avend-quiz-skipped", "1"); } catch (e) {}
-  });
+  // Botão "Pular" foi removido — quiz é OBRIGATÓRIO agora
   document.getElementById("quiz-redo")?.addEventListener("click", () => openQuiz(true));
   document.getElementById("quiz-apply")?.addEventListener("click", applyQuizSuggestion);
   // Botão WhatsApp — só aparece se AVEND_WHATSAPP estiver configurado
@@ -1644,12 +1701,7 @@ function bindQuiz() {
   document.getElementById("open-quiz")?.addEventListener("click", () => openQuiz(true));
   document.getElementById("open-quiz-hero")?.addEventListener("click", () => openQuiz(true));
   document.getElementById("open-quiz-header")?.addEventListener("click", () => openQuiz(true));
-  // ESC fecha
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && document.body.classList.contains("quiz-open")) {
-      closeQuiz();
-    }
-  });
+  // ESC NÃO fecha — quiz é obrigatório
 }
 
 /* ============================================================
@@ -1722,10 +1774,10 @@ function bindVsl() {
 function maybeAutoOpenQuiz() {
   try {
     const completed = localStorage.getItem("avend-quiz-completed");
-    const skipped   = localStorage.getItem("avend-quiz-skipped");
-    if (!completed && !skipped) {
-      // Primeira visita: abrir após hero animar
-      setTimeout(() => openQuiz(true), 1200);
+    if (!completed) {
+      // OBRIGATÓRIO: abre o quiz na 1ª visita e em retornos sem completar.
+      // Sem timeout — abre imediatamente pra impor o fluxo.
+      requestAnimationFrame(() => openQuiz(true));
     }
   } catch (e) { /* ignore */ }
 }

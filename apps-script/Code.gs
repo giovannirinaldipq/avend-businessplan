@@ -84,7 +84,7 @@ const HOT_TIME_THRESHOLD_MIN = 5;
 const SESSION_HEADERS = [
   "session_id", "started_at", "last_seen", "total_time_min",
   "visitor_id", "visitor_name", "visitor_email", "visitor_phone", "visitor_city",
-  "quiz_completed", "profile",
+  "quiz_completed", "profile", "score",
   "tabs_visited", "presets_clicked", "sliders_changed",
   "user_agent", "referrer", "raw_json"
 ];
@@ -255,6 +255,7 @@ function saveSessionLocked_(s) {
     s.visitorCity  || "",
     s.quizCompleted ? "yes" : "no",
     s.profile || "",
+    computeLeadScore_(s),    // 0-10
     tabsVisited,
     presets,
     sliders,
@@ -336,6 +337,48 @@ function maybeNotifyHotLead_(s) {
   if (GENERIC_WEBHOOK)  sendGeneric_(summary, s);
 }
 
+/* Score de qualidade do lead (0-10) — pondera contato + quiz + perfil + tempo + interação */
+function computeLeadScore_(s) {
+  let score = 0;
+
+  // Contato (até 3 pontos)
+  if (s.visitorName)  score += 0.5;
+  if (s.visitorEmail) score += 1.0;
+  if (s.visitorPhone) score += 1.5; // telefone vale mais — usuário se comprometeu
+
+  // Quiz completo (até 2 pontos)
+  if (s.quizCompleted) score += 2;
+
+  // Perfil identificado (até 2.5 pontos)
+  if (s.profile === "turbo")          score += 2.5;
+  else if (s.profile === "otimista")  score += 2.0;
+  else if (s.profile === "base")      score += 1.0;
+  else if (s.profile === "conservador") score += 0.5;
+
+  // Tempo na página (até 1.5 pontos): 1pt aos 5min, 1.5pt aos 15min+
+  const min = (s.totalTimeMs || 0) / 60000;
+  if (min >= 15)      score += 1.5;
+  else if (min >= 5)  score += 1.0;
+  else if (min >= 2)  score += 0.5;
+
+  // Interação (até 1 ponto)
+  const slidersUsed = Object.keys((s.interactions || {}).sliders || {}).length;
+  const presetsUsed = Object.keys((s.interactions || {}).presets || {}).length;
+  if (slidersUsed >= 3 || presetsUsed >= 1) score += 1.0;
+  else if (slidersUsed >= 1) score += 0.5;
+
+  // Cap 10
+  return Math.min(10, Math.round(score * 10) / 10);
+}
+
+function scoreEmoji_(score) {
+  if (score >= 9) return "🔥🔥🔥";
+  if (score >= 7) return "🔥🔥";
+  if (score >= 5) return "🔥";
+  if (score >= 3) return "♨️";
+  return "❄️";
+}
+
 function buildLeadSummary_(s) {
   const minutes = ((s.totalTimeMs || 0) / 60000).toFixed(1);
   const profile = (s.profile || "—").toUpperCase();
@@ -343,13 +386,53 @@ function buildLeadSummary_(s) {
     "TURBO": "⚡", "OTIMISTA": "🚀", "BASE": "⚖️", "CONSERVADOR": "🌱"
   }[profile] || "👤";
 
+  const score = computeLeadScore_(s);
+  const heat = scoreEmoji_(score);
+
   const contact = [];
   if (s.visitorName)  contact.push("👤 " + s.visitorName);
   if (s.visitorEmail) contact.push("📧 " + s.visitorEmail);
-  if (s.visitorPhone) contact.push("📞 " + s.visitorPhone);
+  if (s.visitorPhone) {
+    // Formata link clicável de WhatsApp
+    const phoneDigits = String(s.visitorPhone).replace(/\D/g, "");
+    contact.push("📱 " + s.visitorPhone + (phoneDigits.length >= 10 ? ` · wa.me/55${phoneDigits.replace(/^55/, "")}` : ""));
+  }
   if (s.visitorCity)  contact.push("📍 " + s.visitorCity);
 
-  // Quiz answers (se houver)
+  // Quiz answers — mapeamento de valores curtos pra texto legível
+  const ANSWER_LABELS = {
+    objetivo: {
+      "renda-extra": "Renda extra", "sair-clt": "Sair da CLT",
+      "viver-disso": "Viver disso integralmente", "patrimonio": "Construir patrimônio"
+    },
+    capital: {
+      "so-1a": "Só a 1ª máquina (R$ 55k)", "50-100": "R$ 50-100k adicionais",
+      "100-300": "R$ 100-300k adicionais", "300+": "Acima de R$ 300k"
+    },
+    reinvest: {
+      "preciso-tirar": "Precisa tirar pra viver", "meio-meio": "Reinveste 70-80%",
+      "reinvesto-tudo": "Reinveste 100%"
+    },
+    meta: {
+      "ate-15k": "R$ 5-15k/mês", "15-50k": "R$ 15-50k/mês",
+      "50-150k": "R$ 50-150k/mês", "150+": "Acima de R$ 150k/mês"
+    },
+    horizonte: { "3":"3 anos", "5":"5 anos", "7":"7 anos", "10":"10 anos" },
+    dedicacao: {
+      "horas-semana":"Algumas horas/semana", "meio-periodo":"Meio período",
+      "integral":"Tempo integral"
+    },
+    risco: { "conservador":"Conservador", "equilibrado":"Equilibrado", "arrojado":"Arrojado" },
+    atividade: {
+      "clt":"CLT", "autonomo":"Autônomo/freelancer", "empresario":"Empresário/sócio",
+      "aposentado":"Aposentado", "transicao":"Em transição"
+    },
+    experiencia: {
+      "primeira":"Primeira vez", "ja-tive":"Já teve negócio",
+      "ja-franquia":"Já teve franquia", "investidor":"Investidor"
+    }
+  };
+
   let answersText = "";
   if (s.events && s.events.length) {
     const answers = s.events.filter(e => e.type === "quiz_answered");
@@ -357,30 +440,40 @@ function buildLeadSummary_(s) {
       const map = {};
       answers.forEach(a => { map[a.data.q] = a.data.value; });
       const lines = [];
-      if (map.objetivo) lines.push("• Objetivo: " + map.objetivo);
-      if (map.capital)  lines.push("• Capital: " + map.capital);
-      if (map.meta)     lines.push("• Meta: " + map.meta);
-      if (map.horizonte) lines.push("• Horizonte: " + map.horizonte + " anos");
-      answersText = "\n*Respostas:*\n" + lines.join("\n");
+      const ORDER = ["atividade", "experiencia", "objetivo", "capital", "reinvest", "meta", "horizonte", "dedicacao", "risco"];
+      ORDER.forEach(q => {
+        if (map[q]) {
+          const label = (ANSWER_LABELS[q] && ANSWER_LABELS[q][map[q]]) || map[q];
+          lines.push(`• *${q.charAt(0).toUpperCase()+q.slice(1)}:* ${label}`);
+        }
+      });
+      answersText = "\n📝 *Respostas:*\n" + lines.join("\n");
     }
   }
 
-  // Tabs visitadas
-  const tabs = s.tabTime ? Object.keys(s.tabTime).map(k =>
-    `${k} (${(s.tabTime[k]/1000).toFixed(0)}s)`).join(", ") : "—";
+  // Tabs visitadas (top 3 por tempo)
+  let tabs = "—";
+  if (s.tabTime) {
+    const sorted = Object.entries(s.tabTime)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([k, v]) => `${k} (${(v/1000).toFixed(0)}s)`);
+    if (sorted.length) tabs = sorted.join(", ");
+  }
 
-  // Sliders
-  const sliders = (s.interactions && s.interactions.sliders)
-    ? Object.keys(s.interactions.sliders).length
-    : 0;
+  const slidersUsed = Object.keys((s.interactions || {}).sliders || {}).length;
+  const presetsUsed = Object.keys((s.interactions || {}).presets || {}).length;
 
   return {
-    title: `🚨 LEAD QUENTE · ${profileEmoji} ${profile}`,
+    title: `${heat} LEAD ${score}/10 · ${profileEmoji} ${profile}`,
+    score: score,
+    heat: heat,
     contactBlock: contact.join("\n"),
     profileEmoji,
     profile,
     minutes,
-    sliders,
+    sliders: slidersUsed,
+    presets: presetsUsed,
     tabs,
     answersText,
     sessionId: s.sessionId,
@@ -458,17 +551,37 @@ function sendSlack_(d) {
 
 function sendTelegram_(d) {
   try {
-    const text =
-      `*${escapeMarkdown_(d.title)}*\n\n` +
-      `${escapeMarkdown_(d.contactBlock)}\n\n` +
-      `_Perfil:_ ${d.profileEmoji} ${escapeMarkdown_(d.profile)}\n` +
-      `_Tempo:_ ${d.minutes} min\n` +
-      `_Sliders mexidos:_ ${d.sliders}\n` +
-      `_Abas:_ ${escapeMarkdown_(d.tabs)}` +
-      (d.answersText ? "\n" + escapeMarkdown_(d.answersText) : "");
+    // Mensagem usa MarkdownV2 simulado via escape — aqui usamos Markdown legacy
+    // que é mais permissivo. Estrutura otimizada pra leitura no celular.
+    const lines = [];
+    lines.push(`*${d.title}*`);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+
+    if (d.contactBlock) {
+      lines.push("");
+      lines.push("👋 *Contato:*");
+      lines.push(d.contactBlock);
+    }
+
+    lines.push("");
+    lines.push("📊 *Engajamento:*");
+    lines.push(`• Perfil: ${d.profileEmoji} ${d.profile}`);
+    lines.push(`• Tempo na página: *${d.minutes} min*`);
+    lines.push(`• Sliders mexidos: ${d.sliders}`);
+    if (d.presets > 0) lines.push(`• Presets clicados: ${d.presets}`);
+    lines.push(`• Abas top 3: ${d.tabs}`);
+
+    if (d.answersText) {
+      lines.push(d.answersText);
+    }
+
+    lines.push("");
+    lines.push(`_Score AVEND: ${d.score}/10_ · _session ${d.sessionId.slice(0, 16)}…_`);
+
+    const text = lines.join("\n");
 
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-    UrlFetchApp.fetch(url, {
+    const r = UrlFetchApp.fetch(url, {
       method: "post",
       contentType: "application/json",
       payload: JSON.stringify({
@@ -479,6 +592,9 @@ function sendTelegram_(d) {
       }),
       muteHttpExceptions: true
     });
+    if (r.getResponseCode() !== 200) {
+      Logger.log("Telegram FALHOU (status " + r.getResponseCode() + "): " + r.getContentText().slice(0, 300));
+    }
   } catch (err) { Logger.log("Telegram webhook error: " + err); }
 }
 
@@ -866,18 +982,24 @@ function forceNotify(sessionId) {
   const row = data.find((r, i) => i > 0 && r[0] === sessionId);
   if (!row) { Logger.log("Session não encontrada: " + sessionId); return; }
 
-  // Reconstrói objeto session
-  const rawJson = row[16];
+  // Reconstrói objeto session — busca raw_json por header pra ser robusto
+  const headerRow = data[0];
+  const rawJsonIdx = headerRow.indexOf("raw_json");
+  const rawJson = rawJsonIdx >= 0 ? row[rawJsonIdx] : null;
+
   let session;
   try { session = JSON.parse(rawJson); }
   catch (e) {
-    // Fallback: monta a partir das colunas
+    // Fallback: monta a partir das colunas (busca por header)
+    const col = (name) => { const i = headerRow.indexOf(name); return i >= 0 ? row[i] : null; };
     session = {
-      sessionId: row[0], startedAt: new Date(row[1]).getTime(),
-      lastSeen: new Date(row[2]).getTime(),
-      totalTimeMs: (parseFloat(row[3]) || 0) * 60000,
-      visitorName: row[5], visitorEmail: row[6], visitorPhone: row[7], visitorCity: row[8],
-      quizCompleted: row[9] === "yes", profile: row[10],
+      sessionId: col("session_id"),
+      startedAt: new Date(col("started_at")).getTime(),
+      lastSeen: new Date(col("last_seen")).getTime(),
+      totalTimeMs: (parseFloat(col("total_time_min")) || 0) * 60000,
+      visitorName: col("visitor_name"), visitorEmail: col("visitor_email"),
+      visitorPhone: col("visitor_phone"), visitorCity: col("visitor_city"),
+      quizCompleted: col("quiz_completed") === "yes", profile: col("profile"),
       tabTime: {}, interactions: { sliders: {}, presets: {} }, events: []
     };
   }

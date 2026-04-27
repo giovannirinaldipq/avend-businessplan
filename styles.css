@@ -2906,6 +2906,23 @@ body.quiz-open { overflow: hidden; }
   background: rgba(139,48,230,0.10);
 }
 
+/* Badge "Obrigatório" no header do quiz */
+.quiz-required-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255,176,32,0.14);
+  border: 1px solid rgba(255,176,32,0.50);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--accent-e);
+  cursor: help;
+}
+
 /* Progress */
 .quiz-progress {
   padding: 16px 24px 0;
