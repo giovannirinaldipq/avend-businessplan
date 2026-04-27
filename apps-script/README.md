@@ -5,6 +5,42 @@ Salva tudo numa planilha Google Sheets, em duas abas: **Sessions** e **Events**.
 
 ---
 
+## 🔒 IMPORTANTE — Segurança de tokens
+
+**NUNCA** cole tokens (Telegram, Slack, etc.) direto no `Code.gs` se for commitar.
+Este repo é público — qualquer um vê o código.
+
+### ✅ Forma correta: Script Properties
+
+1. No editor do Apps Script, clique na engrenagem **⚙ Project Settings** (esquerda)
+2. Role até a seção **"Script Properties"**
+3. Clique em **"Add script property"** e adicione cada chave:
+
+   | Property | Valor (exemplo) |
+   |---|---|
+   | `TELEGRAM_BOT_TOKEN` | `123456789:ABC-DEF...` |
+   | `TELEGRAM_CHAT_ID` | `987654321` |
+   | `DISCORD_WEBHOOK` | `https://discord.com/api/webhooks/...` |
+   | `SLACK_WEBHOOK` | `https://hooks.slack.com/services/...` |
+   | `GENERIC_WEBHOOK` | `https://hook.us1.make.com/...` |
+
+4. Salve. Os valores ficam **apenas na sua conta** Google (jamais no git).
+
+O `Code.gs` lê esses valores automaticamente via `PropertiesService.getScriptProperties()`.
+
+### ⚠ Se você já commitou um token por engano
+
+1. **Resete o token imediatamente**:
+   - Telegram: `@BotFather` → `/mybots` → escolha o bot → API Token → **Revoke**
+   - Slack: app settings → regenerate webhook URL
+   - Discord: Server Settings → Integrations → delete + recreate webhook
+2. Configure o NOVO token via Script Properties (não no código)
+3. Republique o deploy
+
+O token antigo no histórico do git fica inválido e inofensivo após o reset.
+
+---
+
 ## Como implantar (10 minutos)
 
 ### 1. Criar a planilha

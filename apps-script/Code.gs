@@ -35,19 +35,45 @@ const SHEET_NAME_LEADS    = "Hot Leads";
    E tiver fornecido nome OU email OU telefone, dispara notificação.
    ============================================================ */
 
-// Discord — crie um webhook em: Server Settings → Integrations → Webhooks
-const DISCORD_WEBHOOK = ""; // ex: "https://discord.com/api/webhooks/.../..."
+/* >>> SEGURANÇA: tokens NUNCA devem ficar hardcoded neste arquivo <<<
+   Use Script Properties (Project Settings → Script Properties).
+   Para configurar:
+     1. No editor: ⚙ Project Settings (engrenagem na esquerda)
+     2. Role até "Script Properties"
+     3. Clique "Add script property" e adicione cada par chave/valor:
+        - DISCORD_WEBHOOK
+        - SLACK_WEBHOOK
+        - TELEGRAM_BOT_TOKEN
+        - TELEGRAM_CHAT_ID
+        - GENERIC_WEBHOOK
+     4. Salve. As propriedades ficam só na sua conta (nunca no git).
 
-// Slack — Incoming Webhook do app: api.slack.com/apps → Incoming Webhooks
-const SLACK_WEBHOOK = "";   // ex: "https://hooks.slack.com/services/T.../B.../..."
+   Alternativa rápida pra setup inicial: rode setupWebhookProperties()
+   uma vez no editor (depois de preencher os valores nessa função).
+*/
+const _PROPS = PropertiesService.getScriptProperties();
+const DISCORD_WEBHOOK    = _PROPS.getProperty("DISCORD_WEBHOOK")    || "";
+const SLACK_WEBHOOK      = _PROPS.getProperty("SLACK_WEBHOOK")      || "";
+const TELEGRAM_BOT_TOKEN = _PROPS.getProperty("TELEGRAM_BOT_TOKEN") || "";
+const TELEGRAM_CHAT_ID   = _PROPS.getProperty("TELEGRAM_CHAT_ID")   || "";
+const GENERIC_WEBHOOK    = _PROPS.getProperty("GENERIC_WEBHOOK")    || "";
 
-// Telegram — fale com @BotFather no Telegram, crie um bot, pegue o token.
-// Pegue o chat ID conversando com @userinfobot ou @get_id_bot
-const TELEGRAM_BOT_TOKEN = "8677978820:AAGZLcZYzdzLs0bsG5pU21FLoD2jrU5Z_5Y";  // ex: "123456789:ABC-..."
-const TELEGRAM_CHAT_ID   = "8781857857";  // ex: "987654321" (seu user ID ou ID de grupo)
-
-// Webhook genérico (Make/Zapier/n8n/CallMeBot — qualquer endpoint que aceita POST JSON)
-const GENERIC_WEBHOOK = ""; // ex: "https://hook.us1.make.com/..."
+/* Helper: setup inicial das propriedades.
+   PREENCHA os valores ABAIXO TEMPORARIAMENTE, rode 1 vez, depois VOLTE
+   PRA STRINGS VAZIAS antes de qualquer commit. */
+function setupWebhookProperties() {
+  const props = PropertiesService.getScriptProperties();
+  const config = {
+    // DISCORD_WEBHOOK:    "",
+    // SLACK_WEBHOOK:      "",
+    // TELEGRAM_BOT_TOKEN: "",
+    // TELEGRAM_CHAT_ID:   "",
+    // GENERIC_WEBHOOK:    ""
+  };
+  Object.entries(config).forEach(([k, v]) => { if (v) props.setProperty(k, v); });
+  Logger.log("Properties saved. Configured keys: " + Object.keys(config).filter(k => config[k]).join(", "));
+  Logger.log("⚠ APAGUE OS VALORES desta função antes de commitar!");
+}
 
 // Critérios — perfis quentes (modificável)
 const HOT_PROFILES = ["otimista", "turbo"];
