@@ -43,8 +43,8 @@ const SLACK_WEBHOOK = "";   // ex: "https://hooks.slack.com/services/T.../B.../.
 
 // Telegram — fale com @BotFather no Telegram, crie um bot, pegue o token.
 // Pegue o chat ID conversando com @userinfobot ou @get_id_bot
-const TELEGRAM_BOT_TOKEN = "";  // ex: "123456789:ABC-..."
-const TELEGRAM_CHAT_ID   = "";  // ex: "987654321" (seu user ID ou ID de grupo)
+const TELEGRAM_BOT_TOKEN = "8677978820:AAGZLcZYzdzLs0bsG5pU21FLoD2jrU5Z_5Y";  // ex: "123456789:ABC-..."
+const TELEGRAM_CHAT_ID   = "8781857857";  // ex: "987654321" (seu user ID ou ID de grupo)
 
 // Webhook genérico (Make/Zapier/n8n/CallMeBot — qualquer endpoint que aceita POST JSON)
 const GENERIC_WEBHOOK = ""; // ex: "https://hook.us1.make.com/..."
