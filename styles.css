@@ -3660,8 +3660,8 @@ body.quiz-open { overflow: hidden; }
 /* KPIs gerais */
 .admin-kpis {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
   padding: 22px 28px;
   border-bottom: 1px solid rgba(139,48,230,0.18);
 }
@@ -3946,7 +3946,26 @@ body.quiz-open { overflow: hidden; }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  cursor: help;
+}
+.admin-badge-return { background: rgba(75,108,226,0.20);  color: #8aa1f1; border: 1px solid rgba(75,108,226,0.40); }
+.admin-badge-deep   { background: rgba(57,232,135,0.18);  color: var(--accent-d); border: 1px solid rgba(57,232,135,0.40); }
+.admin-badge-time   { background: rgba(255,176,32,0.18);  color: var(--accent-e); border: 1px solid rgba(255,176,32,0.40); }
+.admin-badge-bot    { background: rgba(255,107,107,0.18); color: #ff8b8b;          border: 1px solid rgba(255,107,107,0.40); }
 .admin-session-sub {
   font-size: 10.5px;
   color: var(--text-dim);
@@ -3993,12 +4012,18 @@ body.quiz-open { overflow: hidden; }
   overflow-y: auto;
 }
 
+@media (max-width: 1300px) {
+  .admin-kpis { grid-template-columns: repeat(4, 1fr); }
+}
 @media (max-width: 1100px) {
-  .admin-kpis { grid-template-columns: repeat(2, 1fr); }
+  .admin-kpis { grid-template-columns: repeat(3, 1fr); }
   .admin-grid-2 { grid-template-columns: 1fr; gap: 24px; }
   .admin-session > summary { grid-template-columns: 38px 1fr; gap: 10px; }
   .admin-session-time, .admin-tag, .admin-session-events { grid-column: 2; font-size: 11px; }
   .admin-funnel-row { grid-template-columns: 100px 1fr 50px 80px; }
+}
+@media (max-width: 720px) {
+  .admin-kpis { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* Pulse animation no chip cenário (após aplicar quiz) */

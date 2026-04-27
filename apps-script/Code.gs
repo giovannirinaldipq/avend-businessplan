@@ -83,6 +83,7 @@ function doPost(e) {
 
     if (payload.type === "event") {
       saveEvent_(payload.session_id, payload.event, payload.visitor || {});
+      maybeNotifySpecialEvent_(payload.session_id, payload.event, payload.visitor || {});
       return jsonResponse_({ ok: true, type: "event" });
     }
 
@@ -449,10 +450,134 @@ function clearHotLeadFlags() {
   const all = props.getProperties();
   let cleared = 0;
   for (const k in all) {
-    if (k.indexOf(HOT_LEAD_FLAG_PROP) === 0) {
+    if (k.indexOf(HOT_LEAD_FLAG_PROP) === 0 || k.indexOf(SPECIAL_EVENT_FLAG_PROP) === 0) {
       props.deleteProperty(k);
       cleared++;
     }
   }
-  Logger.log("Cleared " + cleared + " hot lead flags");
+  Logger.log("Cleared " + cleared + " notification flags");
+}
+
+/* ============================================================
+   EVENTOS ESPECIAIS — notificações secundárias
+   - returning_visitor: alguém que já visitou voltou
+   - dwell_milestone_10m / 15m: ficou MUITO tempo na página
+   - deep_engagement: explorou a fundo
+   - quiz_abandoned: abriu o quiz mas desistiu (oportunidade de retargeting)
+   ============================================================ */
+
+const SPECIAL_EVENT_FLAG_PROP = "special_event_notified_";
+
+// Quais eventos especiais notificar (false = só registra, não dispara webhook)
+const NOTIFY_SPECIAL_EVENTS = {
+  "returning_visitor":     true,
+  "dwell_milestone_10m":   true,
+  "dwell_milestone_15m":   true,
+  "deep_engagement":       true,
+  "quiz_abandoned":        false   // vira ruído se ligar
+};
+
+function maybeNotifySpecialEvent_(sessionId, evt, visitor) {
+  if (!evt || !evt.type) return;
+  if (!NOTIFY_SPECIAL_EVENTS[evt.type]) return;
+  // Só notifica se tiver pelo menos algum contato (senão é ruído)
+  const hasContact = !!(visitor.name || visitor.email || visitor.phone);
+  if (!hasContact && evt.type !== "deep_engagement") return;
+
+  // Anti-duplicata: 1x por (sessao + evento)
+  const props = PropertiesService.getScriptProperties();
+  const flagKey = SPECIAL_EVENT_FLAG_PROP + sessionId + "_" + evt.type;
+  if (props.getProperty(flagKey)) return;
+  props.setProperty(flagKey, "1");
+
+  // Monta mensagem específica por tipo
+  const summary = buildSpecialEventSummary_(evt, visitor, sessionId);
+
+  if (DISCORD_WEBHOOK)  sendDiscordSpecial_(summary, evt.type);
+  if (SLACK_WEBHOOK)    sendSlack_(summary);
+  if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) sendTelegram_(summary);
+  if (GENERIC_WEBHOOK)  sendGenericSpecial_(summary, evt, visitor, sessionId);
+}
+
+function buildSpecialEventSummary_(evt, visitor, sessionId) {
+  const labels = {
+    "returning_visitor":   "🔄 Visitante retornou",
+    "dwell_milestone_10m": "⏱ +10 min na página",
+    "dwell_milestone_15m": "⏱ +15 min na página (super engajado!)",
+    "deep_engagement":     "🎯 Engajamento profundo (explorou tudo)",
+    "quiz_abandoned":      "💤 Abandonou o quiz no meio"
+  };
+  const colors = {
+    "returning_visitor":   0x4B6CE2,
+    "dwell_milestone_10m": 0xffb020,
+    "dwell_milestone_15m": 0xff6b6b,
+    "deep_engagement":     0x39e887,
+    "quiz_abandoned":      0xa7adca
+  };
+
+  const contact = [];
+  if (visitor.name)  contact.push("👤 " + visitor.name);
+  if (visitor.email) contact.push("📧 " + visitor.email);
+  if (visitor.phone) contact.push("📞 " + visitor.phone);
+  if (visitor.city)  contact.push("📍 " + visitor.city);
+
+  let extra = "";
+  if (evt.data && evt.data.visitNumber) extra = `\n*Visita nº:* ${evt.data.visitNumber}`;
+  if (evt.data && evt.data.previousProfile) extra += `\n*Perfil anterior:* ${evt.data.previousProfile.toUpperCase()}`;
+  if (evt.data && evt.data.elapsedMs) extra += `\n*Tempo na página:* ${(evt.data.elapsedMs/60000).toFixed(1)} min`;
+  if (evt.data && evt.data.tabsVisited) extra += `\n*Abas visitadas:* ${evt.data.tabsVisited} · *Sliders:* ${evt.data.slidersChanged}`;
+  if (evt.data && evt.data.answeredCount !== undefined) extra += `\n*Respondeu antes de sair:* ${evt.data.answeredCount} pergunta(s)`;
+
+  return {
+    title: labels[evt.type] || evt.type,
+    contactBlock: contact.join("\n") || "(visitante anônimo)",
+    extra: extra,
+    eventType: evt.type,
+    color: colors[evt.type] || 0x8B30E6,
+    sessionId: sessionId,
+    answersText: ""   // compat com sender genérico
+  };
+}
+
+function sendDiscordSpecial_(d, eventType) {
+  try {
+    const fields = [
+      { name: "Contato", value: "```\n" + d.contactBlock + "\n```", inline: false }
+    ];
+    if (d.extra) fields.push({ name: "Detalhes", value: d.extra.replace(/\n\*/g, "\n").replace(/\*/g, ""), inline: false });
+    const payload = {
+      username: "AVEND Lead Bot",
+      embeds: [{
+        title: d.title,
+        color: d.color,
+        fields: fields,
+        footer: { text: "Session: " + d.sessionId },
+        timestamp: new Date().toISOString()
+      }]
+    };
+    UrlFetchApp.fetch(DISCORD_WEBHOOK, {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+  } catch (err) { Logger.log("Discord special event error: " + err); }
+}
+
+function sendGenericSpecial_(d, evt, visitor, sessionId) {
+  try {
+    UrlFetchApp.fetch(GENERIC_WEBHOOK, {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify({
+        type: "special_event",
+        event_type: evt.type,
+        title: d.title,
+        contact: visitor,
+        event_data: evt.data,
+        session_id: sessionId
+      }),
+      muteHttpExceptions: true
+    });
+  } catch (err) { Logger.log("Generic special event error: " + err); }
 }

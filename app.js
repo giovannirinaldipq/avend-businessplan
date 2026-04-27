@@ -1623,6 +1623,15 @@ const TELEMETRY = (() => {
     return id;
   })();
 
+  // Detecta retorno: se já existem sessões anteriores no localStorage índice
+  let visitNumber = 1;
+  try {
+    const idx = JSON.parse(localStorage.getItem("avend-tel-index") || "[]");
+    // Filtra a própria sessão (caso esteja sendo criada agora)
+    const previous = idx.filter(id => id !== SESSION_ID);
+    visitNumber = previous.length + 1;
+  } catch (e) {}
+
   const session = {
     sessionId: SESSION_ID,
     startedAt: Date.now(),
@@ -1632,9 +1641,11 @@ const TELEMETRY = (() => {
     visitorEmail: null,
     visitorPhone: null,
     visitorCity: null,
+    visitNumber: visitNumber,    // 1ª visita = 1, retornos = 2+
     events: [],
     tabTime: {},
     interactions: { sliders: {}, presets: {}, ctas: 0 },
+    milestones: {},               // { dwell_1m: ts, dwell_3m: ts, deep_engagement: ts, ... }
     quizCompleted: false,
     profile: null,
     userAgent: (typeof navigator !== "undefined" ? navigator.userAgent : ""),
@@ -1651,6 +1662,26 @@ const TELEMETRY = (() => {
     session.visitorCity  = u.searchParams.get("city")  || u.searchParams.get("cidade");
   } catch (e) {}
 
+  // Tenta recuperar dados da última sessão (mesmo browser) se for retorno
+  if (visitNumber > 1) {
+    try {
+      const idx = JSON.parse(localStorage.getItem("avend-tel-index") || "[]");
+      const prev = idx.filter(id => id !== SESSION_ID).reverse();
+      for (const pid of prev) {
+        const pdata = JSON.parse(localStorage.getItem("avend-tel-" + pid) || "{}");
+        if (pdata.visitorName || pdata.visitorEmail) {
+          // Auto-prefill se não veio via querystring
+          if (!session.visitorName)  session.visitorName  = pdata.visitorName;
+          if (!session.visitorEmail) session.visitorEmail = pdata.visitorEmail;
+          if (!session.visitorPhone) session.visitorPhone = pdata.visitorPhone;
+          if (!session.visitorCity)  session.visitorCity  = pdata.visitorCity;
+          if (pdata.profile && !session.previousProfile) session.previousProfile = pdata.profile;
+          break;
+        }
+      }
+    } catch (e) {}
+  }
+
   // Tab tracking
   let currentTab = "overview";
   let tabEnteredAt = Date.now();
@@ -1665,7 +1696,9 @@ const TELEMETRY = (() => {
   // Eventos críticos são enviados imediatamente; outros são "batched" em
   // intervalos. No unload, manda snapshot completo via sendBeacon.
   const CRITICAL_EVENTS = new Set([
-    "quiz_completed", "quiz_plan_applied", "quiz_identified", "page_loaded"
+    "quiz_completed", "quiz_plan_applied", "quiz_identified", "page_loaded",
+    "returning_visitor", "deep_engagement", "dwell_milestone_5m",
+    "dwell_milestone_10m", "dwell_milestone_15m"
   ]);
 
   function postJSON_(payload) {
@@ -1768,14 +1801,75 @@ const TELEMETRY = (() => {
   });
 
   // Heartbeat a cada 30s persiste local + manda snapshot remoto
+  // Também avalia milestones (dwell time, deep engagement)
   setInterval(() => {
     if (document.visibilityState === "visible") {
       commitTabTime();
       session.totalTimeMs = Date.now() - session.startedAt;
       persist();
       sendSessionSnapshot();
+      checkMilestones_();
     }
   }, 30000);
+
+  /* ---------- Milestones e detectores especiais ---------- */
+  const DWELL_THRESHOLDS = [
+    { key: "1m",  ms: 60000 },
+    { key: "3m",  ms: 180000 },
+    { key: "5m",  ms: 300000 },
+    { key: "10m", ms: 600000 },
+    { key: "15m", ms: 900000 }
+  ];
+
+  function fireMilestone_(key, data = {}) {
+    if (session.milestones[key]) return; // já disparou
+    session.milestones[key] = Date.now();
+    track("dwell_milestone_" + key, data);
+  }
+
+  function checkMilestones_() {
+    const elapsed = Date.now() - session.startedAt;
+
+    // 1. Milestones de tempo
+    DWELL_THRESHOLDS.forEach(t => {
+      if (elapsed >= t.ms) fireMilestone_(t.key, { elapsedMs: elapsed });
+    });
+
+    // 2. Deep engagement: 5+ tabs visitadas + 3+ sliders mexidos
+    if (!session.milestones.deep_engagement) {
+      const tabsVisited = Object.keys(session.tabTime || {}).length;
+      const slidersChanged = Object.keys((session.interactions || {}).sliders || {}).length;
+      if (tabsVisited >= 5 && slidersChanged >= 3) {
+        session.milestones.deep_engagement = Date.now();
+        track("deep_engagement", { tabsVisited, slidersChanged });
+      }
+    }
+
+    // 3. Quiz abandonado: abriu quiz mas não completou em 60s
+    if (!session.milestones.quiz_abandoned && !session.quizCompleted) {
+      const opened = session.events.find(e => e.type === "quiz_opened");
+      const lastAnswer = [...session.events].reverse().find(e => e.type === "quiz_answered");
+      if (opened) {
+        const referenceTime = lastAnswer ? lastAnswer.t : opened.t;
+        const sinceLast = elapsed - referenceTime;
+        if (sinceLast > 60000) {
+          session.milestones.quiz_abandoned = Date.now();
+          const answeredCount = session.events.filter(e => e.type === "quiz_answered").length;
+          track("quiz_abandoned", { answeredCount, idleMs: sinceLast });
+        }
+      }
+    }
+  }
+
+  // Dispara returning_visitor uma vez no carregamento se for retorno
+  if (visitNumber > 1) {
+    setTimeout(() => {
+      track("returning_visitor", {
+        visitNumber: visitNumber,
+        previousProfile: session.previousProfile || null
+      });
+    }, 500);
+  }
 
   return {
     session, track, setTab, trackSliderChange, trackPreset,
@@ -1895,6 +1989,8 @@ function maybeShowAdmin() {
     const avgMin       = computeAvgTime(sessions);
     const totalQuizCompleted = sessions.filter(s => s.quizCompleted).length;
     const totalIdentified = sessions.filter(s => s.visitorName || s.visitorEmail).length;
+    const totalReturning = sessions.filter(s => (s.visitNumber || 1) > 1).length;
+    const totalDeepEngaged = sessions.filter(s => s.milestones && s.milestones.deep_engagement).length;
 
     // Sessões com score, ordenadas DESC por calor
     const enriched = sessions.map(s => ({ s, score: computeHeatScore(s), heat: heatLevel(computeHeatScore(s)) }))
@@ -1918,6 +2014,8 @@ function maybeShowAdmin() {
           <div class="admin-kpi"><div class="admin-kpi-val">${sessions.length}</div><div class="admin-kpi-lbl">Sessões totais</div></div>
           <div class="admin-kpi"><div class="admin-kpi-val">${totalIdentified}</div><div class="admin-kpi-lbl">Identificados</div></div>
           <div class="admin-kpi"><div class="admin-kpi-val">${totalQuizCompleted}</div><div class="admin-kpi-lbl">Quiz completos</div></div>
+          <div class="admin-kpi"><div class="admin-kpi-val">${totalReturning}<small>↻</small></div><div class="admin-kpi-lbl">Retornantes</div></div>
+          <div class="admin-kpi"><div class="admin-kpi-val">${totalDeepEngaged}<small>🎯</small></div><div class="admin-kpi-lbl">Engajamento profundo</div></div>
           <div class="admin-kpi"><div class="admin-kpi-val">${avgMin.toFixed(1)}<small>min</small></div><div class="admin-kpi-lbl">Tempo médio</div></div>
           <div class="admin-kpi admin-kpi-hot"><div class="admin-kpi-val">${enriched.filter(e => e.score >= 70).length}</div><div class="admin-kpi-lbl">🔥 Leads quentes</div></div>
         </div>
@@ -1999,12 +2097,21 @@ function maybeShowAdmin() {
                 : (s.events||[]).some(e=>e.type==="quiz_opened")
                   ? `<span class="admin-tag admin-tag-warn">abriu quiz</span>`
                   : `<span class="admin-tag">não respondeu</span>`;
+              const badges = [];
+              if ((s.visitNumber || 1) > 1)        badges.push(`<span class="admin-badge admin-badge-return" title="Visita #${s.visitNumber}">↻ ${s.visitNumber}ª</span>`);
+              if (s.milestones && s.milestones.deep_engagement) badges.push(`<span class="admin-badge admin-badge-deep" title="Engajamento profundo">🎯</span>`);
+              if (s.milestones && s.milestones["15m"])          badges.push(`<span class="admin-badge admin-badge-time" title="+15min na página">⏱ 15+</span>`);
+              else if (s.milestones && s.milestones["10m"])     badges.push(`<span class="admin-badge admin-badge-time" title="+10min na página">⏱ 10+</span>`);
+              if (s.botSuspected) badges.push(`<span class="admin-badge admin-badge-bot" title="Suspeita de bot (honeypot)">🤖</span>`);
               return `
                 <details class="admin-session" data-heat="${heat.key}">
                   <summary>
                     <span class="admin-heat" style="background:${heat.color}; box-shadow:0 0 12px ${heat.color}55;">${score}</span>
                     <span class="admin-session-visitor-block">
-                      <span class="admin-session-visitor">${visitorTag}</span>
+                      <span class="admin-session-visitor">
+                        ${visitorTag}
+                        ${badges.join("")}
+                      </span>
                       ${subTag ? `<span class="admin-session-sub">${subTag}</span>` : ""}
                     </span>
                     <span class="admin-session-time">${fmtMin(dur)} min</span>
