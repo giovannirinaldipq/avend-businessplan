@@ -1130,6 +1130,68 @@ function getSessionFromSheet_(sessionId) {
   return null;
 }
 
+/* TESTE DA IGNORE_LIST — rode no editor pra diagnosticar */
+function testIgnoreList() {
+  Logger.log("=== AVEND · TESTE DA IGNORE_LIST ===\n");
+
+  const props = PropertiesService.getScriptProperties();
+  const raw = props.getProperty("IGNORE_LIST");
+
+  // 1. Existe?
+  if (raw === null) {
+    Logger.log("❌ IGNORE_LIST NÃO está configurada nas Script Properties.");
+    Logger.log("   → Vá em ⚙ Project Settings → Script Properties → Add script property");
+    Logger.log("   → Property: IGNORE_LIST");
+    Logger.log("   → Value: giovannirinaldipq@gmail.com,17991440473,giovanni rinaldi");
+    return;
+  }
+
+  if (!raw.trim()) {
+    Logger.log("⚠ IGNORE_LIST está VAZIA. Adicione valores separados por vírgula.");
+    return;
+  }
+
+  Logger.log("✓ IGNORE_LIST encontrada.");
+  Logger.log("Valor RAW: " + JSON.stringify(raw));
+  const items = raw.toLowerCase().split(",").map(s => s.trim()).filter(Boolean);
+  Logger.log("Itens parseados (" + items.length + "):");
+  items.forEach((item, i) => Logger.log("   " + (i+1) + ". " + JSON.stringify(item)));
+
+  // 2. Testa se a função isIgnoredVisitor_ existe (Code.gs atualizado?)
+  if (typeof isIgnoredVisitor_ !== "function") {
+    Logger.log("\n❌ Função isIgnoredVisitor_ NÃO encontrada!");
+    Logger.log("   → Você precisa atualizar o Code.gs pela versão nova:");
+    Logger.log("   → https://github.com/giovannirinaldipq/avend-businessplan/blob/main/apps-script/Code.gs");
+    Logger.log("   → Cole tudo, salve (Ctrl+S), Deploy → Manage deployments → ✏ → New version → Deploy");
+    return;
+  }
+  Logger.log("\n✓ Função isIgnoredVisitor_ existe.");
+
+  // 3. Testa cenários típicos
+  Logger.log("\n--- Testando cenários ---");
+  const testCases = [
+    { label: "Giovanni por email", visitor: { email: "giovannirinaldipq@gmail.com" } },
+    { label: "Giovanni por phone", visitor: { phone: "(17) 99144-0473" } },
+    { label: "Giovanni por phone (só dígitos)", visitor: { phone: "17991440473" } },
+    { label: "Giovanni por nome",  visitor: { name: "Giovanni Rinaldi" } },
+    { label: "Visitor desconhecido (deve passar)", visitor: { email: "investidor@x.com", name: "Maria Silva" } }
+  ];
+  testCases.forEach(tc => {
+    const blocked = isIgnoredVisitor_(tc.visitor);
+    Logger.log("  " + (blocked ? "🚫 BLOQUEADO" : "✅ passa  ") + " · " + tc.label);
+  });
+
+  Logger.log("\n--- Diagnóstico do código ---");
+  Logger.log("Hot lead flow chama isIgnoredVisitor_? " + (maybeNotifyHotLead_.toString().includes("isIgnoredVisitor_") ? "✓" : "❌ Code.gs antigo!"));
+  Logger.log("Special event flow chama isIgnoredVisitor_? " + (maybeNotifySpecialEvent_.toString().includes("isIgnoredVisitor_") ? "✓" : "❌ Code.gs antigo!"));
+
+  Logger.log("\n=== FIM DO TESTE ===");
+  Logger.log("Se tudo apareceu ✓ acima E bloqueou nos 4 primeiros cenários,");
+  Logger.log("a ignore list está OK. Se ainda chegar notificação:");
+  Logger.log("  1. Você não fez 'New version' no deploy depois do último save");
+  Logger.log("  2. Os dados que digitou no quiz não batem (confira espaços extras)");
+}
+
 /* Ignore list — leads de teste interno (Giovanni + equipe) */
 function isIgnoredVisitor_(visitor) {
   if (!visitor) return false;
