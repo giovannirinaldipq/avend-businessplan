@@ -194,10 +194,31 @@ function getSheet_(name, headers) {
   return sheet;
 }
 
-/* ---------- Save session ---------- */
+/* ---------- Save session ----------
+   Usa LockService pra evitar race condition: requests concorrentes da
+   mesma sessão (heartbeat + visibility change + critical event chegando
+   simultâneos) podiam causar 2 linhas pra mesma sessionId em vez de
+   atualizar a existente. */
 function saveSession_(s) {
   if (!s || !s.sessionId) return;
 
+  const lock = LockService.getScriptLock();
+  try {
+    // Espera até 10s pra adquirir o lock
+    lock.waitLock(10000);
+  } catch (e) {
+    Logger.log("saveSession_ couldn't acquire lock: " + e);
+    return;
+  }
+
+  try {
+    saveSessionLocked_(s);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function saveSessionLocked_(s) {
   const sheet = getSheet_(SHEET_NAME_SESSIONS, SESSION_HEADERS);
   const data = sheet.getDataRange().getValues();
   let rowIdx = -1;
@@ -717,10 +738,35 @@ function diagnoseLeadFlow() {
   }
 
   const data = sessionsSheet.getDataRange().getValues();
-  const headers = data[0];
-  const rows = data.slice(1).reverse().slice(0, 15); // últimas 15
-  Logger.log("\n--- ÚLTIMAS " + rows.length + " SESSÕES ---");
-  Logger.log("(da mais recente pra mais antiga)\n");
+  const allRows = data.slice(1).reverse();
+
+  // Dedupe: pra cada sessionId, mantém só a linha com MAIOR tempo (snapshot final)
+  const seen = {};
+  const dedupedRows = [];
+  allRows.forEach(r => {
+    const sid = r[0];
+    const time = parseFloat(r[3]) || 0;
+    if (!seen[sid] || time > seen[sid].time) {
+      if (seen[sid]) {
+        // remove o anterior do array
+        const idx = dedupedRows.indexOf(seen[sid].row);
+        if (idx >= 0) dedupedRows.splice(idx, 1);
+      }
+      seen[sid] = { row: r, time };
+      dedupedRows.push(r);
+    }
+  });
+  const rows = dedupedRows.slice(0, 15);
+
+  const dupCount = allRows.length - Object.keys(seen).length;
+  if (dupCount > 0) {
+    Logger.log(`\n⚠ Detectadas ${dupCount} linha(s) duplicada(s) na planilha (race condition).`);
+    Logger.log(`   Foi corrigido com LockService nesta versão. Linhas antigas podem ser limpas`);
+    Logger.log(`   manualmente na planilha (mantenha sempre a linha com maior tempo da sessão).`);
+  }
+
+  Logger.log("\n--- ÚLTIMAS " + rows.length + " SESSÕES ÚNICAS ---");
+  Logger.log("(da mais recente pra mais antiga, snapshot final de cada sessão)\n");
 
   const props = PropertiesService.getScriptProperties();
   let notifiedCount = 0;
