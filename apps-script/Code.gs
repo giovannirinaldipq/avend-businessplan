@@ -672,6 +672,7 @@ const SPECIAL_EVENT_FLAG_PROP = "special_event_notified_";
 
 // Quais eventos especiais notificar (false = só registra, não dispara webhook)
 const NOTIFY_SPECIAL_EVENTS = {
+  "lead_intent":           true,   // 🔥 PRIORIDADE MÁXIMA — clicou no botão WhatsApp
   "returning_visitor":     true,
   "dwell_milestone_10m":   true,
   "dwell_milestone_15m":   true,
@@ -703,6 +704,7 @@ function maybeNotifySpecialEvent_(sessionId, evt, visitor) {
 
 function buildSpecialEventSummary_(evt, visitor, sessionId) {
   const labels = {
+    "lead_intent":         "🔥🔥🔥 LEAD QUER FALAR AGORA — abriu WhatsApp",
     "returning_visitor":   "🔄 Visitante retornou",
     "dwell_milestone_10m": "⏱ +10 min na página",
     "dwell_milestone_15m": "⏱ +15 min na página (super engajado!)",
@@ -710,6 +712,7 @@ function buildSpecialEventSummary_(evt, visitor, sessionId) {
     "quiz_abandoned":      "💤 Abandonou o quiz no meio"
   };
   const colors = {
+    "lead_intent":         0xff3366,   // vermelho-rosa, máxima atenção
     "returning_visitor":   0x4B6CE2,
     "dwell_milestone_10m": 0xffb020,
     "dwell_milestone_15m": 0xff6b6b,
@@ -729,6 +732,14 @@ function buildSpecialEventSummary_(evt, visitor, sessionId) {
   if (evt.data && evt.data.elapsedMs) extra += `\n*Tempo na página:* ${(evt.data.elapsedMs/60000).toFixed(1)} min`;
   if (evt.data && evt.data.tabsVisited) extra += `\n*Abas visitadas:* ${evt.data.tabsVisited} · *Sliders:* ${evt.data.slidersChanged}`;
   if (evt.data && evt.data.answeredCount !== undefined) extra += `\n*Respondeu antes de sair:* ${evt.data.answeredCount} pergunta(s)`;
+
+  // Lead intent: dados ricos do plano
+  if (evt.type === "lead_intent" && evt.data && evt.data.params) {
+    const p = evt.data.params;
+    extra += `\n*Perfil:* ${(evt.data.profile || "").toUpperCase()}`;
+    extra += `\n*Plano sugerido:* R$ ${(p.faturamentoPorMaquina || 0).toLocaleString("pt-BR")}/máq · ${p.capacidadeImplantacao}/mês · ${(p.horizonteMeses || 60) / 12} anos`;
+    extra += `\n\n⚡ *AÇÃO IMEDIATA*: o investidor está abrindo o WhatsApp pra falar com você AGORA.`;
+  }
 
   return {
     title: labels[evt.type] || evt.type,

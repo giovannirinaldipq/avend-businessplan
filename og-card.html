@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>AVEND OG Card · 1200x630</title>
+  <style>
+    /*
+      Esta página renderiza a imagem de Open Graph (1200x630) usada no
+      compartilhamento em WhatsApp/LinkedIn/Facebook/Twitter.
+
+      COMO USAR:
+      1. Abra esta página no Chrome
+      2. F12 → console → digite e rode:
+           document.body.style.overflow='hidden';
+      3. F12 → toggle device toolbar (Ctrl+Shift+M) → defina 1200×630
+      4. Right-click → "Capture screenshot" no DevTools (ou use a aba
+         Sources → Cmd Palette → "Capture full size screenshot")
+      5. Salve o PNG em assets/og-image.png
+
+      Alternativa rápida com puppeteer/playwright:
+      $ npx puppeteer --headless --screenshot=assets/og-image.png \
+                      --window-size=1200,630 og-card.html
+    */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 1200px;
+      height: 630px;
+      overflow: hidden;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: #07082a;
+      color: #eef1ff;
+      -webkit-font-smoothing: antialiased;
+    }
+    .og {
+      position: relative;
+      width: 1200px;
+      height: 630px;
+      background:
+        radial-gradient(ellipse at top right, rgba(139,48,230,0.40), transparent 55%),
+        radial-gradient(ellipse at bottom left, rgba(61,217,214,0.32), transparent 50%),
+        linear-gradient(135deg, #0d0e36 0%, #07082a 100%);
+      overflow: hidden;
+      padding: 64px 72px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    /* Decoração: orbs translúcidos */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.35;
+      pointer-events: none;
+    }
+    .orb-1 { width: 360px; height: 360px; right: -80px; top: -80px;
+             background: radial-gradient(circle, #8B30E6, transparent); }
+    .orb-2 { width: 300px; height: 300px; left: -60px; bottom: -60px;
+             background: radial-gradient(circle, #3DD9D6, transparent); }
+
+    /* "N" gigante na borda direita, watermark da marca */
+    .watermark {
+      position: absolute;
+      right: -60px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 540px;
+      font-weight: 900;
+      color: rgba(139,48,230,0.10);
+      letter-spacing: -30px;
+      pointer-events: none;
+      line-height: 1;
+      font-family: "Inter", system-ui, sans-serif;
+    }
+
+    .header {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      z-index: 2;
+    }
+    .logo-mark {
+      width: 64px;
+      height: 64px;
+      flex-shrink: 0;
+      filter: drop-shadow(0 8px 28px rgba(139,48,230,0.55));
+    }
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .brand-name {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      background: linear-gradient(90deg, #3DD9D6, #4B6CE2, #8B30E6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .brand-sub {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.30em;
+      text-transform: uppercase;
+      color: #a7adca;
+    }
+
+    .hero {
+      position: relative;
+      z-index: 2;
+      max-width: 880px;
+    }
+    .eyebrow {
+      display: inline-block;
+      padding: 8px 16px;
+      background: rgba(57,232,135,0.14);
+      border: 1px solid rgba(57,232,135,0.45);
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #39e887;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 68px;
+      line-height: 1.05;
+      font-weight: 900;
+      letter-spacing: -1.5px;
+      color: #eef1ff;
+      margin-bottom: 18px;
+    }
+    h1 .grad {
+      background: linear-gradient(90deg, #3DD9D6, #4B6CE2, #8B30E6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .subtitle {
+      font-size: 22px;
+      line-height: 1.45;
+      color: #a7adca;
+      max-width: 800px;
+    }
+    .subtitle strong { color: #eef1ff; font-weight: 700; }
+
+    .footer {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      padding-top: 26px;
+      border-top: 1px solid rgba(139,48,230,0.30);
+    }
+    .stat {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .stat-val {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #39e887, #3DD9D6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .stat-lbl {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #a7adca;
+    }
+    .stat-divider {
+      width: 1px;
+      height: 36px;
+      background: rgba(139,48,230,0.30);
+    }
+    .url-pill {
+      margin-left: auto;
+      padding: 12px 20px;
+      background: rgba(7,8,42,0.65);
+      border: 1px solid rgba(139,48,230,0.45);
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #3DD9D6;
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+  <div class="og">
+    <span class="orb orb-1" aria-hidden="true"></span>
+    <span class="orb orb-2" aria-hidden="true"></span>
+    <span class="watermark" aria-hidden="true">N</span>
+
+    <header class="header">
+      <img class="logo-mark" src="assets/logo-mark.webp" alt="" />
+      <div class="brand">
+        <span class="brand-name">AVEND</span>
+        <span class="brand-sub">Vending Machines &amp; Franchising</span>
+      </div>
+    </header>
+
+    <section class="hero">
+      <span class="eyebrow">🎯 Diagnóstico em 90 segundos</span>
+      <h1>
+        Quanto sua <span class="grad">1ª máquina</span> pode<br>
+        virar em <span class="grad">5 anos</span>?
+      </h1>
+      <p class="subtitle">
+        Simulador interativo com <strong>tributação real</strong>, patrimônio e payback —
+        sob medida pro seu perfil. <strong>+100 franqueados ativos</strong> em 14 estados.
+      </p>
+    </section>
+
+    <footer class="footer">
+      <div class="stat">
+        <span class="stat-val">+100</span>
+        <span class="stat-lbl">Franqueados</span>
+      </div>
+      <span class="stat-divider"></span>
+      <div class="stat">
+        <span class="stat-val">+150</span>
+        <span class="stat-lbl">Máquinas próprias</span>
+      </div>
+      <span class="stat-divider"></span>
+      <div class="stat">
+        <span class="stat-val">14</span>
+        <span class="stat-lbl">Estados</span>
+      </div>
+      <span class="stat-divider"></span>
+      <div class="stat">
+        <span class="stat-val">10+</span>
+        <span class="stat-lbl">Anos de operação</span>
+      </div>
+      <span class="url-pill">grupoavend.com.br</span>
+    </footer>
+  </div>
+</body>
+</html>

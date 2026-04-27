@@ -1546,6 +1546,61 @@ function showQuizResult() {
   });
 }
 
+/* Monta mensagem rica de WhatsApp com dados do investidor + plano sugerido */
+function buildWhatsAppMessage(profile, params, sim) {
+  const id = quizState.identity || {};
+  const firstName = (id.name || "").split(/\s+/)[0];
+
+  const intro = firstName
+    ? `Olá! Sou *${id.name}*, acabei de fazer o diagnóstico AVEND.`
+    : `Olá! Acabei de fazer o diagnóstico AVEND e gostaria de conversar.`;
+
+  const lines = [intro, ""];
+  if (profile?.label) {
+    lines.push(`📊 *Meu perfil identificado:* ${profile.label} ${profile.emoji || ""}`);
+  }
+  lines.push("");
+  lines.push("📋 *Plano sugerido pelo simulador:*");
+  if (params) {
+    lines.push(`• Faturamento médio/máquina: ${fmtBRL(params.faturamentoPorMaquina)}/mês`);
+    lines.push(`• Capacidade de implantação: ${params.capacidadeImplantacao} máq/mês`);
+    lines.push(`• Horizonte: ${params.horizonteMeses / 12} anos`);
+  }
+  if (sim) {
+    lines.push("");
+    lines.push("📈 *Projeção desse plano:*");
+    lines.push(`• Frota final: ${sim.frotaFinal} máquinas`);
+    lines.push(`• Lucro mensal final estimado: ${fmtBRL(sim.lucroMensalFinal)}`);
+    if (sim.paybackMeses) lines.push(`• Payback da 1ª máquina: ${sim.paybackMeses} meses`);
+    lines.push(`• Patrimônio em equipamentos: ${fmtBRL(sim.patrimonioFinal)}`);
+  }
+  lines.push("");
+  lines.push("Gostaria de conversar sobre como dar o próximo passo. 🚀");
+  return lines.join("\n");
+}
+
+/* Abre WhatsApp com mensagem pré-formatada e dispara evento crítico */
+function openWhatsAppWithLead() {
+  if (!AVEND_WHATSAPP) return;
+  const profile = quizState.pendingProfile;
+  const params  = quizState.pendingParams;
+  const sim = params ? simulate(params) : null;
+  const msg = buildWhatsAppMessage(profile, params, sim);
+  const url = `https://wa.me/${AVEND_WHATSAPP}?text=${encodeURIComponent(msg)}`;
+
+  // Telemetria — evento CRITICAL (vai pro webhook imediatamente)
+  if (typeof TELEMETRY !== "undefined") {
+    TELEMETRY.track("lead_intent", {
+      profile: profile?.key,
+      hasContact: !!(quizState.identity?.name || quizState.identity?.email || quizState.identity?.phone),
+      params: params || null
+    });
+  }
+
+  // Abre WhatsApp em nova aba
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
 function applyQuizSuggestion() {
   const params = quizState.pendingParams;
   if (!params) return;
@@ -1576,6 +1631,16 @@ function bindQuiz() {
   });
   document.getElementById("quiz-redo")?.addEventListener("click", () => openQuiz(true));
   document.getElementById("quiz-apply")?.addEventListener("click", applyQuizSuggestion);
+  // Botão WhatsApp — só aparece se AVEND_WHATSAPP estiver configurado
+  const waBtn = document.getElementById("quiz-whatsapp");
+  if (waBtn) {
+    if (AVEND_WHATSAPP) {
+      waBtn.hidden = false;
+      waBtn.addEventListener("click", openWhatsAppWithLead);
+    } else {
+      waBtn.hidden = true;
+    }
+  }
   document.getElementById("open-quiz")?.addEventListener("click", () => openQuiz(true));
   document.getElementById("open-quiz-hero")?.addEventListener("click", () => openQuiz(true));
   document.getElementById("open-quiz-header")?.addEventListener("click", () => openQuiz(true));
@@ -1608,6 +1673,13 @@ function maybeAutoOpenQuiz() {
    Como configurar: veja apps-script/Code.gs e apps-script/README.md
 */
 const TELEMETRY_ENDPOINT = "https://script.google.com/macros/s/AKfycbwdC4YKekPo6qliAs1QtbLwBm4zuwh2PPIBOFJC5MTDOSwRgViQFMPbvjZlCnSwUKsB/exec";
+
+/* >>> WhatsApp da AVEND para receber leads quentes diretamente <<<
+   Formato: código do país + DDD + número (apenas dígitos).
+   Ex: 5511999998888 (Brasil + SP + número). Sem espaços, traços ou parênteses.
+   Deixe vazio "" para esconder o botão "Quero conversar" do resultado do quiz.
+*/
+const AVEND_WHATSAPP = "5517996716088"; // ⚠ TROCAR PELO NÚMERO REAL DA AVEND
 
 const TELEMETRY = (() => {
   const SESSION_ID = (() => {
@@ -1698,7 +1770,8 @@ const TELEMETRY = (() => {
   const CRITICAL_EVENTS = new Set([
     "quiz_completed", "quiz_plan_applied", "quiz_identified", "page_loaded",
     "returning_visitor", "deep_engagement", "dwell_milestone_5m",
-    "dwell_milestone_10m", "dwell_milestone_15m"
+    "dwell_milestone_10m", "dwell_milestone_15m",
+    "lead_intent"  // 🔥 lead clicou em "conversar com a AVEND"
   ]);
 
   function postJSON_(payload) {
@@ -1999,6 +2072,8 @@ function maybeShowAdmin() {
     const fmtPct = v => v.toFixed(0) + "%";
     const fmtMin = ms => (ms / 60000).toFixed(1);
 
+    const baseUrl = location.origin + location.pathname.replace(/\/?(\?.*)?$/, "/");
+
     const html = `
       <div class="admin-panel admin-panel-pro">
         <header class="admin-head">
@@ -2008,6 +2083,43 @@ function maybeShowAdmin() {
           </div>
           <button class="admin-close" type="button" aria-label="Fechar">✕</button>
         </header>
+
+        <!-- Gerador de URL com querystring -->
+        <section class="admin-section admin-urlbuilder">
+          <h3 class="admin-section-title">🔗 Gerador de link personalizado</h3>
+          <p class="admin-urlbuilder-hint">
+            Preencha os dados que você já tem do investidor. Quando ele abrir o link,
+            o quiz já vem pré-preenchido e a telemetria captura desde o primeiro segundo.
+          </p>
+          <div class="admin-urlbuilder-grid">
+            <label class="admin-ub-field">
+              <span>Nome</span>
+              <input type="text" id="ub-name" placeholder="João da Silva" />
+            </label>
+            <label class="admin-ub-field">
+              <span>E-mail</span>
+              <input type="email" id="ub-email" placeholder="joao@empresa.com" />
+            </label>
+            <label class="admin-ub-field">
+              <span>Telefone</span>
+              <input type="tel" id="ub-phone" placeholder="11987654321" />
+            </label>
+            <label class="admin-ub-field">
+              <span>Cidade / UF</span>
+              <input type="text" id="ub-city" placeholder="São Paulo / SP" />
+            </label>
+            <label class="admin-ub-field">
+              <span>ID externo (CRM)</span>
+              <input type="text" id="ub-id" placeholder="opcional" />
+            </label>
+          </div>
+          <div class="admin-ub-output">
+            <input type="text" id="ub-result" readonly value="${baseUrl}" />
+            <button class="admin-btn admin-btn-primary" id="ub-copy" type="button">📋 Copiar</button>
+            <button class="admin-btn" id="ub-wa" type="button">💬 Compartilhar WhatsApp</button>
+          </div>
+          <div class="admin-ub-feedback" id="ub-feedback"></div>
+        </section>
 
         <!-- KPIs gerais -->
         <div class="admin-kpis">
@@ -2145,6 +2257,46 @@ function maybeShowAdmin() {
       idx.forEach(id => localStorage.removeItem("avend-tel-" + id));
       localStorage.removeItem("avend-tel-index");
       div.remove();
+    });
+
+    // URL Builder: monta URL com querystring em tempo real
+    const buildUrl = () => {
+      const params = new URLSearchParams();
+      const map = { name: "ub-name", email: "ub-email", phone: "ub-phone", city: "ub-city", id: "ub-id" };
+      Object.entries(map).forEach(([key, inputId]) => {
+        const v = (document.getElementById(inputId)?.value || "").trim();
+        if (v) params.set(key, v);
+      });
+      const qs = params.toString();
+      return baseUrl + (qs ? "?" + qs : "");
+    };
+    const updateResult = () => {
+      const result = document.getElementById("ub-result");
+      if (result) result.value = buildUrl();
+    };
+    ["ub-name", "ub-email", "ub-phone", "ub-city", "ub-id"].forEach(id => {
+      div.querySelector("#" + id)?.addEventListener("input", updateResult);
+    });
+    div.querySelector("#ub-copy")?.addEventListener("click", async () => {
+      const url = buildUrl();
+      const fb = document.getElementById("ub-feedback");
+      try {
+        await navigator.clipboard.writeText(url);
+        if (fb) { fb.textContent = "✓ Copiado pra área de transferência"; fb.dataset.state = "ok"; }
+      } catch (err) {
+        // Fallback: seleciona o input
+        const input = document.getElementById("ub-result");
+        input.select(); document.execCommand("copy");
+        if (fb) { fb.textContent = "✓ Copiado (selecionado)"; fb.dataset.state = "ok"; }
+      }
+      setTimeout(() => { if (fb) { fb.textContent = ""; fb.dataset.state = ""; } }, 3000);
+    });
+    div.querySelector("#ub-wa")?.addEventListener("click", () => {
+      const url = buildUrl();
+      const name = (document.getElementById("ub-name")?.value || "").trim();
+      const greeting = name ? `Olá ${name.split(" ")[0]}!` : "Olá!";
+      const msg = `${greeting} Preparei um diagnóstico personalizado da AVEND pra você. Demora 90 segundos:\n\n${url}\n\nQualquer dúvida estou à disposição.`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
     });
   } catch (e) { console.error("Admin panel error:", e); }
 }
