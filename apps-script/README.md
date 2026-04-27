@@ -128,7 +128,7 @@ Se você já tem nome/email/telefone/cidade no seu CRM, mande o link com a
 querystring:
 
 ```
-https://simulador.grupoavend.com.br/?id=12345&name=João%20Silva&email=joao@empresa.com&phone=11999998888&city=São%20Paulo/SP
+https://giovannirinaldipq.github.io/avend-businessplan/?id=12345&name=João%20Silva&email=joao@empresa.com&phone=11999998888&city=São%20Paulo/SP
 ```
 
 Parâmetros aceitos: `id`, `name` (ou `nome`), `email`, `phone` (ou `tel`), `city` (ou `cidade`).
