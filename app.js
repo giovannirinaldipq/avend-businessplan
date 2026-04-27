@@ -1652,6 +1652,73 @@ function bindQuiz() {
   });
 }
 
+/* ============================================================
+   VSL — Por que AVEND? (vídeo + CTAs)
+   ============================================================ */
+function loadVslVideo() {
+  const player = document.getElementById("vsl-player");
+  const cover  = document.getElementById("vsl-cover");
+  if (!player || !cover) return;
+  if (!VSL_VIDEO_URL) {
+    // Sinaliza visualmente que o vídeo está em produção
+    cover.classList.add("vsl-cover-pending");
+    return;
+  }
+  const embed = buildVslEmbedUrl(VSL_VIDEO_URL);
+  if (!embed) return;
+
+  // Cria iframe lazy (só ao clicar)
+  const iframe = document.createElement("iframe");
+  iframe.src = embed;
+  iframe.title = "Por que investir na AVEND?";
+  iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+  iframe.referrerPolicy = "strict-origin-when-cross-origin";
+  iframe.allowFullscreen = true;
+  iframe.className = "vsl-iframe";
+  cover.replaceWith(iframe);
+
+  if (typeof TELEMETRY !== "undefined") {
+    TELEMETRY.track("vsl_video_played", { url: VSL_VIDEO_URL.slice(0, 80) });
+  }
+}
+
+function bindVsl() {
+  const cover = document.getElementById("vsl-cover");
+  if (cover) {
+    if (!VSL_VIDEO_URL) cover.classList.add("vsl-cover-pending");
+    cover.addEventListener("click", loadVslVideo);
+    cover.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); loadVslVideo(); }
+    });
+  }
+
+  // Scroll up button (no card final das razões)
+  document.getElementById("vsl-scroll-up")?.addEventListener("click", () => {
+    document.getElementById("vsl-player")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  // CTA WhatsApp da página VSL (sem dados de quiz, mensagem mais genérica)
+  const vslWa = document.getElementById("vsl-whatsapp");
+  if (vslWa) {
+    if (AVEND_WHATSAPP) {
+      vslWa.addEventListener("click", () => {
+        const id = quizState?.identity || {};
+        const firstName = (id.name || "").split(/\s+/)[0];
+        const intro = firstName
+          ? `Olá! Sou *${id.name}*, vi o vídeo de apresentação da AVEND e gostaria de saber mais.`
+          : `Olá! Vi o vídeo de apresentação da AVEND e gostaria de saber mais sobre a franquia.`;
+        const url = `https://wa.me/${AVEND_WHATSAPP}?text=${encodeURIComponent(intro)}`;
+        if (typeof TELEMETRY !== "undefined") TELEMETRY.track("lead_intent", { source: "vsl_page" });
+        window.open(url, "_blank", "noopener,noreferrer");
+      });
+    } else {
+      vslWa.style.display = "none";
+    }
+  }
+  // CTA Diagnóstico
+  document.getElementById("vsl-quiz")?.addEventListener("click", () => openQuiz(true));
+}
+
 function maybeAutoOpenQuiz() {
   try {
     const completed = localStorage.getItem("avend-quiz-completed");
@@ -1680,6 +1747,32 @@ const TELEMETRY_ENDPOINT = "https://script.google.com/macros/s/AKfycbwdC4YKekPo6
    Deixe vazio "" para esconder o botão "Quero conversar" do resultado do quiz.
 */
 const AVEND_WHATSAPP = "5517996003377"; // ⚠ TROCAR PELO NÚMERO REAL DA AVEND
+
+/* >>> URL do vídeo VSL (aba "Por que AVEND?") <<<
+   Aceita:
+   - YouTube share: "https://youtu.be/VIDEO_ID"
+   - YouTube watch: "https://www.youtube.com/watch?v=VIDEO_ID"
+   - YouTube embed: "https://www.youtube.com/embed/VIDEO_ID"
+   - Vimeo:         "https://player.vimeo.com/video/VIDEO_ID"
+   Deixe "" pra mostrar capa "Vídeo em produção".
+*/
+const VSL_VIDEO_URL = ""; // ⚠ COLAR URL DO VÍDEO QUANDO ESTIVER PRONTO
+
+/* Converte URL pra formato embed apropriado com autoplay */
+function buildVslEmbedUrl(rawUrl) {
+  if (!rawUrl) return "";
+  let m = rawUrl.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+  if (m) return `https://www.youtube.com/embed/${m[1]}?autoplay=1&rel=0&modestbranding=1`;
+  m = rawUrl.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
+  if (m) return `https://www.youtube.com/embed/${m[1]}?autoplay=1&rel=0&modestbranding=1`;
+  if (rawUrl.includes("youtube.com/embed/")) {
+    return rawUrl + (rawUrl.includes("?") ? "&" : "?") + "autoplay=1&rel=0&modestbranding=1";
+  }
+  if (rawUrl.includes("vimeo.com")) {
+    return rawUrl + (rawUrl.includes("?") ? "&" : "?") + "autoplay=1&dnt=1&title=0&byline=0&portrait=0";
+  }
+  return rawUrl;
+}
 
 const TELEMETRY = (() => {
   const SESSION_ID = (() => {
@@ -2309,6 +2402,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderAll();
   renderMarketChart();
   bindQuiz();
+  bindVsl();
   maybeAutoOpenQuiz();
   maybeShowAdmin();
   TELEMETRY.track("page_loaded", { url: location.href });

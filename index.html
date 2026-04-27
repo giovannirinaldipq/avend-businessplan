@@ -57,6 +57,10 @@
 
     <nav class="tabs" role="tablist" aria-label="Seções do plano">
       <button class="tab active" data-tab="overview" role="tab">Resumo</button>
+      <button class="tab tab-spotlight" data-tab="porque" role="tab">
+        <span class="tab-spotlight-dot" aria-hidden="true"></span>
+        Por&nbsp;que&nbsp;AVEND?
+      </button>
       <button class="tab" data-tab="simulador" role="tab">Simulador</button>
       <button class="tab" data-tab="timeline" role="tab">Expansão</button>
       <button class="tab" data-tab="modelos" role="tab">Modelos</button>
@@ -173,6 +177,145 @@
           <div class="stat-val" id="strip-patrimonio">—</div>
           <div class="stat-lbl">Patrimônio · cada máquina é ativo seu (R$ 28.500/máq)</div>
         </div>
+      </div>
+    </section>
+
+    <!-- ==================== POR QUE AVEND? (VSL) ==================== -->
+    <section class="page" id="porque">
+      <div class="vsl-wrap">
+
+        <header class="vsl-head">
+          <span class="vsl-eyebrow">▶ Vídeo · 10 minutos · imperdível</span>
+          <h2 class="vsl-title">
+            Por que investir na <span class="grad-text">AVEND</span>?
+          </h2>
+          <p class="vsl-sub">
+            Antes de mergulhar nas planilhas, deixa nosso fundador te contar — em
+            <strong>10 minutos</strong> — o que torna a AVEND <strong>diferente
+            de qualquer outra opção</strong> no mercado de vending machines.
+          </p>
+          <p class="vsl-sub-emphasis">
+            Quem não assiste sai com dúvidas. Quem assiste, decide.
+          </p>
+        </header>
+
+        <!-- Player VSL: lazy-load no clique, com capa atrativa -->
+        <div class="vsl-player" id="vsl-player">
+          <div class="vsl-cover" id="vsl-cover" role="button" tabindex="0"
+               aria-label="Reproduzir vídeo: Por que investir na AVEND?">
+            <img class="vsl-cover-watermark" src="assets/logo-full.png" alt="" aria-hidden="true" />
+            <div class="vsl-cover-content">
+              <div class="vsl-play" aria-hidden="true">
+                <svg viewBox="0 0 80 80" width="80" height="80">
+                  <circle cx="40" cy="40" r="38" fill="rgba(255,255,255,0.96)"/>
+                  <polygon points="33,26 33,54 56,40" fill="#07082a"/>
+                </svg>
+              </div>
+              <div class="vsl-cover-meta">
+                <span class="vsl-cover-duration">⏱ 10 min</span>
+                <span class="vsl-cover-cta">Clique para assistir agora</span>
+              </div>
+            </div>
+          </div>
+          <!-- Iframe injetado via JS quando clicar (performance + privacidade) -->
+        </div>
+
+        <!-- Razões resumidas pra quem não vai assistir -->
+        <div class="vsl-reasons">
+          <header class="vsl-reasons-head">
+            <h3 class="vsl-reasons-title">Sem tempo agora? Aqui está o resumo.</h3>
+            <p class="vsl-reasons-sub">5 razões pelas quais a AVEND é diferente de qualquer outra opção.</p>
+          </header>
+
+          <div class="vsl-reasons-grid">
+            <article class="vsl-reason">
+              <div class="vsl-reason-num">01</div>
+              <h4>Modelo testado por mais de 10 anos</h4>
+              <p>
+                Não somos um experimento. <strong>+100 franqueados ativos</strong>,
+                <strong>+150 máquinas em operação própria</strong>, presença em
+                <strong>14 estados</strong>. Você está comprando histórico, não promessa.
+              </p>
+            </article>
+
+            <article class="vsl-reason">
+              <div class="vsl-reason-num">02</div>
+              <h4>BOM FRANQUEADO — incentivo único</h4>
+              <p>
+                A 2ª máquina em diante sai por <strong>R$ 35.000</strong> (vs. R$ 45k público),
+                <strong>sem nova taxa de franquia</strong>. Único na categoria com mecânica de
+                expansão alinhada ao crescimento do franqueado.
+              </p>
+            </article>
+
+            <article class="vsl-reason">
+              <div class="vsl-reason-num">03</div>
+              <h4>Tributação modelada com honestidade</h4>
+              <p>
+                Único simulador do setor que mostra a transição real
+                <strong>MEI → Simples Nacional → Lucro Presumido</strong> conforme você cresce.
+                Sem maquiagem, sem promessa vazia.
+              </p>
+            </article>
+
+            <article class="vsl-reason">
+              <div class="vsl-reason-num">04</div>
+              <h4>Patrimônio que fica com você</h4>
+              <p>
+                Cada máquina é <strong>ativo do franqueado</strong> (~R$ 28.500 cada).
+                Diferente de franquias onde o investimento vira "ponto" intangível,
+                aqui você sai com equipamento revendável.
+              </p>
+            </article>
+
+            <article class="vsl-reason">
+              <div class="vsl-reason-num">05</div>
+              <h4>Suporte e telemetria que funcionam</h4>
+              <p>
+                Cada máquina é <strong>monitorada em tempo real</strong>: vendas, estoque, falhas.
+                Sistema de gestão homologado, treinamento de ~40h e canal de suporte ativo.
+                Você decide com dados, não com intuição.
+              </p>
+            </article>
+
+            <article class="vsl-reason vsl-reason-cta-card">
+              <div class="vsl-reason-num">▶</div>
+              <h4>O resto está no vídeo</h4>
+              <p>
+                Os outros 80% do que importa estão lá em cima — números reais da rede,
+                explicação do modelo, e o que ninguém mais te conta.
+              </p>
+              <button class="vsl-scroll-up" id="vsl-scroll-up" type="button">
+                Voltar pro vídeo <span aria-hidden="true">↑</span>
+              </button>
+            </article>
+          </div>
+        </div>
+
+        <!-- CTAs de fechamento -->
+        <div class="vsl-cta-block">
+          <h3 class="vsl-cta-title">Pronto para o próximo passo?</h3>
+          <p class="vsl-cta-sub">Você decide o ritmo — escolhe o caminho mais natural pra você.</p>
+          <div class="vsl-cta-buttons">
+            <button class="vsl-cta-btn vsl-cta-whatsapp" id="vsl-whatsapp" type="button">
+              <span class="vsl-cta-icon" aria-hidden="true">💬</span>
+              <span class="vsl-cta-text">
+                <span class="vsl-cta-main">Falar agora com a AVEND</span>
+                <span class="vsl-cta-sub2">WhatsApp · resposta no mesmo dia</span>
+              </span>
+              <span class="vsl-cta-arrow" aria-hidden="true">→</span>
+            </button>
+            <button class="vsl-cta-btn vsl-cta-quiz" id="vsl-quiz" type="button">
+              <span class="vsl-cta-icon" aria-hidden="true">🎯</span>
+              <span class="vsl-cta-text">
+                <span class="vsl-cta-main">Diagnóstico personalizado</span>
+                <span class="vsl-cta-sub2">7 perguntas · plano sob medida</span>
+              </span>
+              <span class="vsl-cta-arrow" aria-hidden="true">→</span>
+            </button>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -1174,16 +1317,16 @@
                 </a>
               </li>
               <li class="src-item">
-                <a href="https://www.qab.com.br/post/cenario-do-mercado-de-vending-machines-2020-2024" target="_blank" rel="noopener">
-                  <span class="src-item-veiculo">QAB Vending</span>
-                  <span class="src-item-titulo">Cenário do Mercado 2020–2024</span>
+                <a href="https://www.abf.com.br/" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">ABF</span>
+                  <span class="src-item-titulo">Associação Brasileira de Franchising — relatórios anuais do setor</span>
                   <span class="src-item-arrow" aria-hidden="true">↗</span>
                 </a>
               </li>
               <li class="src-item">
-                <a href="https://blog.balcaourbano.com.br/2023/08/17/entendendo-a-tendencia-das-vending-machines-no-brasil-e-no-mundo-um-panorama-aprofundado/" target="_blank" rel="noopener">
-                  <span class="src-item-veiculo">Balcão Urbano</span>
-                  <span class="src-item-titulo">Tendência Vending Brasil &amp; Mundo</span>
+                <a href="https://sebrae.com.br/sites/PortalSebrae/artigos/conheca-as-microfranquias,8b5b7a521e865410VgnVCM1000003b74010aRCRD" target="_blank" rel="noopener">
+                  <span class="src-item-veiculo">Sebrae</span>
+                  <span class="src-item-titulo">Microfranquias — modelos de negócio e tendências</span>
                   <span class="src-item-arrow" aria-hidden="true">↗</span>
                 </a>
               </li>
