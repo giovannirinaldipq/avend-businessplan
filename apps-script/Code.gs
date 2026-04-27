@@ -687,6 +687,161 @@ function clearHotLeadFlags() {
 }
 
 /* ============================================================
+   DIAGNÓSTICO — Para descobrir por que notificação às vezes não chega
+   Rode diagnoseLeadFlow() no editor pra ver:
+   - Configuração atual de critérios
+   - Últimas 15 sessões da planilha com avaliação:
+     * deveria ter notificado? (perfil quente + contato)
+     * tem flag de notificação? (anti-duplicata)
+     * data/hora exata
+   - Teste de envio real ao Telegram
+   ============================================================ */
+function diagnoseLeadFlow() {
+  Logger.log("=== AVEND · DIAGNÓSTICO DE NOTIFICAÇÕES ===\n");
+
+  // 1. Configuração
+  Logger.log("--- CONFIGURAÇÃO ATUAL ---");
+  Logger.log("HOT_PROFILES (perfis quentes): " + JSON.stringify(HOT_PROFILES));
+  Logger.log("HOT_TIME_THRESHOLD_MIN: " + HOT_TIME_THRESHOLD_MIN + " min");
+  Logger.log("Telegram configurado: " + (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID ? "✓" : "✗"));
+  Logger.log("Discord:  " + (DISCORD_WEBHOOK ? "✓" : "✗"));
+  Logger.log("Slack:    " + (SLACK_WEBHOOK ? "✓" : "✗"));
+  Logger.log("Generic:  " + (GENERIC_WEBHOOK ? "✓" : "✗"));
+
+  // 2. Últimas sessões
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sessionsSheet = ss.getSheetByName(SHEET_NAME_SESSIONS);
+  if (!sessionsSheet) {
+    Logger.log("\n⚠ Aba 'Sessions' não existe ainda — nenhum lead foi recebido.");
+    return;
+  }
+
+  const data = sessionsSheet.getDataRange().getValues();
+  const headers = data[0];
+  const rows = data.slice(1).reverse().slice(0, 15); // últimas 15
+  Logger.log("\n--- ÚLTIMAS " + rows.length + " SESSÕES ---");
+  Logger.log("(da mais recente pra mais antiga)\n");
+
+  const props = PropertiesService.getScriptProperties();
+  let notifiedCount = 0;
+  let shouldHaveNotified = 0;
+
+  rows.forEach((row, i) => {
+    const sessionId   = row[0];
+    const startedAt   = row[1];
+    const totalMin    = parseFloat(row[3]) || 0;
+    const visitorName = row[5];
+    const visitorEmail = row[6];
+    const visitorPhone = row[7];
+    const quizDone    = row[9] === "yes";
+    const profile     = row[10];
+
+    const hasContact   = !!(visitorName || visitorEmail || visitorPhone);
+    const profileHot   = profile && HOT_PROFILES.indexOf(profile) !== -1;
+    const timeHot      = totalMin >= HOT_TIME_THRESHOLD_MIN;
+    const shouldNotify = (quizDone && profileHot && hasContact) || (timeHot && hasContact);
+
+    const flagKey = HOT_LEAD_FLAG_PROP + sessionId;
+    const wasNotified = !!props.getProperty(flagKey);
+
+    if (shouldNotify) shouldHaveNotified++;
+    if (wasNotified) notifiedCount++;
+
+    let status;
+    if (shouldNotify && wasNotified)         status = "✅ NOTIFICOU";
+    else if (shouldNotify && !wasNotified)   status = "❌ DEVERIA TER NOTIFICADO MAS NÃO!";
+    else if (!shouldNotify && hasContact)    status = "○ não atende critérios (perfil " + (profile || "—") + ", " + totalMin.toFixed(1) + "min)";
+    else                                      status = "○ sem contato / anônimo";
+
+    const visitor = visitorName || visitorEmail || "anônimo";
+    Logger.log(
+      `${(i+1).toString().padStart(2)}. ${status}\n` +
+      `    ${visitor} · ${(profile || "no profile").toUpperCase()} · ${totalMin.toFixed(1)} min · ${quizDone ? "quiz ✓" : "quiz ✗"}\n` +
+      `    session: ${sessionId} · ${startedAt}`
+    );
+  });
+
+  Logger.log(`\n--- RESUMO ---`);
+  Logger.log(`Sessões avaliadas: ${rows.length}`);
+  Logger.log(`Que deveriam ter notificado: ${shouldHaveNotified}`);
+  Logger.log(`Que efetivamente notificaram: ${notifiedCount}`);
+  if (shouldHaveNotified > notifiedCount) {
+    const lost = shouldHaveNotified - notifiedCount;
+    Logger.log(`\n⚠ ${lost} notificação(ões) perdida(s)! Possíveis causas:`);
+    Logger.log(`   - sendBeacon falhou (mobile fechando aba muito rápido)`);
+    Logger.log(`   - Rate limit do Apps Script no momento`);
+    Logger.log(`   - Bot Telegram caiu / chat_id mudou`);
+    Logger.log(`   Use forceNotify('SESSION_ID') pra disparar manualmente.`);
+  }
+
+  // 3. Teste de envio Telegram
+  if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+    Logger.log("\n--- TESTE DE ENVIO TELEGRAM ---");
+    try {
+      const r = UrlFetchApp.fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: "post", contentType: "application/json",
+        payload: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: `🩺 *Diagnóstico AVEND* — ${new Date().toLocaleString("pt-BR")}\n\nSe você recebeu esta mensagem, o canal Telegram está OK.`,
+          parse_mode: "Markdown"
+        }),
+        muteHttpExceptions: true
+      });
+      Logger.log("Status: " + r.getResponseCode());
+      if (r.getResponseCode() === 200) {
+        Logger.log("✓ Telegram funcional. Você deve ter recebido um teste agora.");
+      } else {
+        Logger.log("✗ Telegram falhou: " + r.getContentText().slice(0, 300));
+      }
+    } catch (err) {
+      Logger.log("✗ Exception: " + err);
+    }
+  }
+
+  Logger.log("\n=== FIM DO DIAGNÓSTICO ===");
+}
+
+/* Força notificação de uma sessão específica (ignora anti-duplicata).
+   Use depois de descobrir um sessionId no diagnoseLeadFlow() que não notificou. */
+function forceNotify(sessionId) {
+  if (!sessionId) {
+    Logger.log("⚠ Passe o sessionId. Ex: forceNotify('s_abc123_xyz')");
+    return;
+  }
+  // Limpa flag pra forçar
+  const props = PropertiesService.getScriptProperties();
+  props.deleteProperty(HOT_LEAD_FLAG_PROP + sessionId);
+
+  // Recupera dados da sessão da planilha
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAME_SESSIONS);
+  if (!sheet) { Logger.log("Sheet 'Sessions' não existe."); return; }
+  const data = sheet.getDataRange().getValues();
+  const row = data.find((r, i) => i > 0 && r[0] === sessionId);
+  if (!row) { Logger.log("Session não encontrada: " + sessionId); return; }
+
+  // Reconstrói objeto session
+  const rawJson = row[16];
+  let session;
+  try { session = JSON.parse(rawJson); }
+  catch (e) {
+    // Fallback: monta a partir das colunas
+    session = {
+      sessionId: row[0], startedAt: new Date(row[1]).getTime(),
+      lastSeen: new Date(row[2]).getTime(),
+      totalTimeMs: (parseFloat(row[3]) || 0) * 60000,
+      visitorName: row[5], visitorEmail: row[6], visitorPhone: row[7], visitorCity: row[8],
+      quizCompleted: row[9] === "yes", profile: row[10],
+      tabTime: {}, interactions: { sliders: {}, presets: {} }, events: []
+    };
+  }
+
+  Logger.log("Disparando notificação de " + sessionId + "...");
+  maybeNotifyHotLead_(session);
+  Logger.log("Concluído. Verifique o Telegram + aba 'Hot Leads'.");
+}
+
+/* ============================================================
    EVENTOS ESPECIAIS — notificações secundárias
    - returning_visitor: alguém que já visitou voltou
    - dwell_milestone_10m / 15m: ficou MUITO tempo na página
