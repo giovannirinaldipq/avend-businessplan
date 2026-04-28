@@ -603,7 +603,24 @@ input[type="range"]::-moz-range-thumb {
 }
 .chip:hover { color: var(--text); background: var(--surface-hi); }
 
-.formula-info { margin-top: 22px; }
+.formula-info {
+  margin-top: 22px;
+  padding: 16px 18px;
+  background: rgba(7,8,42,0.45);
+  border: 1px solid rgba(139,48,230,0.22);
+  border-radius: 12px;
+}
+.formula-title {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(139,48,230,0.20);
+}
+/* Mantém compat com summary se houver outros details na página */
 .formula-info summary {
   cursor: pointer;
   font-size: 13px;
