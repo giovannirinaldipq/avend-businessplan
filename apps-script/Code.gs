@@ -343,29 +343,37 @@ function maybeNotifyHotLead_(s) {
   if (GENERIC_WEBHOOK)  sendGeneric_(summary, s);
 }
 
-/* Score de qualidade do lead (0-10) — pondera contato + quiz + perfil + tempo + interação */
+/* Score de qualidade do lead (0-10) — pondera contato + quiz + perfil + tempo + interação + urgência */
 function computeLeadScore_(s) {
   let score = 0;
 
-  // Contato (até 3 pontos)
+  // Contato (até 2.5 pontos)
   if (s.visitorName)  score += 0.5;
-  if (s.visitorEmail) score += 1.0;
-  if (s.visitorPhone) score += 1.5; // telefone vale mais — usuário se comprometeu
+  if (s.visitorEmail) score += 0.8;
+  if (s.visitorPhone) score += 1.2;
 
-  // Quiz completo (até 2 pontos)
-  if (s.quizCompleted) score += 2;
+  // Quiz completo (1.5 pontos)
+  if (s.quizCompleted) score += 1.5;
 
-  // Perfil identificado (até 2.5 pontos)
-  if (s.profile === "turbo")          score += 2.5;
-  else if (s.profile === "otimista")  score += 2.0;
-  else if (s.profile === "base")      score += 1.0;
-  else if (s.profile === "conservador") score += 0.5;
+  // Perfil identificado (até 2 pontos)
+  if (s.profile === "turbo")          score += 2.0;
+  else if (s.profile === "otimista")  score += 1.5;
+  else if (s.profile === "base")      score += 0.8;
+  else if (s.profile === "conservador") score += 0.4;
 
-  // Tempo na página (até 1.5 pontos): 1pt aos 5min, 1.5pt aos 15min+
+  // URGÊNCIA / prontidão (até 2 pontos) — sinal mais forte de intenção real
+  // Lê das events do quiz_answered se houver, ou do raw se hidratado
+  const prontidao = extractAnswer_(s, "prontidao");
+  if (prontidao === "ja")            score += 2.0;
+  else if (prontidao === "30-dias")  score += 1.4;
+  else if (prontidao === "3-meses")  score += 0.7;
+  // pesquisando = 0
+
+  // Tempo na página (até 1 ponto): mais conservador no peso (urgência supera tempo)
   const min = (s.totalTimeMs || 0) / 60000;
-  if (min >= 15)      score += 1.5;
-  else if (min >= 5)  score += 1.0;
-  else if (min >= 2)  score += 0.5;
+  if (min >= 15)      score += 1.0;
+  else if (min >= 5)  score += 0.6;
+  else if (min >= 2)  score += 0.3;
 
   // Interação (até 1 ponto)
   const slidersUsed = Object.keys((s.interactions || {}).sliders || {}).length;
@@ -375,6 +383,13 @@ function computeLeadScore_(s) {
 
   // Cap 10
   return Math.min(10, Math.round(score * 10) / 10);
+}
+
+/* Extrai resposta de uma pergunta específica do quiz pelos events da sessão */
+function extractAnswer_(s, questionId) {
+  if (!s || !s.events) return null;
+  const evt = s.events.find(e => e.type === "quiz_answered" && e.data && e.data.q === questionId);
+  return evt ? evt.data.value : null;
 }
 
 function scoreEmoji_(score) {
@@ -436,6 +451,10 @@ function buildLeadSummary_(s) {
     experiencia: {
       "primeira":"Primeira vez", "ja-tive":"Já teve negócio",
       "ja-franquia":"Já teve franquia", "investidor":"Investidor"
+    },
+    prontidao: {
+      "ja":"⚡ QUER COMEÇAR AGORA", "30-dias":"📅 30 dias",
+      "3-meses":"🗓 3 meses", "pesquisando":"🔎 Ainda pesquisando"
     }
   };
 
@@ -446,7 +465,7 @@ function buildLeadSummary_(s) {
       const map = {};
       answers.forEach(a => { map[a.data.q] = a.data.value; });
       const lines = [];
-      const ORDER = ["atividade", "experiencia", "objetivo", "capital", "reinvest", "meta", "horizonte", "dedicacao", "risco"];
+      const ORDER = ["prontidao", "atividade", "experiencia", "objetivo", "capital", "reinvest", "meta", "horizonte", "dedicacao", "risco"];
       ORDER.forEach(q => {
         if (map[q]) {
           const label = (ANSWER_LABELS[q] && ANSWER_LABELS[q][map[q]]) || map[q];

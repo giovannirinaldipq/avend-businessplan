@@ -1047,11 +1047,131 @@ const QUIZ_QUESTIONS = [
       { value: "arrojado",    icon: "🎲", title: "Tenho perfil arrojado",
         desc: "Disposto a apostar mais alto se a oportunidade compensar." }
     ]
+  },
+  {
+    id: "prontidao",
+    title: "Em quanto tempo você quer começar?",
+    hint: "Última pergunta. Essa resposta nos diz se você está pronto pra agir ou ainda em fase de pesquisa.",
+    options: [
+      { value: "ja",          icon: "⚡", title: "Quero começar agora",
+        desc: "Tenho capital e estou decidido. Quanto antes, melhor." },
+      { value: "30-dias",     icon: "📅", title: "Nas próximas semanas",
+        desc: "Estou alinhando os últimos detalhes — pronto pra avançar." },
+      { value: "3-meses",     icon: "🗓", title: "Nos próximos 3 meses",
+        desc: "Estou organizando capital ou aguardando momento certo." },
+      { value: "pesquisando", icon: "🔎", title: "Ainda pesquisando",
+        desc: "Comparando opções, sem urgência. Quero entender melhor antes." }
+    ]
   }
 ];
 
 /* ---------- Mapeamento de respostas → parâmetros do simulador ---------- */
+/* ============================================================
+   CALC SUGGESTION v2 — Lógica ponderada com prioridades claras
+   ============================================================
+   Em vez de "última regra ganha", calculamos um SCORE DE AMBIÇÃO
+   (0-10) ponderando todas as respostas. Esse score guia os parâmetros
+   finais de forma coerente.
+
+   Detectamos contradições e:
+   - quando há sinais conflitantes, prevalece a INTENÇÃO PRIMÁRIA
+     (objetivo + meta) sobre detalhes operacionais
+   - registramos warnings no rationale
+   ============================================================ */
+
+const AMBITION_WEIGHTS = {
+  objetivo:   { "renda-extra": 1, "sair-clt": 4, "viver-disso": 7, "patrimonio": 10 },
+  meta:       { "ate-15k": 1,    "15-50k": 4,   "50-150k": 7,    "150+": 10 },
+  capital:    { "so-1a": 1,      "50-100": 4,   "100-300": 7,    "300+": 10 },
+  reinvest:   { "preciso-tirar": 1, "meio-meio": 6, "reinvesto-tudo": 10 },
+  horizonte:  { "3": 8,          "5": 6,        "7": 5,          "10": 4 },  // horizontes mais curtos = mais ambição
+  risco:      { "conservador": 1, "equilibrado": 5, "arrojado": 10 },
+  dedicacao:  { "horas-semana": 2, "meio-periodo": 5, "integral": 9 },
+  experiencia:{ "primeira": 3, "ja-tive": 6, "ja-franquia": 8, "investidor": 10 },
+  atividade:  { "clt": 4, "transicao": 5, "autonomo": 6, "aposentado": 5, "empresario": 9 }
+};
+
+function computeAmbitionScore(answers) {
+  // Pesos por dimensão (soma = 100)
+  const dimWeights = {
+    objetivo: 18,    // intenção primária — peso alto
+    meta:     18,    // intenção primária
+    capital:  15,    // realidade financeira
+    reinvest: 12,    // disposição
+    risco:    10,
+    dedicacao: 9,
+    experiencia: 8,
+    horizonte: 6,
+    atividade: 4     // contexto, não sinal direto de ambição
+  };
+  let total = 0;
+  let weightSum = 0;
+  Object.entries(dimWeights).forEach(([dim, w]) => {
+    const ans = answers[dim];
+    if (ans && AMBITION_WEIGHTS[dim] && AMBITION_WEIGHTS[dim][ans] !== undefined) {
+      total += AMBITION_WEIGHTS[dim][ans] * w;
+      weightSum += w;
+    }
+  });
+  if (weightSum === 0) return 5;
+  return total / weightSum; // 0-10
+}
+
+function detectContradictions(answers) {
+  const warns = [];
+  // Contradição clássica: objetivo agressivo + reinvest preciso-tirar
+  if (["viver-disso", "patrimonio"].includes(answers.objetivo) && answers.reinvest === "preciso-tirar") {
+    warns.push({
+      severity: "high",
+      msg: "Você quer construir patrimônio/viver disso, mas precisa tirar lucro pra viver. <strong>Plano calibrado mais defensivo</strong> — aceleração só depois que o pró-labore base estiver garantido."
+    });
+  }
+  // Contradição: renda-extra + meta alta
+  if (answers.objetivo === "renda-extra" && ["50-150k", "150+"].includes(answers.meta)) {
+    warns.push({
+      severity: "medium",
+      msg: "Renda extra com meta acima de R$ 50k/mês é incomum — <strong>plano vai precisar de mais capital ou horizonte maior</strong> pra fechar essa equação."
+    });
+  }
+  // Patrimônio + meta baixa
+  if (answers.objetivo === "patrimonio" && answers.meta === "ate-15k") {
+    warns.push({
+      severity: "low",
+      msg: "Patrimônio escalável com meta modesta de R$ 5-15k/mês — <strong>plano prioriza acúmulo</strong> de máquinas (lucro acumulado), não renda mensal."
+    });
+  }
+  // Primeira vez + meta agressiva
+  if (answers.experiencia === "primeira" && answers.meta === "150+") {
+    warns.push({
+      severity: "medium",
+      msg: "Como será sua primeira operação, recomendamos uma <strong>curva de aprendizado mais conservadora</strong> antes de buscar metas acima de R$ 150k/mês."
+    });
+  }
+  // CLT + integral
+  if (answers.atividade === "clt" && answers.dedicacao === "integral") {
+    warns.push({
+      severity: "medium",
+      msg: "Você está em CLT mas pretende dedicação integral — provavelmente significa que <strong>vai sair do emprego</strong>. Plano considera essa transição."
+    });
+  }
+  // Capital baixo + meta alta
+  if (["so-1a", "50-100"].includes(answers.capital) && ["50-150k", "150+"].includes(answers.meta)) {
+    warns.push({
+      severity: "medium",
+      msg: "Capital limitado para meta alta — <strong>flywheel de reinvestimento</strong> precisará trabalhar a seu favor por mais tempo."
+    });
+  }
+  return warns;
+}
+
 function calcSuggestion(answers) {
+  const ambition = computeAmbitionScore(answers); // 0-10
+  const contradictions = detectContradictions(answers);
+  const rationale = [];
+  const warnings = [];
+
+  contradictions.forEach(c => warnings.push(c));
+
   // Default: cenário base
   const p = {
     faturamentoPorMaquina: 10000,
@@ -1062,125 +1182,85 @@ function calcSuggestion(answers) {
     capacidadeImplantacao: 2,
     horizonteMeses: 60
   };
-  const rationale = [];
 
-  // === Horizonte (direto) ===
+  // ─── HORIZONTE (direto da resposta) ──────────────────────────
   const horMap = { "3": 36, "5": 60, "7": 84, "10": 120 };
   if (answers.horizonte) {
     p.horizonteMeses = horMap[answers.horizonte] || 60;
-    rationale.push(`Horizonte de <strong>${answers.horizonte} ano${answers.horizonte === "1" ? "" : "s"}</strong> — alinhado à sua resposta.`);
   }
 
-  // === Objetivo (afeta reinvest e fat) ===
-  if (answers.objetivo === "renda-extra") {
-    p.percReinvestFase2 = 30;
-    p.faturamentoPorMaquina = 8000;
-    rationale.push("Foco em <strong>renda extra</strong> → Fase 2 com 30% reinvest, pró-labore aparece cedo.");
-  } else if (answers.objetivo === "sair-clt") {
-    p.percReinvestFase2 = 70;
-    p.duracaoFase1Meses = 36;
-    rationale.push("Para <strong>sair da CLT</strong>, deixei Fase 1 em 3 anos com 100% reinvest e Fase 2 a 70% — escala consistente sem sufocar caixa.");
-  } else if (answers.objetivo === "viver-disso") {
-    p.percReinvestFase2 = 50;
-    p.faturamentoPorMaquina = 12000;
-    p.duracaoFase1Meses = 24;
-    rationale.push("Para <strong>viver disso</strong>, Fase 1 mais curta (2 anos) — pró-labore consistente entra antes.");
-  } else if (answers.objetivo === "patrimonio") {
-    p.percReinvestFase1 = 100;
-    p.percReinvestFase2 = 100;
-    p.faturamentoPorMaquina = 12000;
-    p.duracaoFase1Meses = 60;
-    rationale.push("Foco em <strong>patrimônio escalável</strong> → 100% reinvest nas duas fases, flywheel total.");
-  }
+  // ─── FATURAMENTO MÉDIO POR MÁQUINA ───────────────────────────
+  // Calibrado pela ambição combinada (meta + risco + experiência)
+  // Range: 6.000 (super conservador) → 16.000 (turbo realista)
+  const fatBase = 6000 + (ambition / 10) * 10000;
+  p.faturamentoPorMaquina = Math.round(fatBase / 500) * 500;
 
-  // === Capital ===
-  if (answers.capital === "so-1a") {
-    p.capacidadeImplantacao = 1;
-    p.reservaCapital = 3000;
-    rationale.push("Sem capital adicional, expansão depende 100% do reinvestimento — capacidade conservadora de <strong>1 máq/mês</strong>.");
-  } else if (answers.capital === "50-100") {
-    p.capacidadeImplantacao = Math.max(p.capacidadeImplantacao, 1);
-  } else if (answers.capital === "100-300") {
-    p.capacidadeImplantacao = Math.max(p.capacidadeImplantacao, 2);
-    rationale.push("Capital adicional permite manter capacidade de <strong>2 máq/mês</strong> mesmo nos primeiros meses.");
-  } else if (answers.capital === "300+") {
-    p.capacidadeImplantacao = 3;
-    p.reservaCapital = 8000;
-    rationale.push("R$ 300k+ em capital → expansão acelerada para <strong>3 máq/mês</strong> independente do reinvestimento.");
-  }
+  // Override por meta declarada (a mais informativa)
+  if (answers.meta === "ate-15k")     p.faturamentoPorMaquina = Math.min(p.faturamentoPorMaquina, 8000);
+  if (answers.meta === "150+")        p.faturamentoPorMaquina = Math.max(p.faturamentoPorMaquina, 14000);
+  // Risco ajusta range
+  if (answers.risco === "conservador") p.faturamentoPorMaquina = Math.min(p.faturamentoPorMaquina, 9000);
+  if (answers.risco === "arrojado")    p.faturamentoPorMaquina = Math.max(p.faturamentoPorMaquina, 12000);
+  // Primeira vez = teto realista
+  if (answers.experiencia === "primeira") p.faturamentoPorMaquina = Math.min(p.faturamentoPorMaquina, 11000);
 
-  // === Reinvest (refina objetivo) ===
-  if (answers.reinvest === "preciso-tirar") {
-    p.percReinvestFase1 = Math.min(p.percReinvestFase1, 70);
-    p.percReinvestFase2 = Math.min(p.percReinvestFase2, 30);
-    rationale.push("Como você precisa tirar pra viver, Fase 1 a <strong>70%</strong> e Fase 2 a 30% — pró-labore aparece desde o início.");
-  } else if (answers.reinvest === "reinvesto-tudo") {
-    p.percReinvestFase1 = 100;
-    p.percReinvestFase2 = Math.max(p.percReinvestFase2, 70);
-  }
+  // ─── CAPACIDADE DE IMPLANTAÇÃO ───────────────────────────────
+  // Combinação de: capital, dedicação, experiência
+  let cap = 2;
+  if (answers.capital === "so-1a")    cap = 1;
+  else if (answers.capital === "50-100")  cap = 2;  // 50-100k extra dá pra 1-2 máq nos primeiros meses
+  else if (answers.capital === "100-300") cap = 2;
+  else if (answers.capital === "300+")    cap = 3;
+  // Dedicação reduz teto
+  if (answers.dedicacao === "horas-semana") cap = Math.min(cap, 1);
+  if (answers.dedicacao === "integral")     cap = Math.max(cap, 2);
+  // Empresário/investidor pode acelerar
+  if (["empresario", "investidor"].includes(answers.experiencia)) cap = Math.max(cap, 2);
+  // Risco arrojado pode subir 1
+  if (answers.risco === "arrojado" && cap < 4) cap += 1;
+  // Risco conservador desce 1
+  if (answers.risco === "conservador" && cap > 1) cap -= 1;
+  // Meta 150+ exige cap mínimo 3
+  if (answers.meta === "150+") cap = Math.max(cap, 3);
+  p.capacidadeImplantacao = cap;
 
-  // === Meta de lucro ===
-  if (answers.meta === "ate-15k") {
-    p.faturamentoPorMaquina = Math.min(p.faturamentoPorMaquina, 8000);
-  } else if (answers.meta === "50-150k") {
-    p.faturamentoPorMaquina = Math.max(p.faturamentoPorMaquina, 12000);
-    p.capacidadeImplantacao = Math.max(p.capacidadeImplantacao, 2);
-    rationale.push("Meta R$ 50–150k/mês → faturamento médio R$ 12k/máq e capacidade ≥ 2/mês.");
-  } else if (answers.meta === "150+") {
-    p.faturamentoPorMaquina = 15000;
-    p.capacidadeImplantacao = Math.max(p.capacidadeImplantacao, 3);
-    p.percReinvestFase1 = 100;
-    p.percReinvestFase2 = Math.max(p.percReinvestFase2, 70);
-    rationale.push("Meta acima de R$ 150k/mês → plano arrojado: R$ 15k/máq, 3+ máq/mês, 70%+ reinvest.");
+  // ─── REINVESTIMENTO (Fase 1 e Fase 2) ────────────────────────
+  // Lógica priorizada: contradição "objetivo agressivo + preciso tirar" usa
+  // resolução defensiva (50/30) em vez de aplicar regra do reinvest cega
+  let f1 = 100, f2 = 50;
+  // Por OBJETIVO (intenção primária)
+  if (answers.objetivo === "renda-extra")    { f1 = 100; f2 = 30; }
+  else if (answers.objetivo === "sair-clt")  { f1 = 100; f2 = 70; }
+  else if (answers.objetivo === "viver-disso") { f1 = 100; f2 = 50; }
+  else if (answers.objetivo === "patrimonio")  { f1 = 100; f2 = 100; }
+  // Reinvest declarado: ajusta SUAVE em vez de override total
+  if (answers.reinvest === "preciso-tirar")    { f1 = Math.min(f1, 70); f2 = Math.min(f2, 30); }
+  else if (answers.reinvest === "reinvesto-tudo") {
+    // Mas se objetivo é renda-extra, segue moderado pra não trair a intenção
+    if (answers.objetivo === "renda-extra") { f2 = Math.max(f2, 50); }
+    else { f1 = 100; f2 = Math.max(f2, 80); }
   }
+  // Atividade: aposentado prioriza renda
+  if (answers.atividade === "aposentado") f2 = Math.min(f2, 40);
+  // CLT querendo renda extra é mais cauteloso
+  if (answers.atividade === "clt" && answers.objetivo === "renda-extra") f2 = Math.min(f2, 30);
+  p.percReinvestFase1 = f1;
+  p.percReinvestFase2 = f2;
 
-  // === Risco ===
-  if (answers.risco === "conservador") {
-    p.faturamentoPorMaquina = Math.min(p.faturamentoPorMaquina, 9000);
-    p.capacidadeImplantacao = Math.max(1, p.capacidadeImplantacao - 1);
-    rationale.push("Perfil conservador → faturamento em cenário pessimista (R$ 9k/máq) e capacidade reduzida em 1.");
-  } else if (answers.risco === "arrojado") {
-    p.faturamentoPorMaquina = Math.max(p.faturamentoPorMaquina, 12000);
-  }
+  // ─── DURAÇÃO FASE 1 ──────────────────────────────────────────
+  if (answers.objetivo === "renda-extra") p.duracaoFase1Meses = 12;   // pró-labore cedo
+  else if (answers.objetivo === "viver-disso") p.duracaoFase1Meses = 24;
+  else if (answers.objetivo === "sair-clt")    p.duracaoFase1Meses = 36;
+  else if (answers.objetivo === "patrimonio")  p.duracaoFase1Meses = 60;
+  // Aposentado quer ver renda cedo
+  if (answers.atividade === "aposentado") p.duracaoFase1Meses = Math.min(p.duracaoFase1Meses, 24);
 
-  // === Dedicação ===
-  if (answers.dedicacao === "horas-semana") {
-    p.capacidadeImplantacao = Math.min(p.capacidadeImplantacao, 1);
-    rationale.push("Dedicação reduzida → capacidade de implantação limitada a 1 máq/mês.");
-  } else if (answers.dedicacao === "integral") {
-    p.capacidadeImplantacao = Math.max(p.capacidadeImplantacao, 2);
-  }
+  // ─── RESERVA DE CAPITAL ──────────────────────────────────────
+  if (answers.capital === "so-1a")    p.reservaCapital = 3000;
+  else if (answers.capital === "300+") p.reservaCapital = 8000;
+  else                                 p.reservaCapital = 5000;
 
-  // === Atividade atual ===
-  // CLT/transição com perfil "renda extra" tendem a ser mais cautelosos
-  if (answers.atividade === "clt" && answers.objetivo === "renda-extra") {
-    p.percReinvestFase2 = Math.min(p.percReinvestFase2, 30);
-  }
-  // Empresários/investidores com capital tendem a ser mais arrojados
-  if ((answers.atividade === "empresario" || answers.atividade === "investidor")
-      && p.capacidadeImplantacao < 2) {
-    p.capacidadeImplantacao = 2;
-    rationale.push("Como você já tem outro negócio/é investidor, a expansão acompanha esse perfil — capacidade ≥ 2 máq/mês.");
-  }
-  // Aposentado tende a querer renda passiva estável
-  if (answers.atividade === "aposentado") {
-    p.percReinvestFase2 = Math.min(p.percReinvestFase2, 40);
-    rationale.push("Como aposentado, o plano prioriza renda mensal sobre escala agressiva — Fase 2 limitada a 40% reinvest.");
-  }
-
-  // === Experiência prévia ===
-  // Primeira vez tende a ser mais cauteloso
-  if (answers.experiencia === "primeira") {
-    p.faturamentoPorMaquina = Math.min(p.faturamentoPorMaquina, 10000);
-    p.capacidadeImplantacao = Math.min(p.capacidadeImplantacao, 2);
-    rationale.push("Como será sua primeira franquia, calibrei a velocidade pra um ritmo aprendível — sem sobrecarregar a curva.");
-  }
-  // Investidor experiente pode ir mais forte
-  if (answers.experiencia === "investidor" || answers.experiencia === "ja-franquia") {
-    p.capacidadeImplantacao = Math.max(p.capacidadeImplantacao, 2);
-  }
-
-  // Garantir bounds dos sliders
+  // Garantir bounds
   p.faturamentoPorMaquina = Math.max(5000, Math.min(30000, p.faturamentoPorMaquina));
   p.percReinvestFase1     = Math.max(50, Math.min(100, p.percReinvestFase1));
   p.percReinvestFase2     = Math.max(0, Math.min(100, p.percReinvestFase2));
@@ -1189,31 +1269,55 @@ function calcSuggestion(answers) {
   p.capacidadeImplantacao = Math.max(1, Math.min(5, p.capacidadeImplantacao));
   p.horizonteMeses        = Math.max(36, Math.min(120, p.horizonteMeses));
 
-  return { params: p, rationale };
+  // ─── RATIONALE — texto humano explicando cada escolha ────────
+  rationale.push(`<strong>Ambição calibrada</strong>: ${ambition.toFixed(1)}/10 — combinação de objetivo, capital, meta e perfil.`);
+  rationale.push(`Horizonte de <strong>${(p.horizonteMeses / 12)} ano${p.horizonteMeses === 12 ? "" : "s"}</strong> pra atingir a meta declarada.`);
+  rationale.push(`Faturamento médio por máquina: <strong>R$ ${p.faturamentoPorMaquina.toLocaleString("pt-BR")}/mês</strong> (calibrado entre cenário pessimista de R$ 6k e turbo de R$ 16k).`);
+  rationale.push(`Capacidade de <strong>${p.capacidadeImplantacao} máq/mês</strong> — combina capital disponível, dedicação e experiência.`);
+  rationale.push(`Reinvestimento <strong>${p.percReinvestFase1}%</strong> na Fase 1 (${p.duracaoFase1Meses / 12 % 1 === 0 ? p.duracaoFase1Meses/12 + " ano" + (p.duracaoFase1Meses>12?"s":"") : p.duracaoFase1Meses + " meses"}) e <strong>${p.percReinvestFase2}%</strong> na Fase 2 — pró-labore consistente com sua intenção.`);
+
+  // Adiciona warnings de contradição depois do rationale base
+  warnings.forEach(w => rationale.push(`⚠ ${w.msg}`));
+
+  return { params: p, rationale, ambition, warnings };
 }
 
-function classifyProfile(p) {
-  let score = 0;
-  if (p.faturamentoPorMaquina >= 12000) score += 2;
-  else if (p.faturamentoPorMaquina >= 10000) score += 1;
-  if (p.capacidadeImplantacao >= 3) score += 2;
-  else if (p.capacidadeImplantacao >= 2) score += 1;
-  if (p.percReinvestFase1 >= 100) score += 1;
-  if (p.percReinvestFase2 >= 70) score += 2;
-  else if (p.percReinvestFase2 >= 50) score += 1;
-  if (p.horizonteMeses >= 84) score += 1;
+/* ============================================================
+   CLASSIFY PROFILE v2 — Combina respostas declaradas (50%) com
+   parâmetros do plano (50%). Evita classificações que ignoram
+   o que o usuário REALMENTE disse.
+   ============================================================ */
+function classifyProfile(p, answers) {
+  // Score por parâmetros (0-9)
+  let paramScore = 0;
+  if (p.faturamentoPorMaquina >= 13000)      paramScore += 2;
+  else if (p.faturamentoPorMaquina >= 10500) paramScore += 1;
+  if (p.capacidadeImplantacao >= 3)      paramScore += 2;
+  else if (p.capacidadeImplantacao >= 2) paramScore += 1;
+  if (p.percReinvestFase1 >= 100) paramScore += 1;
+  if (p.percReinvestFase2 >= 70)       paramScore += 2;
+  else if (p.percReinvestFase2 >= 50)  paramScore += 1;
+  if (p.horizonteMeses >= 84)          paramScore += 1;
+  // normalizar pra 0-10
+  paramScore = (paramScore / 9) * 10;
 
-  if (score <= 2) return {
+  // Score por respostas (ambition já calculada)
+  const ambition = answers ? computeAmbitionScore(answers) : 5;
+
+  // Combina 50/50
+  const combined = (paramScore + ambition) / 2;
+
+  if (combined < 3) return {
     key: "conservador", emoji: "🌱",
     label: "Construtor Cauteloso",
     desc: "Crescimento controlado, renda previsível desde o início. Você prioriza segurança e caixa no bolso."
   };
-  if (score <= 5) return {
+  if (combined < 5.5) return {
     key: "base", emoji: "⚖️",
     label: "Empreendedor Equilibrado",
     desc: "Equilíbrio entre escala e segurança — o caminho da maioria da rede AVEND."
   };
-  if (score <= 7) return {
+  if (combined < 8) return {
     key: "otimista", emoji: "🚀",
     label: "Investidor Arrojado",
     desc: "Expansão acelerada com alto reinvestimento. Você joga pra ganhar grande no médio prazo."
@@ -1527,10 +1631,42 @@ function quizBack() {
   }
 }
 
+/* Faixas de meta declarada (em R$/mês) — pra validar se o plano entrega */
+const META_RANGES = {
+  "ate-15k":  { min: 5000,   target: 10000,  max: 15000,   label: "R$ 5–15 mil/mês" },
+  "15-50k":   { min: 15000,  target: 30000,  max: 50000,   label: "R$ 15–50 mil/mês" },
+  "50-150k":  { min: 50000,  target: 90000,  max: 150000,  label: "R$ 50–150 mil/mês" },
+  "150+":     { min: 150000, target: 200000, max: 500000,  label: "Acima de R$ 150 mil/mês" }
+};
+
+/* Avalia se o plano sugerido entrega a meta declarada */
+function evaluateMetaDelivery(sim, metaAnswer) {
+  const range = META_RANGES[metaAnswer];
+  if (!range || !sim) return null;
+  const lucroFinal = sim.lucroMensalFinal || 0;
+  const target = range.target;
+  const pctMeta = (lucroFinal / target) * 100;
+
+  let status, color, msg;
+  if (lucroFinal >= range.min && lucroFinal <= range.max) {
+    status = "match"; color = "#39e887";
+    msg = `🎯 <strong>Plano alinhado com sua meta</strong> de ${range.label}. Projeção de ${fmtBRL(lucroFinal)}/mês está dentro da faixa.`;
+  } else if (lucroFinal > range.max) {
+    status = "over"; color = "#3DD9D6";
+    msg = `🚀 <strong>Plano supera sua meta</strong>. Projeção de ${fmtBRL(lucroFinal)}/mês está acima da faixa de ${range.label} — você pediu menos do que pode entregar.`;
+  } else {
+    status = "under"; color = "#ffb020";
+    const gap = target - lucroFinal;
+    msg = `⚠ <strong>Plano entrega ${pctMeta.toFixed(0)}% da sua meta</strong>. Projeção de ${fmtBRL(lucroFinal)}/mês fica ${fmtBRL(gap)} abaixo do target. Considere aumentar capital, horizonte ou capacidade.`;
+  }
+  return { status, color, msg, pctMeta, lucroFinal, range };
+}
+
 function showQuizResult() {
   const sug = calcSuggestion(quizState.answers);
-  const profile = classifyProfile(sug.params);
+  const profile = classifyProfile(sug.params, quizState.answers);
   const sim = simulate(sug.params);
+  const metaEval = evaluateMetaDelivery(sim, quizState.answers.meta);
 
   // Persistir
   try {
@@ -1540,6 +1676,7 @@ function showQuizResult() {
       identity: quizState.identity,
       params: sug.params,
       profile: profile.key,
+      ambition: sug.ambition,
       ts: Date.now()
     }));
   } catch (e) { /* ignore */ }
@@ -1585,7 +1722,25 @@ function showQuizResult() {
     <div class="qr-proj"><span class="qr-proj-lbl">Pró-labore total</span><span class="qr-proj-val">${fmtBRL(sim.totalProLabore)}</span></div>
   `;
 
+  // Bloco de validação da meta — injetado dinamicamente antes do rationale
   const rationaleList = document.getElementById("quiz-result-rationale");
+  const rationaleSection = rationaleList.closest(".quiz-result-section");
+  // Remove bloco antigo se existir (re-render do quiz)
+  document.getElementById("qr-meta-eval")?.remove();
+
+  if (metaEval) {
+    const metaBlock = document.createElement("div");
+    metaBlock.id = "qr-meta-eval";
+    metaBlock.className = "qr-meta-eval qr-meta-" + metaEval.status;
+    metaBlock.innerHTML = `
+      <div class="qr-meta-bar-wrap">
+        <span class="qr-meta-bar" style="width:${Math.min(100, metaEval.pctMeta)}%; background:${metaEval.color};"></span>
+      </div>
+      <p class="qr-meta-msg">${metaEval.msg}</p>
+    `;
+    rationaleSection.parentNode.insertBefore(metaBlock, rationaleSection);
+  }
+
   rationaleList.innerHTML = sug.rationale.length
     ? sug.rationale.map(r => `<li>${r}</li>`).join("")
     : `<li>Plano calibrado a partir do cenário base da rede.</li>`;
