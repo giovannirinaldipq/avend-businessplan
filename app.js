@@ -1330,10 +1330,10 @@ function classifyProfile(p, answers) {
 }
 
 /* ---------- Quiz state machine ----------
-   Slide 0 = identificação (opcional). Depois 7 perguntas (1..7).
-   Total de slides = 8.
+   Slide 0 = identificação (opcional). Depois N perguntas do array QUIZ_QUESTIONS.
+   Total de slides = QUIZ_QUESTIONS.length + 1.
 */
-const QUIZ_TOTAL_SLIDES = QUIZ_QUESTIONS.length + 1; // 1 slide de identificação + 7 perguntas
+const QUIZ_TOTAL_SLIDES = QUIZ_QUESTIONS.length + 1; // 1 slide de identificação + N perguntas
 
 const quizState = {
   current: 0,                // 0 = identificação, 1..7 = perguntas
@@ -2595,7 +2595,7 @@ function maybeShowAdmin() {
       const url = buildUrl();
       const name = (document.getElementById("ub-name")?.value || "").trim();
       const greeting = name ? `Olá ${name.split(" ")[0]}!` : "Olá!";
-      const msg = `${greeting} Preparei um diagnóstico personalizado da AVEND pra você. Demora 90 segundos:\n\n${url}\n\nQualquer dúvida estou à disposição.`;
+      const msg = `${greeting} Preparei um diagnóstico personalizado da AVEND pra você. Demora 2 minutos:\n\n${url}\n\nQualquer dúvida estou à disposição.`;
       window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
     });
   } catch (e) { console.error("Admin panel error:", e); }
