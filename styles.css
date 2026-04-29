@@ -1472,6 +1472,148 @@ input[type="range"]::-moz-range-thumb {
   .gal-card.gal-wide { grid-column: span 1; }
 }
 
+/* ============================================================
+   MÁQUINA HERO — Nossa Rede
+   ============================================================ */
+.maquina-hero {
+  padding: 36px 40px;
+  background:
+    radial-gradient(ellipse at right, rgba(75,108,226,0.18), transparent 55%),
+    radial-gradient(ellipse at left bottom, rgba(139,48,230,0.16), transparent 55%),
+    linear-gradient(135deg, rgba(13,14,54,0.85), rgba(7,8,42,0.85));
+  border: 1px solid rgba(139,48,230,0.32);
+  overflow: hidden;
+  position: relative;
+}
+.maquina-hero-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+.maquina-hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.maquina-hero-eyebrow {
+  display: inline-block;
+  width: max-content;
+  padding: 6px 14px;
+  background: rgba(57,232,135,0.12);
+  border: 1px solid rgba(57,232,135,0.40);
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-d);
+}
+.maquina-hero-title {
+  margin: 0;
+  font-size: clamp(28px, 3.4vw, 44px);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.maquina-hero-desc {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  max-width: 540px;
+}
+.maquina-hero-feats {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.maquina-hero-feats li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.maquina-hero-feats li strong { color: var(--text); font-weight: 700; }
+.mh-feat-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  font-size: 16px;
+  background: rgba(139,48,230,0.18);
+  border: 1px solid rgba(139,48,230,0.35);
+  border-radius: 8px;
+}
+
+.maquina-hero-figure {
+  position: relative;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.maquina-hero-glow {
+  position: absolute;
+  inset: -8% -10% -2% -10%;
+  background:
+    radial-gradient(ellipse at center, rgba(61,217,214,0.28), transparent 65%),
+    radial-gradient(ellipse at bottom, rgba(139,48,230,0.30), transparent 70%);
+  filter: blur(40px);
+  z-index: 0;
+  pointer-events: none;
+  animation: maquinaPulse 4s ease-in-out infinite;
+}
+@keyframes maquinaPulse {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50%      { opacity: 1; transform: scale(1.04); }
+}
+.maquina-hero-img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  max-height: 560px;
+  filter: drop-shadow(0 24px 40px rgba(0,0,0,0.45));
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.maquina-hero-figure:hover .maquina-hero-img {
+  transform: translateY(-6px) rotate(-1deg);
+}
+.maquina-hero-caption {
+  position: relative;
+  z-index: 1;
+  font-size: 11.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 6px 14px;
+  background: rgba(7,8,42,0.55);
+  border: 1px solid rgba(139,48,230,0.28);
+  border-radius: 999px;
+}
+
+@media (max-width: 1100px) {
+  .maquina-hero-grid { grid-template-columns: 1fr; gap: 28px; }
+  .maquina-hero-figure { order: -1; }  /* mostra a máquina primeiro no mobile */
+  .maquina-hero-img { max-height: 420px; }
+}
+@media (max-width: 720px) {
+  .maquina-hero { padding: 24px 22px; }
+  .maquina-hero-img { max-height: 340px; }
+}
+
 /* ---------- Nossa Rede ---------- */
 .rede-stats {
   display: grid;

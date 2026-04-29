@@ -1460,96 +1460,37 @@
         </div>
       </div>
 
-      <!-- DEPOIMENTOS -->
-      <div class="rede-block card">
-        <header class="rede-block-head">
-          <span class="rede-block-icon" aria-hidden="true">💬</span>
-          <div>
-            <h3 class="card-title">Depoimentos de franqueados</h3>
-            <p class="rede-block-sub">Quem vive a operação no dia a dia.</p>
+      <!-- HERO DA MÁQUINA -->
+      <div class="rede-block card maquina-hero">
+        <div class="maquina-hero-grid">
+          <div class="maquina-hero-text">
+            <span class="maquina-hero-eyebrow">⚡ Hardware AVEND</span>
+            <h3 class="maquina-hero-title">
+              Máquina <span class="grad-text">Robusta</span>,
+              <span class="grad-text">Tecnológica</span>
+              e <span class="grad-text">Segura</span>.
+            </h3>
+            <p class="maquina-hero-desc">
+              Equipamento testado em campo por mais de uma década. Pagamento por
+              Pix, débito, crédito e NFC. Sistema 24/7 com telemetria em tempo real
+              e SAC para o consumidor diretamente na máquina.
+            </p>
+            <ul class="maquina-hero-feats">
+              <li><span class="mh-feat-icon">🛡</span><span><strong>Compra Segura</strong> — estorno automático se o produto não for entregue</span></li>
+              <li><span class="mh-feat-icon">📡</span><span><strong>Telemetria em tempo real</strong> — você acompanha vendas e estoque pelo celular</span></li>
+              <li><span class="mh-feat-icon">💳</span><span><strong>Multipagamento</strong> — Pix, cartão, crédito, NFC, QR Code</span></li>
+              <li><span class="mh-feat-icon">🕒</span><span><strong>24/7</strong> — opera sem mão de obra direta, sem fila, sem atendente</span></li>
+            </ul>
           </div>
-        </header>
-
-        <div class="depo-grid">
-          <article class="depo-card">
-            <p class="depo-quote">“<span>Depoimento em breve — adicione o texto do franqueado aqui.</span>”</p>
-            <footer class="depo-meta">
-              <span class="depo-avatar" aria-hidden="true">A</span>
-              <div>
-                <div class="depo-name">Franqueado 1</div>
-                <div class="depo-role">Cidade / UF · X máquinas</div>
-              </div>
-            </footer>
-          </article>
-          <article class="depo-card">
-            <p class="depo-quote">“<span>Depoimento em breve — adicione o texto do franqueado aqui.</span>”</p>
-            <footer class="depo-meta">
-              <span class="depo-avatar" aria-hidden="true">B</span>
-              <div>
-                <div class="depo-name">Franqueado 2</div>
-                <div class="depo-role">Cidade / UF · X máquinas</div>
-              </div>
-            </footer>
-          </article>
-          <article class="depo-card">
-            <p class="depo-quote">“<span>Depoimento em breve — adicione o texto do franqueado aqui.</span>”</p>
-            <footer class="depo-meta">
-              <span class="depo-avatar" aria-hidden="true">C</span>
-              <div>
-                <div class="depo-name">Franqueado 3</div>
-                <div class="depo-role">Cidade / UF · X máquinas</div>
-              </div>
-            </footer>
-          </article>
-        </div>
-        <p class="rede-upload-hint">
-          Para adicionar depoimentos reais, edite os blocos <code>.depo-card</code> em
-          <code>index.html</code> com texto, nome, cidade e número de máquinas do franqueado.
-        </p>
-      </div>
-
-      <!-- GALERIA DE FOTOS -->
-      <div class="rede-block card">
-        <header class="rede-block-head">
-          <span class="rede-block-icon" aria-hidden="true">📷</span>
-          <div>
-            <h3 class="card-title">Galeria de Fotos</h3>
-            <p class="rede-block-sub">Máquinas em operação, pontos de venda e bastidores.</p>
-          </div>
-        </header>
-
-        <div class="foto-grid">
-          <figure class="foto-card" data-foto="rede-condominio">
-            <div class="foto-placeholder"><span>🏢</span></div>
-            <figcaption>Condomínio residencial</figcaption>
-          </figure>
-          <figure class="foto-card" data-foto="rede-academia">
-            <div class="foto-placeholder"><span>🏋️</span></div>
-            <figcaption>Academia</figcaption>
-          </figure>
-          <figure class="foto-card" data-foto="rede-empresa">
-            <div class="foto-placeholder"><span>🏭</span></div>
-            <figcaption>Empresa / indústria</figcaption>
-          </figure>
-          <figure class="foto-card" data-foto="rede-hospital">
-            <div class="foto-placeholder"><span>🏥</span></div>
-            <figcaption>Hospital / clínica</figcaption>
-          </figure>
-          <figure class="foto-card" data-foto="rede-coworking">
-            <div class="foto-placeholder"><span>💼</span></div>
-            <figcaption>Coworking / escritório</figcaption>
-          </figure>
-          <figure class="foto-card" data-foto="rede-pontos">
-            <div class="foto-placeholder"><span>📍</span></div>
-            <figcaption>Outros pontos</figcaption>
+          <figure class="maquina-hero-figure">
+            <div class="maquina-hero-glow" aria-hidden="true"></div>
+            <img src="assets/maquina-avend.png"
+                 alt="Vending Machine AVEND — modelo padrão da rede"
+                 class="maquina-hero-img"
+                 loading="lazy" />
+            <figcaption class="maquina-hero-caption">Modelo padrão · snack + bebida + energético</figcaption>
           </figure>
         </div>
-        <p class="rede-upload-hint">
-          Coloque as imagens em <code>assets/rede/</code> com os nomes
-          <code>condominio.jpg</code>, <code>academia.jpg</code>, <code>empresa.jpg</code>,
-          <code>hospital.jpg</code>, <code>coworking.jpg</code>, <code>pontos.jpg</code>
-          — o CSS aplica automaticamente.
-        </p>
       </div>
 
       <!-- VÍDEOS -->
