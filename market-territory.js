@@ -415,17 +415,9 @@
       </div>
 
       <div class="mkt-actions">
-        <button type="button" class="mkt-action mkt-action-primary" data-action="lead-territory">
-          <span aria-hidden="true">📋</span>
-          <span class="mkt-action-text">
-            <span class="mkt-action-title">Receber lista dos melhores pontos no WhatsApp</span>
-            <span class="mkt-action-sub">Diretoria de Pontos analisa ${escapeHtml(data.cidade)} e te envia os ${Math.min(10, p.total_premium)} locais mais quentes</span>
-          </span>
-          <span aria-hidden="true">→</span>
-        </button>
         <button type="button" class="mkt-action mkt-action-secondary" data-action="print-report">
           <span aria-hidden="true">📄</span>
-          <span>Imprimir / salvar PDF</span>
+          <span>Imprimir / salvar PDF deste diagnóstico</span>
         </button>
       </div>
 
@@ -684,34 +676,6 @@
       });
     }
 
-    const leadBtn = container.querySelector('[data-action="lead-territory"]');
-    if (leadBtn) {
-      leadBtn.addEventListener("click", () => {
-        const wa = root.AVEND_WHATSAPP;
-        const cidade = ctx.cidade || "";
-        const uf = ctx.uf || "";
-        const pop = ctx.populacao || 0;
-        const msg = [
-          `Olá! Acabei de analisar o mercado de *${cidade}${uf ? "/" + uf : ""}* no simulador AVEND.`,
-          "",
-          `📍 *População:* ${fmtNum(pop)} habitantes`,
-          `🎯 Quero receber a lista dos *melhores pontos* dessa cidade pela Diretoria de Pontos.`,
-          "",
-          "Aguardo o contato."
-        ].join("\n");
-        if (root.TELEMETRY && typeof root.TELEMETRY.track === "function") {
-          root.TELEMETRY.track("market_territory_lead", { cidade, uf, populacao: pop });
-        }
-        if (wa) {
-          const url = `https://wa.me/${wa}?text=${encodeURIComponent(msg)}`;
-          window.open(url, "_blank", "noopener,noreferrer");
-        } else {
-          // Sem WhatsApp configurado — abre o quiz como fallback de captura
-          const trigger = document.getElementById("open-quiz-header") || document.getElementById("open-quiz-hero");
-          if (trigger) trigger.click();
-        }
-      });
-    }
   }
 
   /* ---------- PERMALINK (?cidade=catanduva-sp) --------------- */
