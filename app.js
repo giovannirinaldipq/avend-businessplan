@@ -1745,6 +1745,29 @@ function showQuizResult() {
     ? sug.rationale.map(r => `<li>${r}</li>`).join("")
     : `<li>Plano calibrado a partir do cenário base da rede.</li>`;
 
+  // ─── Market Territory: diagnóstico de mercado da cidade ────────
+  // Renderiza apenas se o usuário informou cidade na identificação.
+  // Se a cidade não estiver na base local, o módulo abre fallback manual.
+  try {
+    const mktSection = document.getElementById("qr-section-market");
+    const mktWrap    = document.getElementById("market-territory-wrap");
+    const rationaleNum = document.getElementById("qr-rationale-num");
+    const cityRaw = (quizState.identity && quizState.identity.city) || "";
+
+    if (mktSection && mktWrap && typeof MarketTerritory !== "undefined") {
+      if (cityRaw && cityRaw.length >= 2) {
+        mktSection.hidden = false;
+        MarketTerritory.render(mktWrap, cityRaw);
+        if (rationaleNum) rationaleNum.textContent = "04";
+      } else {
+        mktSection.hidden = true;
+        if (rationaleNum) rationaleNum.textContent = "03";
+      }
+    }
+  } catch (e) {
+    console.warn("[market-territory] falha ao renderizar:", e);
+  }
+
   // Save pending application
   quizState.pendingParams = sug.params;
   quizState.pendingProfile = profile;
@@ -2601,6 +2624,29 @@ function maybeShowAdmin() {
   } catch (e) { console.error("Admin panel error:", e); }
 }
 
+/* ---------- Setup do bloco standalone de Mercado/Território ---------- */
+function bindMarketTerritory() {
+  if (typeof MarketTerritory === "undefined") return;
+  const form     = document.getElementById("mkt-territory-search");
+  const input    = document.getElementById("mkt-territory-city");
+  const wrap     = document.getElementById("market-territory-standalone");
+  const datalist = document.getElementById("mkt-territory-list");
+  if (!form || !input || !wrap) return;
+
+  // Autocomplete via datalist com as cidades da base
+  if (datalist) MarketTerritory.populateDatalist(datalist);
+
+  // Pré-popular com cidade do quiz, se o usuário já preencheu
+  try {
+    const saved = JSON.parse(localStorage.getItem("avend-quiz-data") || "{}");
+    if (saved && saved.identity && saved.identity.city && !input.value) {
+      input.value = saved.identity.city;
+    }
+  } catch (e) { /* ignore */ }
+
+  MarketTerritory.attachStandalone(form, input, wrap);
+}
+
 /* ---------- Init ---------- */
 document.addEventListener("DOMContentLoaded", () => {
   bindTabs();
@@ -2610,6 +2656,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderMarketChart();
   bindQuiz();
   bindVsl();
+  bindMarketTerritory();
   maybeAutoOpenQuiz();
   maybeShowAdmin();
   TELEMETRY.track("page_loaded", { url: location.href });

@@ -824,6 +824,43 @@
         </p>
       </header>
 
+      <!-- BLOCO ANÁLISE DA SUA CIDADE — diagnóstico de território standalone -->
+      <div class="mkt-territory-block card" id="mkt-territory-block">
+        <header class="mkt-territory-block-head">
+          <span class="mkt-territory-block-icon" aria-hidden="true">📍</span>
+          <div>
+            <h3 class="card-title">Quanto mercado existe na <em>sua cidade</em>?</h3>
+            <p class="mkt-territory-block-sub">
+              Digite a cidade e descubra na hora quantas máquinas o território comporta,
+              quantas já operam e quantos pontos premium estão disponíveis para a sua operação.
+            </p>
+          </div>
+        </header>
+
+        <form class="mkt-territory-search" id="mkt-territory-search" autocomplete="off">
+          <div class="mkt-territory-input-wrap">
+            <span class="mkt-territory-input-icon" aria-hidden="true">🔍</span>
+            <input type="text" class="mkt-territory-input" id="mkt-territory-city"
+                   placeholder="Ex: São Paulo / SP — ou só Curitiba"
+                   list="mkt-territory-list"
+                   autocomplete="off"
+                   spellcheck="false"
+                   maxlength="80" />
+            <datalist id="mkt-territory-list"></datalist>
+          </div>
+          <button type="submit" class="mkt-territory-btn">
+            Analisar mercado <span aria-hidden="true">→</span>
+          </button>
+        </form>
+
+        <p class="mkt-territory-hint">
+          <strong>140+ cidades</strong> na base local. Se a sua não estiver,
+          informe a população estimada — geramos o diagnóstico mesmo assim.
+        </p>
+
+        <div class="market-territory-wrap" id="market-territory-standalone" hidden></div>
+      </div>
+
       <!-- HEADLINE STATS — 4 grandes números -->
       <div class="mkt-headline-grid">
         <article class="mkt-headline mkt-headline-a">
@@ -1899,9 +1936,18 @@
         <div class="quiz-result-projection" id="quiz-result-projection"></div>
       </section>
 
-      <section class="quiz-result-section">
+      <section class="quiz-result-section qr-section-market" id="qr-section-market" hidden>
         <header class="qr-section-head">
           <span class="qr-section-num">03</span>
+          <h3 class="qr-section-title">Sua cidade está pronta?</h3>
+        </header>
+        <p class="qr-section-sub">Diagnóstico de mercado e mapeamento de território — gerado a partir da cidade que você informou.</p>
+        <div class="market-territory-wrap" id="market-territory-wrap"></div>
+      </section>
+
+      <section class="quiz-result-section">
+        <header class="qr-section-head">
+          <span class="qr-section-num" id="qr-rationale-num">04</span>
           <h3 class="qr-section-title">Por que esse plano?</h3>
         </header>
         <p class="qr-section-sub">A lógica por trás de cada calibração.</p>
@@ -1933,6 +1979,7 @@
     </div>
   </div>
 
+  <script src="market-territory.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
