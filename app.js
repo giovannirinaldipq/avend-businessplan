@@ -2670,7 +2670,19 @@ function bindMarketTerritory() {
     }
   } catch (e) { /* ignore */ }
 
-  console.log("[market-territory] standalone ligado · " + MarketTerritory.citiesCount() + " cidades na base");
+  // Mostra contagem real de cidades na UI — se cities-data.js não
+  // carregou, vai aparecer "27 cidades" e o usuário identifica na hora.
+  const count = MarketTerritory.citiesCount();
+  const countEl = document.getElementById("mkt-territory-count");
+  if (countEl) {
+    const formatted = new Intl.NumberFormat("pt-BR").format(count);
+    countEl.textContent = formatted + " cidades";
+    if (count < 1000) {
+      countEl.style.color = "#ffb020";
+      countEl.title = "Base reduzida — cities-data.js não carregou. Recarregue a página com Ctrl+F5.";
+    }
+  }
+  console.log("[market-territory] standalone ligado · " + count + " cidades na base");
 }
 
 /* ---------- Init ---------- */
