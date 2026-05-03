@@ -4864,7 +4864,7 @@ body.quiz-open { overflow: hidden; }
   flex-shrink: 0;
   margin-top: 4px;
 }
-.mkt-territory-block-head .card-title {
+.mkt-territory-block-title {
   font-size: clamp(20px, 2.4vw, 24px);
   font-weight: 800;
   color: #fff;
@@ -4872,7 +4872,7 @@ body.quiz-open { overflow: hidden; }
   letter-spacing: -0.01em;
   line-height: 1.2;
 }
-.mkt-territory-block-head .card-title em {
+.mkt-territory-block-title em {
   font-style: normal;
   background: linear-gradient(90deg, #3DD9D6, #4B6CE2);
   -webkit-background-clip: text;

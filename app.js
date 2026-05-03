@@ -2626,12 +2626,38 @@ function maybeShowAdmin() {
 
 /* ---------- Setup do bloco standalone de Mercado/Território ---------- */
 function bindMarketTerritory() {
-  if (typeof MarketTerritory === "undefined") return;
   const form     = document.getElementById("mkt-territory-search");
   const input    = document.getElementById("mkt-territory-city");
   const wrap     = document.getElementById("market-territory-standalone");
   const datalist = document.getElementById("mkt-territory-list");
-  if (!form || !input || !wrap) return;
+  if (!form || !input || !wrap) {
+    console.warn("[market-territory] DOM incompleto", { form: !!form, input: !!input, wrap: !!wrap });
+    return;
+  }
+
+  // BLINDAGEM: prevent default no submit, sempre — mesmo se o
+  // módulo não tiver carregado, evita reload da página.
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof MarketTerritory === "undefined") {
+      console.error("[market-territory] módulo não carregou. Verifique se market-territory.js está acessível.");
+      wrap.hidden = false;
+      wrap.innerHTML = '<p style="color:#ffb020; padding:16px; text-align:center;">⚠ Módulo não carregou. Recarregue a página com Ctrl+F5.</p>';
+      return;
+    }
+    const value = (input.value || "").trim();
+    if (!value) return;
+    wrap.hidden = false;
+    MarketTerritory.render(wrap, value);
+    try { wrap.scrollIntoView({ behavior: "smooth", block: "start" }); }
+    catch (e2) { /* navegadores antigos */ }
+  });
+
+  if (typeof MarketTerritory === "undefined") {
+    console.warn("[market-territory] MarketTerritory ainda não definido no bind — submit usará fallback.");
+    return;
+  }
 
   // Autocomplete via datalist com as cidades da base
   if (datalist) MarketTerritory.populateDatalist(datalist);
@@ -2644,7 +2670,7 @@ function bindMarketTerritory() {
     }
   } catch (e) { /* ignore */ }
 
-  MarketTerritory.attachStandalone(form, input, wrap);
+  console.log("[market-territory] standalone ligado · " + MarketTerritory.citiesCount() + " cidades na base");
 }
 
 /* ---------- Init ---------- */
