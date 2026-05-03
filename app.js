@@ -2683,6 +2683,27 @@ function bindMarketTerritory() {
     }
   }
   console.log("[market-territory] standalone ligado · " + count + " cidades na base");
+
+  // Permalink: se a URL tem ?cidade=catanduva-sp, auto-busca ao carregar.
+  try {
+    const slugFromURL = MarketTerritory.readCityFromURL();
+    if (slugFromURL) {
+      const city = MarketTerritory.findBySlug(slugFromURL);
+      if (city) {
+        input.value = city.n + " / " + city.uf;
+        wrap.hidden = false;
+        MarketTerritory.render(wrap, city.n, city.uf);
+        // Ativa a tab Mercado pra o usuário ver direto
+        const mercadoTab = document.querySelector('.tab[data-tab="mercado"]');
+        if (mercadoTab) mercadoTab.click();
+        // Scroll após pequeno delay (depois da troca de tab)
+        setTimeout(() => {
+          try { wrap.scrollIntoView({ behavior: "smooth", block: "start" }); }
+          catch (e) { /* ignore */ }
+        }, 200);
+      }
+    }
+  } catch (e) { console.warn("[market-territory] erro ao ler permalink:", e); }
 }
 
 /* ---------- Init ---------- */
