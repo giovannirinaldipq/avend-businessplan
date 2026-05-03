@@ -3,3 +3,6 @@ node_modules/
 .DS_Store
 Thumbs.db
 .claude/
+
+# Dump intermediário do IBGE (re-baixado por build-cities.py quando necessário)
+ibge-pop.json

@@ -25,13 +25,14 @@
   "use strict";
 
   /* ---------- BASE DE DADOS LOCAL ----------------------------
-     Estimativas IBGE (Censo 2022 + projeções 2024).
-     Formato compacto: [nome, UF, populacao].
-     Cobertura: 27 capitais + cidades ≥ ~120k hab + alvos
-     estratégicos da rede AVEND.
+     Fonte primária: cities-data.js (5.500+ municípios IBGE,
+     SIDRA tabela 6579 — gerado por build-cities.py).
+     Fallback: array CITIES_FALLBACK abaixo (27 capitais),
+     usado quando o arquivo principal não carregou.
      ----------------------------------------------------------- */
-  const CITIES_RAW = [
+  const CITIES_FALLBACK = [
     // Top 50 — metrópoles
+    // 27 capitais — usado apenas se cities-data.js não carregou.
     ["São Paulo", "SP", 11451245],
     ["Rio de Janeiro", "RJ", 6211423],
     ["Brasília", "DF", 2817381],
@@ -44,160 +45,33 @@
     ["Goiânia", "GO", 1437366],
     ["Porto Alegre", "RS", 1332570],
     ["Belém", "PA", 1303403],
-    ["Guarulhos", "SP", 1291784],
-    ["Campinas", "SP", 1138309],
     ["São Luís", "MA", 1037241],
     ["Maceió", "AL", 957916],
-    ["Duque de Caxias", "RJ", 924624],
     ["Campo Grande", "MS", 916001],
-    ["São Gonçalo", "RJ", 896744],
     ["Teresina", "PI", 866300],
     ["João Pessoa", "PB", 833932],
-    ["Nova Iguaçu", "RJ", 821128],
-    ["São Bernardo do Campo", "SP", 815905],
-    ["Santo André", "SP", 760181],
     ["Natal", "RN", 751300],
-    ["Osasco", "SP", 740000],
-    ["São José dos Campos", "SP", 729737],
-    ["Ribeirão Preto", "SP", 698129],
-    ["Uberlândia", "MG", 706597],
-    ["Jaboatão dos Guararapes", "PE", 706867],
-    ["Sorocaba", "SP", 687357],
-    ["Contagem", "MG", 668949],
     ["Aracaju", "SE", 657013],
-    ["Feira de Santana", "BA", 619609],
     ["Cuiabá", "MT", 618124],
-    ["Joinville", "SC", 616317],
-    ["Aparecida de Goiânia", "GO", 590146],
-    ["Londrina", "PR", 575377],
-    ["Juiz de Fora", "MG", 540756],
-    ["Ananindeua", "PA", 535547],
-    ["Serra", "ES", 520653],
-    ["Caxias do Sul", "RS", 517451],
-    ["Niterói", "RJ", 515317],
-    ["Belford Roxo", "RJ", 513117],
     ["Florianópolis", "SC", 508826],
-    ["Campos dos Goytacazes", "RJ", 487186],
-    ["São José do Rio Preto", "SP", 469173],
     ["Porto Velho", "RO", 460434],
     ["Macapá", "AP", 442933],
-    ["Jundiaí", "SP", 442658],
-    ["Betim", "MG", 444690],
-
-    // 51-100 — cidades médias-grandes
-    ["São João de Meriti", "RJ", 454857],
     ["Boa Vista", "RR", 436591],
-    ["Mogi das Cruzes", "SP", 432192],
-    ["Maringá", "PR", 423666],
-    ["Santos", "SP", 418375],
-    ["Mauá", "SP", 417064],
     ["Rio Branco", "AC", 412723],
-    ["Vila Velha", "ES", 414420],
-    ["Montes Claros", "MG", 414240],
-    ["Piracicaba", "SP", 410275],
-    ["Diadema", "SP", 393206],
-    ["Olinda", "PE", 393115],
-    ["Caruaru", "PE", 376783],
-    ["Anápolis", "GO", 391772],
-    ["Bauru", "SP", 379146],
-    ["Carapicuíba", "SP", 369584],
-    ["Itaquaquecetuba", "SP", 363788],
-    ["Caucaia", "CE", 365212],
-    ["Blumenau", "SC", 366418],
-    ["Cariacica", "ES", 363264],
-    ["Franca", "SP", 358539],
-    ["Ponta Grossa", "PR", 358838],
-    ["São Vicente", "SP", 357334],
-    ["Petrolina", "PE", 354317],
-    ["Vitória da Conquista", "BA", 332419],
-    ["Cascavel", "PR", 332332],
-    ["Ribeirão das Neves", "MG", 331045],
-    ["Praia Grande", "SP", 330845],
-    ["São José dos Pinhais", "PR", 329058],
-    ["Pelotas", "RS", 327778],
-    ["Canoas", "RS", 327069],
-    ["Vitória", "ES", 322869],
-    ["Guarujá", "SP", 322750],
-    ["Uberaba", "MG", 339984],
     ["Palmas", "TO", 313349],
-    ["Paulista", "PE", 311988],
-    ["Limeira", "SP", 308482],
-    ["Santarém", "PA", 308339],
-    ["Petrópolis", "RJ", 304954],
-    ["Taubaté", "SP", 305034],
-    ["Camaçari", "BA", 300372],
-    ["Suzano", "SP", 300559],
-    ["Mossoró", "RN", 300618],
-    ["Marabá", "PA", 287079],
-    ["Várzea Grande", "MT", 287541],
-    ["Foz do Iguaçu", "PR", 287227],
-    ["Sumaré", "SP", 286211],
-    ["Barueri", "SP", 274278],
-    ["Taboão da Serra", "SP", 273324],
-    ["Gravataí", "RS", 271675],
-
-    // 101-140 — cidades médias regionais relevantes
-    ["Santa Maria", "RS", 271633],
-    ["Itajaí", "SC", 264054],
-    ["Governador Valadares", "MG", 257383],
-    ["Águas Lindas de Goiás", "GO", 257521],
-    ["Imperatriz", "MA", 256033],
-    ["Macaé", "RJ", 256672],
-    ["Indaiatuba", "SP", 256223],
-    ["Cotia", "SP", 261268],
-    ["Volta Redonda", "RJ", 261293],
-    ["Chapecó", "SC", 254135],
-    ["Rio Verde", "GO", 253156],
-    ["São Carlos", "SP", 252378],
-    ["São José", "SC", 250181],
-    ["Itaboraí", "RJ", 235579],
-    ["Hortolândia", "SP", 235994],
-    ["Rondonópolis", "MT", 245947],
-    ["Sete Lagoas", "MG", 245766],
-    ["Embu das Artes", "SP", 245149],
-    ["Americana", "SP", 245574],
-    ["Marília", "SP", 240590],
-    ["Divinópolis", "MG", 240408],
-    ["Ipatinga", "MG", 240735],
-    ["Cabo Frio", "RJ", 232482],
-    ["Magé", "RJ", 247612],
-    ["Colombo", "PR", 247719],
-    ["Dourados", "MS", 226404],
-    ["Itapevi", "SP", 220730],
-    ["Criciúma", "SC", 219393],
-    ["Itabuna", "BA", 213763],
-    ["Luziânia", "GO", 215048],
-    ["Nova Friburgo", "RJ", 191664],
-    ["Teresópolis", "RJ", 188081],
-    ["Jaraguá do Sul", "SC", 184579],
-    ["Guarapuava", "PR", 184543],
-    ["Valparaíso de Goiás", "GO", 174000],
-    ["Bragança Paulista", "SP", 171516],
-    ["Itu", "SP", 173631],
-    ["Ilhéus", "BA", 159265],
-    ["Sinop", "MT", 159340],
-    ["Lages", "SC", 158846],
-    ["Atibaia", "SP", 156408],
-    ["Parnaíba", "PI", 156481],
-    ["Caxias", "MA", 165525],
-    ["Balneário Camboriú", "SC", 145796],
-    ["Toledo", "PR", 142880],
-    ["Teófilo Otoni", "MG", 142016],
-    ["Brusque", "SC", 138445],
-    ["Apucarana", "PR", 137200],
-    ["Itaguaí", "RJ", 134761],
-    ["Resende", "RJ", 134371],
-    ["Três Lagoas", "MS", 130000],
-    ["Uruguaiana", "RS", 130084],
-    ["Salto", "SP", 124200],
-    ["Catalão", "GO", 121000],
-    ["Umuarama", "PR", 117500],
-    ["Parintins", "AM", 116655],
-    ["Ji-Paraná", "RO", 116610]
+    ["Vitória", "ES", 322869]
   ];
 
+  // Carrega base completa (5.500+ municípios IBGE) se cities-data.js
+  // foi incluído antes deste arquivo. Senão, usa o fallback de capitais.
+  const SOURCE = (root.MARKET_TERRITORY_CITIES && root.MARKET_TERRITORY_CITIES.length)
+    ? root.MARKET_TERRITORY_CITIES
+    : CITIES_FALLBACK;
+
   // Hidrata para objetos { n, uf, pop } — uma vez no carregamento
-  const CITIES = CITIES_RAW.map(([n, uf, pop]) => ({ n, uf, pop }));
+  const CITIES = SOURCE.map(function (row) {
+    return { n: row[0], uf: row[1], pop: row[2] };
+  });
 
   /* ---------- NORMALIZAÇÃO E PARSING DE INPUT ---------------- */
 
@@ -585,11 +459,16 @@
     });
   }
 
-  // Popula um <datalist> com todas as cidades da base — autocomplete grátis.
-  function populateDatalist(datalistEl) {
+  // Popula um <datalist> com cidades da base — autocomplete nativo.
+  // Limita às top N por população (default 600) para não pesar o DOM
+  // com 5.500+ <option>. Buscas diretas continuam usando a base inteira.
+  function populateDatalist(datalistEl, limit) {
     if (!datalistEl) return;
+    const max = typeof limit === "number" ? limit : 600;
+    // CITIES vem ordenado por população decrescente (cities-data.js).
+    const list = CITIES.length > max ? CITIES.slice(0, max) : CITIES;
     const frag = document.createDocumentFragment();
-    CITIES.forEach(function (c) {
+    list.forEach(function (c) {
       const opt = document.createElement("option");
       opt.value = c.n + " / " + c.uf;
       frag.appendChild(opt);
