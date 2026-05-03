@@ -233,8 +233,7 @@
         </h4>
         <p class="mkt-points-sub">
           <strong>Nossa Diretoria de Pontos está pronta</strong>
-          para capturar e negociar estes locais para a sua operação —
-          antes mesmo do contrato fechar.
+          para capturar e negociar estes locais para a sua operação.
         </p>
       </div>
 
