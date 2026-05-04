@@ -84,6 +84,7 @@ const HOT_TIME_THRESHOLD_MIN = 5;
 const SESSION_HEADERS = [
   "session_id", "started_at", "last_seen", "total_time_min",
   "visitor_id", "visitor_name", "visitor_email", "visitor_phone", "visitor_city",
+  "visitor_consultor",
   "quiz_completed", "profile", "score",
   "tabs_visited", "presets_clicked", "sliders_changed",
   "user_agent", "referrer", "raw_json"
@@ -253,6 +254,7 @@ function saveSessionLocked_(s) {
     s.visitorEmail || "",
     s.visitorPhone || "",
     s.visitorCity  || "",
+    s.visitorConsultor || "",
     s.quizCompleted ? "yes" : "no",
     s.profile || "",
     computeLeadScore_(s),    // 0-10
@@ -418,7 +420,8 @@ function buildLeadSummary_(s) {
     const phoneDigits = String(s.visitorPhone).replace(/\D/g, "");
     contact.push("📱 " + s.visitorPhone + (phoneDigits.length >= 10 ? ` · wa.me/55${phoneDigits.replace(/^55/, "")}` : ""));
   }
-  if (s.visitorCity)  contact.push("📍 " + s.visitorCity);
+  if (s.visitorCity)      contact.push("📍 " + s.visitorCity);
+  if (s.visitorConsultor) contact.push("🤝 Consultor: " + s.visitorConsultor);
 
   // Quiz answers — mapeamento de valores curtos pra texto legível
   const ANSWER_LABELS = {
@@ -509,7 +512,7 @@ function buildLeadSummary_(s) {
 function saveHotLead_(s) {
   const headers = [
     "received_at", "session_id", "name", "email", "phone", "city",
-    "profile", "time_min", "user_agent", "referrer"
+    "consultor", "profile", "time_min", "user_agent", "referrer"
   ];
   const sheet = getSheet_(SHEET_NAME_LEADS, headers);
   sheet.appendRow([
@@ -519,6 +522,7 @@ function saveHotLead_(s) {
     s.visitorEmail || "",
     s.visitorPhone || "",
     s.visitorCity || "",
+    s.visitorConsultor || "",
     s.profile || "",
     ((s.totalTimeMs || 0) / 60000).toFixed(1),
     s.userAgent || "",
@@ -653,6 +657,121 @@ function sendGeneric_(d, session) {
       muteHttpExceptions: true
     });
   } catch (err) { Logger.log("Generic webhook error: " + err); }
+}
+
+/* ============================================================
+   TESTE RÁPIDO DO TELEGRAM
+   ============================================================
+   Use essa função pra diagnosticar se o Telegram parou de funcionar.
+   Roda DIRETO contra a API do Telegram, sem depender de saveHotLead
+   nem de fake-lead. Loga status e diagnóstico de erro comum.
+
+   COMO USAR:
+   1. Abra Apps Script (Extensões → Apps Script na planilha)
+   2. Selecione "testTelegramNow" no dropdown de funções
+   3. Clique ▶ Executar
+   4. Veja o "Log de execução"
+   ============================================================ */
+function testTelegramNow() {
+  Logger.log("=== TESTE RÁPIDO TELEGRAM ===");
+  Logger.log("Timestamp: " + new Date().toISOString());
+
+  if (!TELEGRAM_BOT_TOKEN) {
+    Logger.log("✗ TELEGRAM_BOT_TOKEN está VAZIO em Script Properties.");
+    Logger.log("  → Vá em ⚙ Configurações do projeto → Propriedades do script");
+    Logger.log("  → Adicione TELEGRAM_BOT_TOKEN com o token do @BotFather");
+    return;
+  }
+  if (!TELEGRAM_CHAT_ID) {
+    Logger.log("✗ TELEGRAM_CHAT_ID está VAZIO em Script Properties.");
+    Logger.log("  → Adicione TELEGRAM_CHAT_ID em Propriedades do script");
+    Logger.log("  → Use @userinfobot no Telegram pra descobrir seu chat_id");
+    return;
+  }
+
+  Logger.log("✓ Token configurado: " + TELEGRAM_BOT_TOKEN.slice(0, 12) + "...");
+  Logger.log("✓ Chat ID configurado: " + TELEGRAM_CHAT_ID);
+
+  // 1) Diagnóstico do bot — getMe verifica se o token é válido
+  Logger.log("\n--- 1/2 · Verificando bot (getMe) ---");
+  try {
+    const r1 = UrlFetchApp.fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getMe`, {
+      muteHttpExceptions: true
+    });
+    const code1 = r1.getResponseCode();
+    const body1 = r1.getContentText();
+    if (code1 === 200) {
+      const info = JSON.parse(body1).result;
+      Logger.log("✓ Bot ativo: @" + info.username + " (" + info.first_name + ")");
+    } else {
+      Logger.log("✗ getMe falhou (status " + code1 + "): " + body1.slice(0, 300));
+      Logger.log("  → Token provavelmente revogado. Gere um novo no @BotFather → /mybots");
+      return;
+    }
+  } catch (e) {
+    Logger.log("✗ Exceção em getMe: " + e);
+    return;
+  }
+
+  // 2) Envia mensagem de teste
+  Logger.log("\n--- 2/2 · Enviando mensagem de teste ---");
+  const stamp = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  const text =
+    "🧪 *Teste AVEND · Telegram OK*\n" +
+    "━━━━━━━━━━━━━━━━━━━━\n\n" +
+    "Se você está vendo isto, o Telegram está funcionando.\n\n" +
+    "_Disparado em " + stamp + " (BRT)_";
+
+  try {
+    const r2 = UrlFetchApp.fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: "post", contentType: "application/json",
+      payload: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: text,
+        parse_mode: "Markdown",
+        disable_web_page_preview: true
+      }),
+      muteHttpExceptions: true
+    });
+    const code2 = r2.getResponseCode();
+    const body2 = r2.getContentText();
+
+    if (code2 === 200) {
+      Logger.log("✓ MENSAGEM ENVIADA. Confira o Telegram.");
+      Logger.log("✓ Tudo OK — o pipeline está vivo.");
+      return;
+    }
+
+    Logger.log("✗ sendMessage falhou (status " + code2 + ")");
+    Logger.log("  Response: " + body2.slice(0, 400));
+
+    // Diagnóstico de erros comuns
+    try {
+      const json = JSON.parse(body2);
+      const desc = json.description || "";
+      if (json.error_code === 400 && /chat not found/i.test(desc)) {
+        Logger.log("\n💡 PROBLEMA: chat_id desconhecido pro bot.");
+        Logger.log("   1. Abra o Telegram, procure pelo bot (@" + (TELEGRAM_BOT_TOKEN.split(":")[0]) + " ...)");
+        Logger.log("   2. Mande /start ou qualquer mensagem pro bot");
+        Logger.log("   3. Use @userinfobot pra confirmar seu chat_id");
+        Logger.log("   4. Atualize TELEGRAM_CHAT_ID em Script Properties se necessário");
+      } else if (json.error_code === 401) {
+        Logger.log("\n💡 PROBLEMA: Token inválido (401 Unauthorized).");
+        Logger.log("   → Bot foi revogado. Gere novo token no @BotFather → /mybots");
+      } else if (json.error_code === 403) {
+        Logger.log("\n💡 PROBLEMA: Bot bloqueado pelo usuário (403 Forbidden).");
+        Logger.log("   → Desbloqueie o bot no Telegram e mande /start novamente.");
+      } else if (/can't parse entities/i.test(desc)) {
+        Logger.log("\n💡 PROBLEMA: Erro de markdown na mensagem (400 parse error).");
+        Logger.log("   → Geralmente é caractere especial em nome do lead. Verifique buildLeadSummary_.");
+      } else {
+        Logger.log("\n💡 Erro inesperado. Veja o Response acima e consulte: ");
+        Logger.log("   https://core.telegram.org/api/errors");
+      }
+    } catch (e) { /* response não é JSON */ }
+  } catch (e) {
+    Logger.log("✗ Exceção em sendMessage: " + e);
+  }
 }
 
 /* Útil pra teste manual: dispara webhook com dados fake e LOGA cada tentativa */

@@ -1411,6 +1411,12 @@ function renderQuizSlide() {
                    autocomplete="address-level2" maxlength="80" value="${escapeAttr(id.city || "")}" />
             <span class="quiz-id-feedback" data-for="city"></span>
           </label>
+          <label class="quiz-id-field">
+            <span class="quiz-id-lbl">Consultor AVEND <small style="opacity:0.6">(opcional)</small></span>
+            <input type="text" id="qid-consultor" class="quiz-id-input" placeholder="Nome de quem está te atendendo"
+                   autocomplete="off" maxlength="80" value="${escapeAttr(id.consultor || "")}" />
+            <span class="quiz-id-feedback" data-for="consultor"></span>
+          </label>
 
           <!-- Honeypot anti-spam: campo invisível que bots preenchem.
                Se vier preenchido, o "lead" é descartado silenciosamente. -->
@@ -1440,7 +1446,7 @@ function renderQuizSlide() {
     }
 
     // Setup feedback visual + sync state
-    ["name", "email", "phone", "city"].forEach(field => {
+    ["name", "email", "phone", "city", "consultor"].forEach(field => {
       const inp = document.getElementById("qid-" + field);
       if (!inp) return;
       inp.addEventListener("input", () => {
@@ -1457,7 +1463,7 @@ function renderQuizSlide() {
         }
         // Sync TELEMETRY
         if (typeof TELEMETRY !== "undefined") {
-          const map = { name: "visitorName", email: "visitorEmail", phone: "visitorPhone", city: "visitorCity" };
+          const map = { name: "visitorName", email: "visitorEmail", phone: "visitorPhone", city: "visitorCity", consultor: "visitorConsultor" };
           // Salva sempre o valor digitado, mesmo se inválido (usuário pode estar terminando de digitar)
           TELEMETRY.session[map[field]] = value || null;
           TELEMETRY.persist();
@@ -1581,6 +1587,14 @@ function validateIdentityField(field, value) {
     return { state: "valid", message: "" };
   }
 
+  if (field === "consultor") {
+    if (value.length < 2)
+      return { state: "error", message: "Nome muito curto" };
+    if (!/[a-zà-ú]/i.test(value))
+      return { state: "error", message: "Nome inválido" };
+    return { state: "valid", message: "" };
+  }
+
   return { state: null, message: "" };
 }
 
@@ -1603,13 +1617,14 @@ function quizNext() {
         TELEMETRY.session.visitorEmail = null;
         TELEMETRY.session.visitorPhone = null;
         TELEMETRY.session.visitorCity = null;
+        TELEMETRY.session.visitorConsultor = null;
         TELEMETRY.session.botSuspected = true;
         TELEMETRY.persist();
       }
     }
     // Registra evento de identificação
     if (typeof TELEMETRY !== "undefined") {
-      const provided = ["name", "email", "phone", "city"].filter(f => quizState.identity[f]);
+      const provided = ["name", "email", "phone", "city", "consultor"].filter(f => quizState.identity[f]);
       if (provided.length > 0) {
         TELEMETRY.track("quiz_identified", { fields: provided });
       } else {
@@ -1685,10 +1700,11 @@ function showQuizResult() {
   if (typeof TELEMETRY !== "undefined") {
     TELEMETRY.session.quizCompleted = true;
     TELEMETRY.session.profile = profile.key;
-    if (quizState.identity.name)  TELEMETRY.session.visitorName  = quizState.identity.name;
-    if (quizState.identity.email) TELEMETRY.session.visitorEmail = quizState.identity.email;
-    if (quizState.identity.phone) TELEMETRY.session.visitorPhone = quizState.identity.phone;
-    if (quizState.identity.city)  TELEMETRY.session.visitorCity  = quizState.identity.city;
+    if (quizState.identity.name)      TELEMETRY.session.visitorName      = quizState.identity.name;
+    if (quizState.identity.email)     TELEMETRY.session.visitorEmail     = quizState.identity.email;
+    if (quizState.identity.phone)     TELEMETRY.session.visitorPhone     = quizState.identity.phone;
+    if (quizState.identity.city)      TELEMETRY.session.visitorCity      = quizState.identity.city;
+    if (quizState.identity.consultor) TELEMETRY.session.visitorConsultor = quizState.identity.consultor;
     TELEMETRY.persist();
   }
 
@@ -2036,6 +2052,7 @@ const TELEMETRY = (() => {
     visitorEmail: null,
     visitorPhone: null,
     visitorCity: null,
+    visitorConsultor: null,
     visitNumber: visitNumber,    // 1ª visita = 1, retornos = 2+
     events: [],
     tabTime: {},
@@ -2051,10 +2068,11 @@ const TELEMETRY = (() => {
   try {
     const u = new URL(window.location.href);
     session.visitorId    = u.searchParams.get("id");
-    session.visitorName  = u.searchParams.get("name") || u.searchParams.get("nome");
-    session.visitorEmail = u.searchParams.get("email");
-    session.visitorPhone = u.searchParams.get("phone") || u.searchParams.get("tel");
-    session.visitorCity  = u.searchParams.get("city")  || u.searchParams.get("cidade");
+    session.visitorName      = u.searchParams.get("name") || u.searchParams.get("nome");
+    session.visitorEmail     = u.searchParams.get("email");
+    session.visitorPhone     = u.searchParams.get("phone") || u.searchParams.get("tel");
+    session.visitorCity      = u.searchParams.get("city")  || u.searchParams.get("cidade");
+    session.visitorConsultor = u.searchParams.get("consultor");
   } catch (e) {}
 
   // Tenta recuperar dados da última sessão (mesmo browser) se for retorno
@@ -2066,10 +2084,11 @@ const TELEMETRY = (() => {
         const pdata = JSON.parse(localStorage.getItem("avend-tel-" + pid) || "{}");
         if (pdata.visitorName || pdata.visitorEmail) {
           // Auto-prefill se não veio via querystring
-          if (!session.visitorName)  session.visitorName  = pdata.visitorName;
-          if (!session.visitorEmail) session.visitorEmail = pdata.visitorEmail;
-          if (!session.visitorPhone) session.visitorPhone = pdata.visitorPhone;
-          if (!session.visitorCity)  session.visitorCity  = pdata.visitorCity;
+          if (!session.visitorName)      session.visitorName      = pdata.visitorName;
+          if (!session.visitorEmail)     session.visitorEmail     = pdata.visitorEmail;
+          if (!session.visitorPhone)     session.visitorPhone     = pdata.visitorPhone;
+          if (!session.visitorCity)      session.visitorCity      = pdata.visitorCity;
+          if (!session.visitorConsultor) session.visitorConsultor = pdata.visitorConsultor;
           if (pdata.profile && !session.previousProfile) session.previousProfile = pdata.profile;
           break;
         }
