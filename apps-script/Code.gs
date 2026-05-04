@@ -1165,17 +1165,25 @@ const SPECIAL_EVENT_FLAG_PROP = "special_event_notified_";
 
 // Quais eventos especiais notificar (false = só registra, não dispara webhook)
 const NOTIFY_SPECIAL_EVENTS = {
-  "lead_intent":           true,   // 🔥 PRIORIDADE MÁXIMA — clicou no botão WhatsApp
-  "returning_visitor":     true,
-  "dwell_milestone_10m":   true,
-  "dwell_milestone_15m":   true,
-  "deep_engagement":       true,
-  "quiz_abandoned":        false   // vira ruído se ligar
+  "lead_intent":                 true,   // 🔥 PRIORIDADE MÁXIMA — clicou no botão WhatsApp
+  "returning_visitor":           true,
+  "dwell_milestone_10m":         true,
+  "dwell_milestone_15m":         true,
+  "deep_engagement":             true,
+  "quiz_abandoned":              false,  // vira ruído se ligar
+  "market_territory_pdf_lead":   true    // 📄 baixou PDF do diagnóstico de mercado (flow próprio)
 };
 
 function maybeNotifySpecialEvent_(sessionId, evt, visitor) {
   if (!evt || !evt.type) return;
   if (!NOTIFY_SPECIAL_EVENTS[evt.type]) return;
+
+  // PDF Download tem flow próprio — auto-contido, info completa no evt.data,
+  // não depende de quiz nem de tempo de página.
+  if (evt.type === "market_territory_pdf_lead") {
+    return notifyPdfDownload_(sessionId, evt, visitor);
+  }
+
   // Só notifica se tiver pelo menos algum contato (senão é ruído)
   const hasContact = !!(visitor.name || visitor.email || visitor.phone);
   if (!hasContact && evt.type !== "deep_engagement") return;
@@ -1266,6 +1274,232 @@ function getSessionFromSheet_(sessionId) {
     }
   }
   return null;
+}
+
+/* ============================================================
+   PDF DOWNLOAD — handler dedicado do diagnóstico de mercado
+   ============================================================
+   Quando o usuário clica em "Imprimir / salvar PDF" e preenche
+   o gate (nome + consultor), o frontend dispara:
+
+     event.type = "market_territory_pdf_lead"
+     event.data = { nome, consultor, cidade, uf, populacao,
+                    ranking, ranking_total, gap, capacidade,
+                    atuais, premium }
+
+   Esse handler:
+   1. Salva o lead na aba "PDF Downloads" (auditoria/CRM)
+   2. Notifica Telegram com formato dedicado (ícone 📄, dados
+      do diagnóstico)
+   3. Não depende de quiz completo nem de tempo de página —
+      o gate em si já é prova de intenção.
+   ============================================================ */
+
+const SHEET_NAME_PDF_DOWNLOADS = "PDF Downloads";
+
+function notifyPdfDownload_(sessionId, evt, visitor) {
+  const data = evt.data || {};
+  const nome      = data.nome || visitor.name || "Anônimo";
+  const consultor = data.consultor || "";
+
+  // Ignore list — não notifica visitas internas
+  if (isIgnoredVisitor_({ name: nome, email: visitor.email, phone: visitor.phone })) {
+    Logger.log("PDF Download ignored (in IGNORE_LIST): " + (visitor.email || nome));
+    return;
+  }
+
+  // Salva sempre (mesmo se Telegram falhar) pra ter o lead na base
+  savePdfDownload_(sessionId, evt, visitor);
+
+  // Notifica
+  if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) sendTelegramPdfDownload_(sessionId, data);
+  if (DISCORD_WEBHOOK)  sendDiscordPdfDownload_(sessionId, data);
+  if (SLACK_WEBHOOK)    sendSlackPdfDownload_(sessionId, data);
+  if (GENERIC_WEBHOOK)  sendGenericPdfDownload_(sessionId, data, visitor);
+}
+
+function savePdfDownload_(sessionId, evt, visitor) {
+  const headers = [
+    "received_at", "session_id", "name", "consultor",
+    "cidade", "uf", "populacao",
+    "ranking", "gap", "capacidade", "atuais_avend", "pontos_premium",
+    "user_agent", "referrer", "raw_event"
+  ];
+  const sheet = getSheet_(SHEET_NAME_PDF_DOWNLOADS, headers);
+  const data = evt.data || {};
+  const rankingStr = data.ranking
+    ? "#" + data.ranking + (data.ranking_total ? " de " + data.ranking_total : "")
+    : "";
+  sheet.appendRow([
+    new Date(),
+    sessionId || "",
+    data.nome || visitor.name || "",
+    data.consultor || "",
+    data.cidade || "",
+    data.uf || "",
+    data.populacao || "",
+    rankingStr,
+    data.gap || 0,
+    data.capacidade || 0,
+    data.atuais || 0,
+    data.premium || 0,
+    visitor.userAgent || "",
+    visitor.referrer || "",
+    JSON.stringify(evt)
+  ]);
+}
+
+function sendTelegramPdfDownload_(sessionId, d) {
+  try {
+    const cidadeUf = (d.cidade || "—") + (d.uf ? " / " + d.uf : "");
+    const popStr = d.populacao ? Number(d.populacao).toLocaleString("pt-BR") : "—";
+    const rankStr = d.ranking
+      ? "#" + d.ranking + (d.ranking_total ? " de " + Number(d.ranking_total).toLocaleString("pt-BR") : "")
+      : null;
+    const gapStr = d.gap ? Number(d.gap).toLocaleString("pt-BR") : "0";
+    const premStr = d.premium ? Number(d.premium).toLocaleString("pt-BR") : "0";
+    const atuaisStr = d.atuais != null ? Number(d.atuais).toLocaleString("pt-BR") : "—";
+    const stamp = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+
+    const lines = [];
+    lines.push("📄 *PDF DOWNLOAD · Diagnóstico de Mercado*");
+    lines.push("━━━━━━━━━━━━━━━━━━━━");
+    lines.push("");
+    lines.push("👤 *Lead:* " + escapeMarkdown_(d.nome || "Anônimo"));
+    if (d.consultor) lines.push("🤝 *Consultor:* " + escapeMarkdown_(d.consultor));
+    lines.push("");
+    lines.push("📍 *Cidade analisada:* " + escapeMarkdown_(cidadeUf));
+    lines.push("👥 *População:* " + popStr + " hab");
+    if (rankStr) lines.push("🏆 *Ranking BR:* " + rankStr);
+    lines.push("");
+    lines.push("📊 *Diagnóstico:*");
+    lines.push("• AVEND operando hoje: *" + atuaisStr + "*");
+    lines.push("• Capacidade total: *" + Number(d.capacidade || 0).toLocaleString("pt-BR") + "*");
+    lines.push("• Gap (vagas livres): *" + gapStr + "*");
+    lines.push("• Pontos premium: *" + premStr + "*");
+    lines.push("");
+    lines.push("_" + stamp + " (BRT)_");
+    if (sessionId) lines.push("_session " + String(sessionId).slice(0, 16) + "..._");
+
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const r = UrlFetchApp.fetch(url, {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: lines.join("\n"),
+        parse_mode: "Markdown",
+        disable_web_page_preview: true
+      }),
+      muteHttpExceptions: true
+    });
+    if (r.getResponseCode() !== 200) {
+      Logger.log("Telegram PDF download FALHOU (status " + r.getResponseCode() + "): " + r.getContentText().slice(0, 300));
+    }
+  } catch (err) { Logger.log("Telegram PDF download error: " + err); }
+}
+
+function sendDiscordPdfDownload_(sessionId, d) {
+  try {
+    const cidadeUf = (d.cidade || "—") + (d.uf ? " / " + d.uf : "");
+    const fields = [];
+    fields.push({ name: "Lead", value: d.nome || "Anônimo", inline: true });
+    if (d.consultor) fields.push({ name: "Consultor", value: d.consultor, inline: true });
+    fields.push({ name: "Cidade", value: cidadeUf, inline: false });
+    fields.push({ name: "População", value: Number(d.populacao || 0).toLocaleString("pt-BR") + " hab", inline: true });
+    if (d.ranking) fields.push({ name: "Ranking BR", value: "#" + d.ranking, inline: true });
+    fields.push({ name: "Gap", value: Number(d.gap || 0).toLocaleString("pt-BR") + " vagas", inline: true });
+    fields.push({ name: "Pontos Premium", value: Number(d.premium || 0).toLocaleString("pt-BR"), inline: true });
+    UrlFetchApp.fetch(DISCORD_WEBHOOK, {
+      method: "post", contentType: "application/json",
+      payload: JSON.stringify({
+        username: "AVEND Lead Bot",
+        embeds: [{
+          title: "📄 PDF Download · Diagnóstico de Mercado",
+          color: 0x4B6CE2,
+          fields: fields,
+          timestamp: new Date().toISOString(),
+          footer: { text: "session " + (sessionId || "").slice(0, 16) + "..." }
+        }]
+      }),
+      muteHttpExceptions: true
+    });
+  } catch (err) { Logger.log("Discord PDF download error: " + err); }
+}
+
+function sendSlackPdfDownload_(sessionId, d) {
+  try {
+    const cidadeUf = (d.cidade || "—") + (d.uf ? " / " + d.uf : "");
+    const text = `📄 *PDF Download · Diagnóstico de Mercado*\n` +
+      `*Lead:* ${d.nome || "Anônimo"}` +
+      (d.consultor ? ` · *Consultor:* ${d.consultor}` : "") + `\n` +
+      `*Cidade:* ${cidadeUf} · *Pop:* ${Number(d.populacao || 0).toLocaleString("pt-BR")} hab\n` +
+      `*Gap:* ${Number(d.gap || 0).toLocaleString("pt-BR")} · *Premium:* ${Number(d.premium || 0).toLocaleString("pt-BR")}`;
+    UrlFetchApp.fetch(SLACK_WEBHOOK, {
+      method: "post", contentType: "application/json",
+      payload: JSON.stringify({ text: text }),
+      muteHttpExceptions: true
+    });
+  } catch (err) { Logger.log("Slack PDF download error: " + err); }
+}
+
+function sendGenericPdfDownload_(sessionId, d, visitor) {
+  try {
+    UrlFetchApp.fetch(GENERIC_WEBHOOK, {
+      method: "post", contentType: "application/json",
+      payload: JSON.stringify({
+        type: "pdf_download",
+        session_id: sessionId,
+        lead: d.nome || visitor.name || "",
+        consultor: d.consultor || "",
+        city: d.cidade || "",
+        uf: d.uf || "",
+        population: d.populacao || 0,
+        ranking: d.ranking || null,
+        gap: d.gap || 0,
+        capacity: d.capacidade || 0,
+        avend_running: d.atuais || 0,
+        premium_spots: d.premium || 0,
+        timestamp: new Date().toISOString()
+      }),
+      muteHttpExceptions: true
+    });
+  } catch (err) { Logger.log("Generic PDF download error: " + err); }
+}
+
+/* Teste rápido do flow PDF — simula o evento e dispara handler */
+function testPdfDownloadFlow() {
+  Logger.log("=== TESTE · PDF DOWNLOAD FLOW ===");
+  const fakeEvt = {
+    t: 12000,
+    type: "market_territory_pdf_lead",
+    data: {
+      nome: "Maria Teste",
+      consultor: "Giovanni",
+      cidade: "Catanduva",
+      uf: "SP",
+      populacao: 119275,
+      ranking: 276,
+      ranking_total: 5571,
+      gap: 282,
+      capacidade: 298,
+      atuais: 16,
+      premium: 69
+    }
+  };
+  const fakeVisitor = {
+    name: "Maria Teste",
+    email: "",
+    phone: "",
+    city: "Catanduva / SP",
+    userAgent: "Mozilla/5.0 (test)",
+    referrer: ""
+  };
+  // Limpa flag pra forçar disparo
+  PropertiesService.getScriptProperties()
+    .deleteProperty(SPECIAL_EVENT_FLAG_PROP + "test_session_pdf_" + "_market_territory_pdf_lead");
+  notifyPdfDownload_("test_session_pdf", fakeEvt, fakeVisitor);
+  Logger.log("✓ Disparado. Confira: aba 'PDF Downloads' + Telegram.");
 }
 
 /* TESTE DA IGNORE_LIST — rode no editor pra diagnosticar */

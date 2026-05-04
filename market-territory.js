@@ -738,10 +738,18 @@
             }
             if (typeof root.TELEMETRY.persist === "function") root.TELEMETRY.persist();
             if (typeof root.TELEMETRY.track === "function") {
+              const _m = data.analise_mercado || {};
+              const _p = data.mapeamento_pontos || {};
               root.TELEMETRY.track("market_territory_pdf_lead", {
                 nome: leadInfo.nome,
                 consultor: leadInfo.consultor,
-                cidade: cidade, uf: uf, populacao: pop
+                cidade: cidade, uf: uf, populacao: pop,
+                ranking: ranking ? ranking.posicao : null,
+                ranking_total: ranking ? ranking.total : null,
+                gap: _m.gap_oportunidade || 0,
+                capacidade: _m.capacidade_maxima || 0,
+                atuais: _m.maquinas_atuais || 0,
+                premium: _p.total_premium || 0
               });
             }
           }

@@ -2113,7 +2113,8 @@ const TELEMETRY = (() => {
     "quiz_completed", "quiz_plan_applied", "quiz_identified", "page_loaded",
     "returning_visitor", "deep_engagement", "dwell_milestone_5m",
     "dwell_milestone_10m", "dwell_milestone_15m",
-    "lead_intent"  // 🔥 lead clicou em "conversar com a AVEND"
+    "lead_intent",                  // 🔥 lead clicou em "conversar com a AVEND"
+    "market_territory_pdf_lead"     // 📄 lead baixou PDF do diagnóstico de mercado
   ]);
 
   function postJSON_(payload) {
