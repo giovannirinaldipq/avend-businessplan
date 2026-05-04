@@ -177,17 +177,16 @@
     return { posicao: idx + 1, total: CITIES.length };
   }
 
-  // Cenários de densidade global aplicados à população local,
-  // filtrados pelo share AVEND (35% — apenas snacks/bebidas).
-  // Premissa: composição café/snacks similar à do Brasil (~65/35).
+  // Cenários de densidade global aplicados à população local.
+  // Mostram o teto TOTAL de vending — todas as máquinas, todos
+  // os tipos. Coerente com a "capacidade máxima" da cidade.
   // Ratios totais: Japão 1:25 · Coreia/EUA 1:65 · China 1:500 · Brasil 1:2.500.
   function getScenarios(pop) {
-    const target = pop * SHARE_AVEND;
     return {
-      brasil:    { ratio: 2500, label: "Brasil (atual)",     flag: "🇧🇷", value: Math.floor(target / 2500) },
-      china:     { ratio: 500,  label: "China",              flag: "🇨🇳", value: Math.floor(target / 500) },
-      coreia_eua:{ ratio: 65,   label: "Coreia / EUA",       flag: "🇰🇷", value: Math.floor(target / 65) },
-      japao:     { ratio: 25,   label: "Japão (saturação)",  flag: "🇯🇵", value: Math.floor(target / 25) }
+      brasil:    { ratio: 2500, label: "Brasil (atual)",     flag: "🇧🇷", value: Math.floor(pop / 2500) },
+      china:     { ratio: 500,  label: "China",              flag: "🇨🇳", value: Math.floor(pop / 500) },
+      coreia_eua:{ ratio: 65,   label: "Coreia / EUA",       flag: "🇰🇷", value: Math.floor(pop / 65) },
+      japao:     { ratio: 25,   label: "Japão (saturação)",  flag: "🇯🇵", value: Math.floor(pop / 25) }
     };
   }
 
@@ -232,17 +231,22 @@
     const pop = Math.max(0, Math.floor(Number(populacao) || 0));
     const fator = pop / 100000;
 
-    // Mercado VENDING TOTAL (todas as máquinas — café + snacks + bebidas)
+    // Mercado VENDING TOTAL (teto físico da cidade — independente
+    // de que tipo de máquina ocupa). Capacidade não muda por
+    // composição café/snacks; ela é o limite estrutural do território.
     const total_vending_atual = Math.floor(pop / 2500);
-    const total_vending_max = Math.floor(pop / 400);
+    const capacidade_maxima = Math.floor(pop / 400);
 
-    // Mercado SEGMENTO AVEND (apenas snacks/bebidas — 35% do total)
+    // Filtro 35% afeta APENAS o "quantas máquinas inseridas" do
+    // segmento AVEND (snacks/bebidas) — porque o café (65%) não
+    // compete com a AVEND.
     const maquinas_atuais = Math.floor(total_vending_atual * SHARE_AVEND);
-    const capacidade_maxima = Math.floor(total_vending_max * SHARE_AVEND);
-    const gap_oportunidade = Math.max(0, capacidade_maxima - maquinas_atuais);
-
-    // Estimativa do segmento café (informativa — não compete)
     const cafe_atual = Math.floor(total_vending_atual * SHARE_CAFE);
+
+    // Gap = capacidade total da cidade menos máquinas AVEND atuais.
+    // Mostra o espaço bruto que a cidade ainda comporta — onde
+    // a AVEND pode crescer.
+    const gap_oportunidade = Math.max(0, capacidade_maxima - maquinas_atuais);
 
     const hospitais = Math.floor(fator * 3);
     const industrias = Math.floor(fator * 8);
@@ -257,7 +261,7 @@
       analise_mercado: {
         maquinas_atuais, capacidade_maxima, gap_oportunidade,
         // Contexto: total vending e participação café (não-concorrente)
-        total_vending_atual, total_vending_max, cafe_atual,
+        total_vending_atual, cafe_atual,
         share_avend: SHARE_AVEND, share_cafe: SHARE_CAFE
       },
       mapeamento_pontos: { hospitais, industrias, academias, corporativo, total_premium }
@@ -371,7 +375,7 @@
             aria-label="Donut: ${m.maquinas_atuais} máquinas operando hoje vs. ${m.gap_oportunidade} vagas livres"></canvas>
           <div class="mkt-gap-center">
             <div class="mkt-gap-pct">${num(gapPct)}<span class="mkt-gap-pct-sym">%</span></div>
-            <div class="mkt-gap-lbl">do mercado AVEND<br/>ainda livre</div>
+            <div class="mkt-gap-lbl">do mercado<br/>ainda livre</div>
           </div>
         </div>
         <div class="mkt-gap-stats">
@@ -387,17 +391,17 @@
           <div class="mkt-stat mkt-stat-max">
             <span class="mkt-stat-dot" aria-hidden="true"></span>
             <span class="mkt-stat-lbl">
-              Capacidade máxima (segmento AVEND)
-              ${info("Saturação realista do segmento snacks/bebidas: (pop ÷ 400) × 35%. O teto pop/400 é meio-termo entre Brasil atual (1:2.500) e mercados maduros (EUA/Coreia 1:65), filtrado pelo share de 35% do segmento AVEND.")}
+              Capacidade máxima
+              ${info("Teto físico de vending na cidade — todos os tipos (snacks, bebidas, café). Cálculo: pop ÷ 400. Meio-termo entre densidade Brasil atual (1:2.500) e mercados maduros como EUA/Coreia (1:65), considerando o ritmo de adoção projetado pela ABVM (CAGR 11,58% até 2032). A composição café/snacks NÃO altera este teto — ele é estrutural ao território.")}
             </span>
             <span class="mkt-stat-val">${num(m.capacidade_maxima)}</span>
-            <span class="mkt-stat-aux">teto realista no horizonte</span>
+            <span class="mkt-stat-aux">teto físico do território (todos os tipos)</span>
           </div>
           <div class="mkt-stat mkt-stat-gap">
             <span class="mkt-stat-dot" aria-hidden="true"></span>
             <span class="mkt-stat-lbl">
               Gap de oportunidade
-              ${info("Capacidade máxima menos máquinas operando hoje no segmento AVEND. É o espaço que a cidade ainda comporta — onde a AVEND pode crescer sem canibalizar mercado existente.")}
+              ${info("Capacidade total da cidade menos máquinas AVEND operando hoje. É o espaço bruto que a cidade ainda comporta — onde a AVEND pode crescer.")}
             </span>
             <span class="mkt-stat-val">${num(m.gap_oportunidade)}</span>
             <span class="mkt-stat-aux">vagas que a cidade ainda comporta</span>
@@ -410,11 +414,11 @@
         <header class="mkt-scenarios-head">
           <h4 class="mkt-scenarios-title">
             E se ${escapeHtml(data.cidade)} alcançasse a densidade de outros mercados?
-            ${info("Aplica a densidade vending de cada país à população local, filtrada pelos 35% do segmento AVEND (snacks/bebidas). Os 65% de máquinas de café estão excluídos por não competirem com a AVEND. Fontes: ABVM, JVMA, Grand View Research.")}
+            ${info("Aplica a densidade real de vending por habitante de cada país à população local. Mostra o teto total de máquinas (todos os tipos) que a cidade comportaria conforme o mercado matura. Fontes: ABVM, JVMA, Grand View Research.")}
           </h4>
           <p class="mkt-scenarios-sub">
-            Densidades mundiais aplicadas a <strong>${fmtNum(data.populacao)}</strong> habitantes,
-            no segmento <strong>snacks &amp; bebidas</strong> (35% do mercado vending).
+            Densidades mundiais aplicadas à população de <strong>${fmtNum(data.populacao)}</strong> habitantes
+            — referência <strong>total vending</strong> (todos os tipos de máquina).
           </p>
         </header>
         <div class="mkt-scenarios-grid">
