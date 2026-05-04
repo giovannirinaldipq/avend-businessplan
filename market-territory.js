@@ -654,22 +654,67 @@
       printBtn.addEventListener("click", () => {
         const cidade = ctx.cidade || "";
         const uf = ctx.uf || "";
-        // Marca o body pra o CSS @media print exibir só este relatório
-        document.body.classList.add("is-mkt-printing");
+        const pop = ctx.populacao || 0;
         const reportEl = container.querySelector(".mkt-report");
-        if (reportEl) reportEl.classList.add("mkt-report-printing");
-        // Título dinâmico do PDF (vira nome do arquivo)
+        if (!reportEl) return;
+
+        // ESTRATÉGIA: clonar o relatório pra um container ISOLADO no body,
+        // esconder o resto do body inteiro via CSS print, e imprimir só
+        // esse container. Evita páginas em branco do resto da árvore DOM.
+
+        const clone = reportEl.cloneNode(true);
+
+        // Remove do clone o que não faz sentido em PDF
+        clone.querySelectorAll(".mkt-info, .mkt-actions, .mkt-rank-badge[title]")
+          .forEach(el => {
+            if (el.classList.contains("mkt-info")) el.remove();
+            else if (el.classList.contains("mkt-actions")) el.remove();
+          });
+
+        // Constrói o print-area com header AVEND e footer
+        const dataStr = new Date().toLocaleDateString("pt-BR", {
+          day: "2-digit", month: "2-digit", year: "numeric"
+        });
+        const printArea = document.createElement("div");
+        printArea.className = "mkt-print-area";
+        printArea.innerHTML =
+          '<header class="mkt-print-header">' +
+            '<div class="mkt-print-brand">AVEND</div>' +
+            '<div class="mkt-print-brand-sub">Vending Machines &amp; Franchising</div>' +
+            '<h1 class="mkt-print-title">Diagnóstico de Mercado e Território</h1>' +
+            '<div class="mkt-print-meta">' +
+              '<strong>' + escapeHtml(cidade) + (uf ? ' / ' + escapeHtml(uf) : '') + '</strong>' +
+              ' · População ' + fmtNum(pop) + ' hab' +
+              ' · Gerado em ' + dataStr +
+            '</div>' +
+          '</header>';
+        printArea.appendChild(clone);
+        printArea.insertAdjacentHTML("beforeend",
+          '<footer class="mkt-print-footer">' +
+            'AVEND · Diagnóstico inicial baseado em densidade IBGE 2025 e benchmarks da rede. ' +
+            'Não substitui o relatório de mercado oficial. ' +
+            '<span class="mkt-print-url">avend.com.br</span>' +
+          '</footer>'
+        );
+
+        document.body.appendChild(printArea);
+        document.body.classList.add("is-mkt-printing");
+
+        // Nome de arquivo amigável (vira nome do PDF salvo)
         const prevTitle = document.title;
-        document.title = `Diagnóstico AVEND · ${cidade}${uf ? "/" + uf : ""}`;
+        const safeName = slug(cidade) + (uf ? "-" + uf.toLowerCase() : "");
+        document.title = "Diagnostico-AVEND-" + (safeName || "mercado");
+
         const cleanup = () => {
           document.body.classList.remove("is-mkt-printing");
-          if (reportEl) reportEl.classList.remove("mkt-report-printing");
+          if (printArea.parentNode) printArea.parentNode.removeChild(printArea);
           document.title = prevTitle;
           window.removeEventListener("afterprint", cleanup);
         };
         window.addEventListener("afterprint", cleanup);
-        // Pequeno delay pro DOM aplicar a classe antes do dialog
-        setTimeout(() => window.print(), 50);
+        // Pequeno delay pro layout calcular antes do dialog
+        setTimeout(() => window.print(), 100);
+
         if (root.TELEMETRY && typeof root.TELEMETRY.track === "function") {
           root.TELEMETRY.track("market_territory_print", { cidade, uf });
         }

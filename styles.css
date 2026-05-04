@@ -5825,128 +5825,376 @@ body.quiz-open { overflow: hidden; }
 }
 
 /* ============================================================
-   PRINT — diagnóstico vira PDF clean (botão "Imprimir / PDF")
+   PRINT — clone do relatório vai pra .mkt-print-area no body
+   e o resto do body é escondido. Garante PDF clean sem páginas
+   em branco do resto do site.
    ============================================================ */
+
+/* Container do print — invisível em tela, visível só no print */
+.mkt-print-area {
+  display: none;
+}
+
 @media print {
+  @page {
+    margin: 14mm 13mm 12mm;
+    size: A4 portrait;
+  }
+
+  /* Esconde tudo do body, exceto o print-area */
+  body.is-mkt-printing > * {
+    display: none !important;
+  }
   body.is-mkt-printing {
     background: #fff !important;
-    color: #111 !important;
-  }
-  body.is-mkt-printing > *:not(.stage),
-  body.is-mkt-printing .topbar,
-  body.is-mkt-printing .bg-orbs,
-  body.is-mkt-printing .quiz-overlay,
-  body.is-mkt-printing .quiz-result-overlay {
-    display: none !important;
-  }
-  body.is-mkt-printing .stage,
-  body.is-mkt-printing .page,
-  body.is-mkt-printing .page#mercado {
-    display: block !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    background: #fff !important;
-  }
-  /* Esconde tudo da página Mercado exceto o relatório que vai imprimir */
-  body.is-mkt-printing .page#mercado > *:not(#mkt-territory-block),
-  body.is-mkt-printing .mkt-territory-block-head,
-  body.is-mkt-printing .mkt-territory-search,
-  body.is-mkt-printing .mkt-territory-hint,
-  body.is-mkt-printing .mkt-actions,
-  body.is-mkt-printing .mkt-info {
-    display: none !important;
-  }
-  body.is-mkt-printing .mkt-territory-block {
-    background: #fff !important;
-    border: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-  body.is-mkt-printing .mkt-territory-block::before { display: none !important; }
-  body.is-mkt-printing .market-territory-wrap {
-    background: #fff !important;
-    border: none !important;
-    padding: 16px !important;
-    margin: 0 !important;
-    animation: none !important;
-  }
-  /* Tipografia para print: contraste alto, sem gradiente em texto */
-  body.is-mkt-printing .mkt-report,
-  body.is-mkt-printing .mkt-report * {
     color: #1a1a2e !important;
-    background: transparent !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  body.is-mkt-printing .mkt-print-area {
+    display: block !important;
+    background: #fff !important;
+    color: #1a1a2e !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    font-size: 11pt;
+    line-height: 1.45;
+    width: 100%;
+    max-width: 184mm;
+    margin: 0 auto;
+    padding: 0;
+  }
+  .mkt-print-area * {
     box-shadow: none !important;
     text-shadow: none !important;
     filter: none !important;
+    animation: none !important;
+    transition: none !important;
   }
-  body.is-mkt-printing .mkt-eyebrow,
-  body.is-mkt-printing .mkt-rank-pos,
-  body.is-mkt-printing .mkt-points-total-val,
-  body.is-mkt-printing .mkt-gap-pct,
-  body.is-mkt-printing .mkt-scen-topo .mkt-scen-val {
+
+  /* ---------- Header do PDF ------------------------------- */
+  .mkt-print-header {
+    border-bottom: 2px solid #4B6CE2;
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+  }
+  .mkt-print-brand {
+    font-size: 18pt;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: #4B6CE2;
+    line-height: 1;
+  }
+  .mkt-print-brand-sub {
+    font-size: 8pt;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #8B30E6;
+    margin-top: 2px;
+  }
+  .mkt-print-title {
+    font-size: 16pt;
+    font-weight: 800;
+    color: #1a1a2e;
+    margin: 12px 0 4px;
+    line-height: 1.15;
+  }
+  .mkt-print-meta {
+    font-size: 9pt;
+    color: #555;
+  }
+  .mkt-print-meta strong {
+    color: #1a1a2e;
+    font-weight: 700;
+  }
+
+  /* ---------- Footer do PDF ------------------------------- */
+  .mkt-print-footer {
+    margin-top: 18px;
+    padding-top: 8px;
+    border-top: 1px solid #cdd2e0;
+    font-size: 8pt;
+    color: #888;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .mkt-print-url {
+    color: #4B6CE2;
+    font-weight: 700;
+  }
+
+  /* ---------- Conteúdo do relatório (clone) --------------- */
+  .mkt-print-area .mkt-report,
+  .mkt-print-area .mkt-report * {
+    color: #1a1a2e;
+    background: transparent;
+  }
+
+  /* Cabeçalho da seção */
+  .mkt-print-area .mkt-head {
+    text-align: left;
+    border-bottom: 1px solid #cdd2e0;
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+  }
+  .mkt-print-area .mkt-eyebrow {
+    color: #4B6CE2 !important;
+    -webkit-text-fill-color: #4B6CE2 !important;
     background: none !important;
     -webkit-background-clip: initial !important;
     background-clip: initial !important;
+    font-size: 8pt;
+    letter-spacing: 0.18em;
+    margin-bottom: 4px;
+  }
+  .mkt-print-area .mkt-title {
+    font-size: 14pt;
+    color: #1a1a2e !important;
+  }
+  .mkt-print-area .mkt-uf {
+    color: #4B6CE2 !important;
+    font-size: 0.7em;
+  }
+  .mkt-print-area .mkt-sub {
+    font-size: 9.5pt;
+    color: #555;
+  }
+  .mkt-print-area .mkt-tier-tag {
+    background: #eef0ff !important;
+    color: #4B6CE2 !important;
+    border: 1px solid #c5cef5 !important;
+    font-size: 7.5pt;
+  }
+
+  /* Ranking badge */
+  .mkt-print-area .mkt-rank-badge {
+    background: #f0f8ff !important;
+    border: 1px solid #c5cef5 !important;
+    color: #1a1a2e !important;
+    margin-top: 8px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 9pt;
+  }
+  .mkt-print-area .mkt-rank-pos {
     color: #4B6CE2 !important;
     -webkit-text-fill-color: #4B6CE2 !important;
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    background-clip: initial !important;
+    font-size: 11pt;
   }
-  body.is-mkt-printing .mkt-stat,
-  body.is-mkt-printing .mkt-pt-row,
-  body.is-mkt-printing .mkt-scen,
-  body.is-mkt-printing .mkt-points-total,
-  body.is-mkt-printing .mkt-rank-badge {
-    background: #f7f8fc !important;
-    border: 1px solid #cdd2e0 !important;
-    page-break-inside: avoid;
+  .mkt-print-area .mkt-rank-aux {
+    color: #555 !important;
+    font-size: 8.5pt;
   }
-  body.is-mkt-printing .mkt-tier-banner.mkt-tier-warn {
+
+  /* Tier banner */
+  .mkt-print-area .mkt-tier-banner.mkt-tier-warn {
     background: #fff7e6 !important;
     border: 1px solid #ffb020 !important;
+    color: #8a5a00 !important;
+    font-size: 9pt;
+    padding: 8px 12px;
+    margin: 10px 0 14px;
+    page-break-inside: avoid;
   }
-  body.is-mkt-printing .mkt-tier-banner.mkt-tier-warn,
-  body.is-mkt-printing .mkt-tier-banner.mkt-tier-warn * {
+  .mkt-print-area .mkt-tier-banner.mkt-tier-warn * {
     color: #8a5a00 !important;
   }
-  body.is-mkt-printing .mkt-pt-bar-wrap {
+  .mkt-print-area .mkt-tier-icon { color: #ffb020 !important; }
+
+  /* Bloco do gap (donut + stats) — gráfico canvas vira imagem */
+  .mkt-print-area .mkt-gap-block {
+    grid-template-columns: 200px 1fr !important;
+    gap: 18px !important;
+    margin-bottom: 12px;
+    page-break-inside: avoid;
+  }
+  .mkt-print-area .mkt-gap-chart-wrap {
+    width: 200px !important;
+    height: 200px !important;
+  }
+  .mkt-print-area .mkt-gap-chart-wrap canvas {
+    width: 200px !important;
+    height: 200px !important;
+  }
+  .mkt-print-area .mkt-gap-pct {
+    color: #4B6CE2 !important;
+    -webkit-text-fill-color: #4B6CE2 !important;
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    background-clip: initial !important;
+    font-size: 28pt !important;
+  }
+  .mkt-print-area .mkt-gap-lbl {
+    color: #666 !important;
+    font-size: 7pt;
+  }
+  .mkt-print-area .mkt-stat {
+    background: #f7f8fc !important;
+    border: 1px solid #cdd2e0 !important;
+    color: #1a1a2e !important;
+    padding: 8px 12px 8px 30px !important;
+    page-break-inside: avoid;
+  }
+  .mkt-print-area .mkt-stat-lbl { color: #555 !important; font-size: 8.5pt; }
+  .mkt-print-area .mkt-stat-val {
+    color: #1a1a2e !important;
+    -webkit-text-fill-color: #1a1a2e !important;
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    background-clip: initial !important;
+    font-size: 14pt !important;
+  }
+  .mkt-print-area .mkt-stat-aux { color: #888 !important; font-size: 7.5pt; }
+  .mkt-print-area .mkt-stat-current .mkt-stat-dot { background: #4B6CE2 !important; }
+  .mkt-print-area .mkt-stat-max     .mkt-stat-dot { background: #aaa !important; }
+  .mkt-print-area .mkt-stat-gap     .mkt-stat-dot { background: #3DD9D6 !important; }
+  .mkt-print-area .mkt-stat-gap {
+    background: #ecfaf9 !important;
+    border-color: #3DD9D6 !important;
+  }
+  .mkt-print-area .mkt-stat-gap .mkt-stat-val {
+    color: #128C8A !important;
+    -webkit-text-fill-color: #128C8A !important;
+  }
+
+  /* Cenários globais */
+  .mkt-print-area .mkt-scenarios {
+    background: #f7f8fc !important;
+    border: 1px solid #cdd2e0 !important;
+    padding: 12px 14px !important;
+    margin: 14px 0 !important;
+    page-break-inside: avoid;
+  }
+  .mkt-print-area .mkt-scenarios-title {
+    font-size: 11pt;
+    color: #1a1a2e !important;
+  }
+  .mkt-print-area .mkt-scenarios-sub {
+    font-size: 8.5pt;
+    color: #666 !important;
+  }
+  .mkt-print-area .mkt-scenarios-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px !important;
+  }
+  .mkt-print-area .mkt-scen {
+    background: #fff !important;
+    border: 1px solid #cdd2e0 !important;
+    color: #1a1a2e !important;
+    padding: 8px 10px !important;
+    page-break-inside: avoid;
+  }
+  .mkt-print-area .mkt-scen-flag { font-size: 14pt; }
+  .mkt-print-area .mkt-scen-role { color: #888 !important; font-size: 6.5pt; }
+  .mkt-print-area .mkt-scen-country { color: #1a1a2e !important; font-size: 8.5pt; }
+  .mkt-print-area .mkt-scen-ratio { color: #666 !important; font-size: 7.5pt; }
+  .mkt-print-area .mkt-scen-ratio strong { color: #1a1a2e !important; }
+  .mkt-print-area .mkt-scen-val {
+    color: #1a1a2e !important;
+    -webkit-text-fill-color: #1a1a2e !important;
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    background-clip: initial !important;
+    font-size: 14pt !important;
+  }
+  .mkt-print-area .mkt-scen-unit { color: #888 !important; }
+  .mkt-print-area .mkt-scen-alvo {
+    border-color: #3DD9D6 !important;
+    background: #ecfaf9 !important;
+  }
+  .mkt-print-area .mkt-scen-alvo .mkt-scen-val { color: #128C8A !important; -webkit-text-fill-color: #128C8A !important; }
+  .mkt-print-area .mkt-scen-topo {
+    border-color: #8B30E6 !important;
+    background: #f7f0ff !important;
+  }
+  .mkt-print-area .mkt-scen-topo .mkt-scen-val { color: #8B30E6 !important; -webkit-text-fill-color: #8B30E6 !important; }
+
+  /* Bloco de urgência */
+  .mkt-print-area .mkt-urgency {
+    background: #fff7e6 !important;
+    border: 1px solid #ffb020 !important;
+    color: #8a5a00 !important;
+    padding: 10px 14px !important;
+    margin: 12px 0 14px !important;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+  }
+  .mkt-print-area .mkt-urgency * { color: #8a5a00 !important; }
+
+  /* Pontos premium */
+  .mkt-print-area .mkt-points-head { margin-bottom: 10px; }
+  .mkt-print-area .mkt-points-title {
+    font-size: 11pt;
+    color: #1a1a2e !important;
+  }
+  .mkt-print-area .mkt-points-sub {
+    color: #555 !important;
+    font-size: 9pt;
+  }
+  .mkt-print-area .mkt-points-sub strong { color: #128C8A !important; }
+  .mkt-print-area .mkt-points-bars {
+    gap: 6px !important;
+    margin-bottom: 14px;
+  }
+  .mkt-print-area .mkt-pt-row {
+    background: #f7f8fc !important;
+    border: 1px solid #cdd2e0 !important;
+    padding: 8px 12px !important;
+    grid-template-columns: 32px 1fr !important;
+    page-break-inside: avoid;
+  }
+  .mkt-print-area .mkt-pt-icon {
+    background: #eef0ff !important;
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 14pt !important;
+  }
+  .mkt-print-area .mkt-pt-title { color: #1a1a2e !important; font-size: 9.5pt; }
+  .mkt-print-area .mkt-pt-count { color: #4B6CE2 !important; font-size: 12pt; }
+  .mkt-print-area .mkt-pt-bar-wrap {
     background: #e3e7f0 !important;
     border: 1px solid #cdd2e0 !important;
   }
-  body.is-mkt-printing .mkt-pt-bar {
-    background: #4B6CE2 !important;
-  }
-  body.is-mkt-printing .mkt-urgency {
-    background: #fff7e6 !important;
-    border: 1px solid #ffb020 !important;
-  }
-  body.is-mkt-printing .mkt-urgency * {
-    color: #8a5a00 !important;
-  }
-  body.is-mkt-printing .mkt-disclaimer {
-    color: #888 !important;
-    font-size: 10px !important;
-  }
-  /* Header AVEND no topo do PDF */
-  body.is-mkt-printing .mkt-report::before {
-    content: "AVEND · Diagnóstico de Mercado e Território";
-    display: block;
-    font-size: 11px;
-    font-weight: 700;
-    color: #4B6CE2 !important;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    text-align: center;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 2px solid #4B6CE2;
-  }
-  /* Paginação amigável */
-  body.is-mkt-printing .mkt-scenarios,
-  body.is-mkt-printing .mkt-points-bars,
-  body.is-mkt-printing .mkt-points-total {
+  .mkt-print-area .mkt-pt-bar { background: #4B6CE2 !important; animation: none !important; }
+  .mkt-print-area .mkt-pt-desc { color: #888 !important; font-size: 7.5pt; }
+
+  /* Total premium */
+  .mkt-print-area .mkt-points-total {
+    background: #f0f8ff !important;
+    border: 1px solid #4B6CE2 !important;
+    color: #1a1a2e !important;
+    padding: 12px 16px !important;
     page-break-inside: avoid;
   }
-  @page {
-    margin: 18mm 15mm;
-    size: A4 portrait;
+  .mkt-print-area .mkt-points-total-eyebrow { color: #555 !important; font-size: 7.5pt; }
+  .mkt-print-area .mkt-points-total-city { color: #1a1a2e !important; font-size: 10pt; }
+  .mkt-print-area .mkt-points-total-val {
+    color: #4B6CE2 !important;
+    -webkit-text-fill-color: #4B6CE2 !important;
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    background-clip: initial !important;
+    font-size: 22pt !important;
   }
+
+  /* Disclaimer */
+  .mkt-print-area .mkt-disclaimer {
+    color: #999 !important;
+    font-size: 7.5pt !important;
+    text-align: left;
+    margin-top: 10px;
+  }
+
+  /* Quebra de página inteligente */
+  .mkt-print-area .mkt-scenarios,
+  .mkt-print-area .mkt-points-head,
+  .mkt-print-area .mkt-urgency {
+    page-break-after: avoid;
+  }
+  .mkt-print-area .mkt-points-bars { page-break-before: avoid; }
 }
