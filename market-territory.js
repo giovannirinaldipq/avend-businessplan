@@ -252,7 +252,8 @@
     const industrias = Math.floor(fator * 8);
     const academias = Math.floor(fator * 15);
     const corporativo = Math.floor(fator * 5);
-    const total_premium = hospitais + industrias + academias + corporativo;
+    const empresas = Math.floor(fator * 30);  // empresas com 50+ funcionários
+    const total_premium = hospitais + industrias + academias + corporativo + empresas;
 
     return {
       cidade: cidade || "",
@@ -264,7 +265,7 @@
         total_vending_atual, cafe_atual,
         share_avend: SHARE_AVEND, share_cafe: SHARE_CAFE
       },
-      mapeamento_pontos: { hospitais, industrias, academias, corporativo, total_premium }
+      mapeamento_pontos: { hospitais, industrias, academias, corporativo, empresas, total_premium }
     };
   }
 
@@ -441,11 +442,14 @@
       <div class="mkt-points-head">
         <h4 class="mkt-points-title">
           Pontos premium mapeáveis em ${escapeHtml(data.cidade)}
-          ${info("Estimativa de locais ideais para instalação de vending. Multiplicadores aplicados a cada 100 mil habitantes, calibrados a partir de benchmarks da rede AVEND e do IBGE Cadastro Central de Empresas.")}
+          ${info("Estimativa dos PRINCIPAIS locais para instalação de vending — alta densidade de público, ticket médio elevado, contratos estáveis. Multiplicadores aplicados a cada 100 mil habitantes, calibrados a partir de benchmarks da rede AVEND e bases RAIS/IBGE 2022 (Cadastro Central de Empresas e CNES).")}
         </h4>
         <p class="mkt-points-sub">
           <strong>Nossa Diretoria de Pontos está pronta</strong>
           para capturar e negociar estes locais para a sua operação.
+          O total de ${fmtNum(m.gap_oportunidade)} vagas que a cidade comporta
+          inclui também pontos médios (mercados, postos, escolas, condomínios) —
+          os premium abaixo são os <strong>de maior retorno</strong>.
         </p>
       </div>
 
@@ -454,6 +458,7 @@
         ${pointBar("🏭", "Grandes indústrias e galpões", p.industrias, p.total_premium, "fluxo cativo", "Multiplicador ×8 por 100 mil hab. Inclui plantas industriais, galpões logísticos e centros de distribuição com colaboradores em turnos.")}
         ${pointBar("💪", "Academias de rede", p.academias, p.total_premium, "público fitness, alto giro", "Multiplicador ×15 por 100 mil hab. Inclui academias de bandeiras nacionais e regionais — alto giro de público fitness, ticket médio elevado.")}
         ${pointBar("🏢", "Polos corporativos / prédios comerciais", p.corporativo, p.total_premium, "alto ticket médio", "Multiplicador ×5 por 100 mil hab. Inclui edifícios corporativos, coworkings e centros empresariais — público executivo de alto ticket médio.")}
+        ${pointBar("👥", "Empresas com 50+ funcionários", p.empresas, p.total_premium, "público cativo, contrato B2B", "Multiplicador ×30 por 100 mil hab. Empresas formais médias e grandes (50+ colaboradores) — escritórios, comércios maiores, transportadoras, call centers, redes de varejo. Base RAIS/IBGE 2022.")}
       </div>
 
       <div class="mkt-points-total">
