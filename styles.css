@@ -5458,6 +5458,99 @@ body.quiz-open { overflow: hidden; }
    Disambiguator · Actions · Print
    ============================================================ */
 
+/* ---------- Composição do mercado vending ------------------ */
+.mkt-composition {
+  margin: 18px 0 22px;
+  padding: 16px 20px;
+  background: rgba(7, 8, 42, 0.5);
+  border: 1px solid rgba(75, 108, 226, 0.18);
+  border-radius: 12px;
+}
+.mkt-composition-head {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.mkt-composition-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+}
+.mkt-composition-bar {
+  display: flex;
+  width: 100%;
+  height: 38px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.mkt-composition-cafe,
+.mkt-composition-avend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1px;
+  position: relative;
+  font-size: 11px;
+  line-height: 1.1;
+  color: #fff;
+  text-align: center;
+  padding: 4px 8px;
+  overflow: hidden;
+}
+.mkt-composition-cafe {
+  background: linear-gradient(135deg, #6b4f3a 0%, #4a3526 100%);
+  color: rgba(255, 255, 255, 0.9);
+}
+.mkt-composition-avend {
+  background: linear-gradient(135deg, #3DD9D6 0%, #4B6CE2 50%, #8B30E6 100%);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.25);
+}
+.mkt-composition-pct {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+}
+.mkt-composition-lbl {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  opacity: 0.95;
+}
+.mkt-composition-lbl em {
+  font-style: normal;
+  opacity: 0.7;
+  font-weight: 400;
+}
+.mkt-composition-note {
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+}
+.mkt-composition-note strong {
+  color: #3DD9D6;
+  font-weight: 700;
+}
+@media (max-width: 480px) {
+  .mkt-composition-bar { height: 56px; flex-direction: column; }
+  .mkt-composition-cafe,
+  .mkt-composition-avend {
+    width: 100% !important;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 0 14px;
+    height: 28px;
+  }
+  .mkt-composition-pct { font-size: 12px; }
+}
+
 /* ---------- Tier (cidade pequena warning) ------------------ */
 .mkt-tier-tag {
   display: inline-block;
@@ -5990,6 +6083,33 @@ body.quiz-open { overflow: hidden; }
     color: #555 !important;
     font-size: 8.5pt;
   }
+
+  /* Composição do mercado */
+  .mkt-print-area .mkt-composition {
+    background: #f7f8fc !important;
+    border: 1px solid #cdd2e0 !important;
+    color: #1a1a2e !important;
+    padding: 10px 14px !important;
+    margin: 10px 0 14px !important;
+    page-break-inside: avoid;
+  }
+  .mkt-print-area .mkt-composition-eyebrow { color: #555 !important; font-size: 7.5pt; }
+  .mkt-print-area .mkt-composition-bar { height: 28px !important; }
+  .mkt-print-area .mkt-composition-cafe {
+    background: #6b4f3a !important;
+    color: #fff !important;
+  }
+  .mkt-print-area .mkt-composition-avend {
+    background: #4B6CE2 !important;
+    color: #fff !important;
+  }
+  .mkt-print-area .mkt-composition-pct { font-size: 9pt !important; color: #fff !important; }
+  .mkt-print-area .mkt-composition-lbl { font-size: 7pt !important; color: rgba(255,255,255,0.95) !important; }
+  .mkt-print-area .mkt-composition-note {
+    color: #555 !important;
+    font-size: 8.5pt !important;
+  }
+  .mkt-print-area .mkt-composition-note strong { color: #128C8A !important; }
 
   /* Tier banner */
   .mkt-print-area .mkt-tier-banner.mkt-tier-warn {
