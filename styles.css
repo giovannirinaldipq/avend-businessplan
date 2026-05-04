@@ -5978,143 +5978,149 @@ body.quiz-open { overflow: hidden; }
   }
 
   /* ============================================================
-     CAPA — banner gradient + logo + título + meta
-     Transição esfumada pro corpo via gradient continuando.
+     CAPA — minimalista executiva (McKinsey/BCG style)
+     Navy sólido, 1 acento geométrico discreto, tipografia hierárquica,
+     muito respiro. Sem watermark gigante, sem faixa atravessante.
      ============================================================ */
   .mkt-print-cover {
     position: relative;
     margin: -12mm -12mm 0;
-    padding: 24mm 14mm 22mm;
+    padding: 28mm 18mm 18mm;
     color: #fff !important;
     overflow: hidden;
     page-break-after: avoid;
+    background: #0a0c2e !important;
   }
+  /* Fundo navy sólido (.mkt-print-cover-bg fica como camada base) */
   .mkt-print-cover-bg {
     position: absolute;
     inset: 0;
-    background:
-      linear-gradient(180deg, transparent 0%, transparent 70%, rgba(250,251,255,0.15) 88%, #fafbff 100%),
-      linear-gradient(135deg, #07082a 0%, #161844 35%, #4B6CE2 75%, #8B30E6 100%);
+    background: #0a0c2e !important;
     z-index: 0;
   }
-  /* Faixa diagonal sutil de luz na capa — dá profundidade */
-  .mkt-print-cover::after {
+  /* Acento geométrico discreto: triângulo cyan no canto superior direito */
+  .mkt-print-cover-bg::after {
     content: "";
     position: absolute;
-    top: -20mm;
-    right: -20mm;
-    width: 80mm;
-    height: 80mm;
-    background: radial-gradient(circle, rgba(61,217,214,0.18) 0%, transparent 60%);
-    z-index: 1;
-    pointer-events: none;
+    top: 0;
+    right: 0;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 60mm 60mm 0;
+    border-color: transparent #3DD9D6 transparent transparent;
+    opacity: 0.08;
   }
-  /* Faixa fluindo da capa pro corpo — atravessa a borda */
-  .mkt-print-cover-inner::after {
+  /* Linha fina cyan no fim da capa — separação elegante */
+  .mkt-print-cover-bg::before {
     content: "";
     position: absolute;
-    left: -14mm;
-    right: -14mm;
-    bottom: -3pt;
-    height: 6pt;
-    background: linear-gradient(90deg, #3DD9D6 0%, #4B6CE2 40%, #8B30E6 100%);
-    box-shadow: 0 0 12pt rgba(139,48,230,0.3);
-    z-index: 3;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1.5pt;
+    background: linear-gradient(90deg, #3DD9D6 0%, #4B6CE2 100%);
   }
+  /* Watermark — agora discretíssimo, alinhado à direita */
   .mkt-print-cover-watermark {
-    position: absolute;
-    right: -6mm;
-    bottom: -10mm;
-    font-size: 80pt;
-    font-weight: 900;
-    letter-spacing: 0.04em;
-    color: #fff !important;
-    opacity: 0.06;
-    z-index: 1;
-    line-height: 1;
-    user-select: none;
+    display: none !important;
   }
   .mkt-print-cover-inner {
     position: relative;
     z-index: 2;
   }
+  /* Logo + tagline empilhados (não em row) */
   .mkt-print-brand-row {
     display: flex;
-    align-items: baseline;
-    gap: 12px;
-    margin-bottom: 14mm;
-    padding-bottom: 6mm;
-    border-bottom: 1px solid rgba(255,255,255,0.18);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5mm;
+    margin-bottom: 22mm;
+    padding-bottom: 0;
+    border-bottom: 0;
   }
   .mkt-print-logo {
-    font-size: 22pt;
-    font-weight: 900;
+    font-size: 14pt;
+    font-weight: 800;
     letter-spacing: 0.06em;
     color: #fff !important;
     line-height: 1;
   }
   .mkt-print-tagline {
-    font-size: 8pt;
-    font-weight: 600;
-    letter-spacing: 0.22em;
+    font-size: 7pt;
+    font-weight: 500;
+    letter-spacing: 0.24em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.75) !important;
+    color: rgba(255,255,255,0.5) !important;
   }
+  /* Bloco do título com linha cyan curta acima */
   .mkt-print-cover-body {
-    margin-bottom: 12mm;
+    margin-bottom: 18mm;
+    position: relative;
+  }
+  .mkt-print-cover-body::before {
+    content: "";
+    display: block;
+    width: 12mm;
+    height: 2pt;
+    background: #3DD9D6 !important;
+    margin-bottom: 8mm;
   }
   .mkt-print-eyebrow {
-    font-size: 8.5pt;
-    font-weight: 700;
-    letter-spacing: 0.22em;
+    font-size: 8pt;
+    font-weight: 600;
+    letter-spacing: 0.28em;
     text-transform: uppercase;
     color: #3DD9D6 !important;
-    margin-bottom: 6mm;
+    margin-bottom: 7mm;
   }
   .mkt-print-h1 {
-    font-size: 28pt;
+    font-size: 34pt;
     font-weight: 800;
     color: #fff !important;
-    line-height: 1.05;
-    letter-spacing: -0.01em;
-    margin: 0 0 4mm;
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+    margin: 0 0 6mm;
   }
   .mkt-print-h2 {
-    font-size: 18pt;
-    font-weight: 600;
-    color: rgba(255,255,255,0.9) !important;
+    font-size: 14pt;
+    font-weight: 400;
+    color: rgba(255,255,255,0.78) !important;
     margin: 0;
-    line-height: 1.1;
+    line-height: 1.2;
+    letter-spacing: 0;
   }
   .mkt-print-h2-uf {
     color: #3DD9D6 !important;
-    font-weight: 800;
-    font-size: 0.85em;
-    margin-left: 4px;
+    font-weight: 700;
+    font-size: 0.95em;
+    margin-left: 1px;
   }
+  /* Meta em linha única clean — sem fundo, separadores discretos */
   .mkt-print-cover-meta {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 6mm;
-    padding-top: 8mm;
-    border-top: 1px solid rgba(255,255,255,0.18);
+    gap: 8mm;
+    padding-top: 10mm;
+    border-top: 1px solid rgba(255,255,255,0.15);
   }
   .mkt-print-cover-meta-item {
     display: flex;
     flex-direction: column;
-    gap: 1mm;
+    gap: 2mm;
   }
   .mkt-print-cover-meta-lbl {
-    font-size: 7.5pt;
-    font-weight: 700;
-    letter-spacing: 0.16em;
+    font-size: 6.5pt;
+    font-weight: 600;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.65) !important;
+    color: rgba(255,255,255,0.45) !important;
   }
   .mkt-print-cover-meta-val {
-    font-size: 11pt;
-    font-weight: 700;
+    font-size: 10pt;
+    font-weight: 600;
     color: #fff !important;
+    line-height: 1.2;
   }
 
   /* ============================================================
