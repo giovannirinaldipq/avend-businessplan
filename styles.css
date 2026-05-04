@@ -5930,10 +5930,9 @@ body.quiz-open { overflow: hidden; }
 
 @media print {
   @page {
-    margin: 14mm 13mm 12mm;
+    margin: 12mm 12mm 14mm;
     size: A4 portrait;
   }
-
   /* Esconde tudo do body, exceto o print-area */
   body.is-mkt-printing > * {
     display: none !important;
@@ -5951,11 +5950,10 @@ body.quiz-open { overflow: hidden; }
     background: #fff !important;
     color: #1a1a2e !important;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-    font-size: 11pt;
-    line-height: 1.45;
+    font-size: 10.5pt;
+    line-height: 1.5;
     width: 100%;
-    max-width: 184mm;
-    margin: 0 auto;
+    margin: 0;
     padding: 0;
   }
   .mkt-print-area * {
@@ -5966,93 +5964,234 @@ body.quiz-open { overflow: hidden; }
     transition: none !important;
   }
 
-  /* ---------- Header do PDF ------------------------------- */
-  .mkt-print-header {
-    border-bottom: 2px solid #4B6CE2;
-    padding-bottom: 10px;
-    margin-bottom: 16px;
+  /* ============================================================
+     CAPA — banner gradient + logo + título + meta
+     ============================================================ */
+  .mkt-print-cover {
+    position: relative;
+    margin: -12mm -12mm 14mm;
+    padding: 24mm 14mm 16mm;
+    color: #fff !important;
+    overflow: hidden;
+    page-break-after: avoid;
   }
-  .mkt-print-brand {
-    font-size: 18pt;
-    font-weight: 800;
+  .mkt-print-cover-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #07082a 0%, #161844 35%, #4B6CE2 75%, #8B30E6 100%);
+    z-index: 0;
+  }
+  .mkt-print-cover-watermark {
+    position: absolute;
+    right: -6mm;
+    bottom: -10mm;
+    font-size: 80pt;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    color: #fff !important;
+    opacity: 0.06;
+    z-index: 1;
+    line-height: 1;
+    user-select: none;
+  }
+  .mkt-print-cover-inner {
+    position: relative;
+    z-index: 2;
+  }
+  .mkt-print-brand-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 14mm;
+    padding-bottom: 6mm;
+    border-bottom: 1px solid rgba(255,255,255,0.18);
+  }
+  .mkt-print-logo {
+    font-size: 22pt;
+    font-weight: 900;
     letter-spacing: 0.06em;
-    color: #4B6CE2;
+    color: #fff !important;
     line-height: 1;
   }
-  .mkt-print-brand-sub {
+  .mkt-print-tagline {
     font-size: 8pt;
     font-weight: 600;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: #8B30E6;
-    margin-top: 2px;
+    color: rgba(255,255,255,0.75) !important;
   }
-  .mkt-print-title {
+  .mkt-print-cover-body {
+    margin-bottom: 12mm;
+  }
+  .mkt-print-eyebrow {
+    font-size: 8.5pt;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #3DD9D6 !important;
+    margin-bottom: 6mm;
+  }
+  .mkt-print-h1 {
+    font-size: 28pt;
+    font-weight: 800;
+    color: #fff !important;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    margin: 0 0 4mm;
+  }
+  .mkt-print-h2 {
+    font-size: 18pt;
+    font-weight: 600;
+    color: rgba(255,255,255,0.9) !important;
+    margin: 0;
+    line-height: 1.1;
+  }
+  .mkt-print-h2-uf {
+    color: #3DD9D6 !important;
+    font-weight: 800;
+    font-size: 0.85em;
+    margin-left: 4px;
+  }
+  .mkt-print-cover-meta {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6mm;
+    padding-top: 8mm;
+    border-top: 1px solid rgba(255,255,255,0.18);
+  }
+  .mkt-print-cover-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 1mm;
+  }
+  .mkt-print-cover-meta-lbl {
+    font-size: 7.5pt;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.65) !important;
+  }
+  .mkt-print-cover-meta-val {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #fff !important;
+  }
+
+  /* ============================================================
+     SEÇÕES com numeração lateral (01, 02, 03)
+     ============================================================ */
+  .mkt-print-section {
+    padding: 0 12mm;
+    margin-bottom: 12mm;
+    page-break-inside: avoid;
+  }
+  .mkt-print-section-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8mm;
+    padding-bottom: 4mm;
+    border-bottom: 2px solid #4B6CE2;
+  }
+  .mkt-print-section-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32pt;
+    height: 32pt;
+    background: linear-gradient(135deg, #4B6CE2 0%, #8B30E6 100%) !important;
+    color: #fff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    border-radius: 50%;
+    font-size: 12pt;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+  }
+  .mkt-print-section-title {
     font-size: 16pt;
     font-weight: 800;
-    color: #1a1a2e;
-    margin: 12px 0 4px;
-    line-height: 1.15;
-  }
-  .mkt-print-meta {
-    font-size: 9pt;
-    color: #555;
-  }
-  .mkt-print-meta strong {
-    color: #1a1a2e;
-    font-weight: 700;
+    color: #1a1a2e !important;
+    margin: 0;
+    letter-spacing: -0.01em;
   }
 
-  /* ---------- Footer do PDF ------------------------------- */
-  .mkt-print-footer {
-    margin-top: 18px;
-    padding-top: 8px;
-    border-top: 1px solid #cdd2e0;
-    font-size: 8pt;
-    color: #888;
+  /* ============================================================
+     SUMÁRIO EXECUTIVO — 4 KPIs grandes
+     ============================================================ */
+  .mkt-print-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4mm;
+    margin-bottom: 8mm;
+  }
+  .mkt-print-kpi {
+    padding: 6mm 4mm;
+    border-radius: 4pt;
     text-align: center;
-    line-height: 1.5;
+    page-break-inside: avoid;
   }
-  .mkt-print-url {
-    color: #4B6CE2;
-    font-weight: 700;
+  .mkt-print-kpi-now {
+    background: #f0f4ff !important;
+    border: 1px solid #4B6CE2 !important;
+    border-top: 4px solid #4B6CE2 !important;
   }
-
-  /* ---------- Conteúdo do relatório (clone) --------------- */
-  .mkt-print-area .mkt-report,
-  .mkt-print-area .mkt-report * {
-    color: #1a1a2e;
-    background: transparent;
+  .mkt-print-kpi-cap {
+    background: #f7f8fc !important;
+    border: 1px solid #6c7693 !important;
+    border-top: 4px solid #6c7693 !important;
   }
-
-  /* Cabeçalho da seção */
-  .mkt-print-area .mkt-head {
-    text-align: left;
-    border-bottom: 1px solid #cdd2e0;
-    padding-bottom: 10px;
-    margin-bottom: 14px;
+  .mkt-print-kpi-gap {
+    background: #ecfaf9 !important;
+    border: 1px solid #128C8A !important;
+    border-top: 4px solid #128C8A !important;
   }
-  .mkt-print-area .mkt-eyebrow {
-    color: #4B6CE2 !important;
-    -webkit-text-fill-color: #4B6CE2 !important;
-    background: none !important;
-    -webkit-background-clip: initial !important;
-    background-clip: initial !important;
-    font-size: 8pt;
-    letter-spacing: 0.18em;
-    margin-bottom: 4px;
+  .mkt-print-kpi-prem {
+    background: #f7f0ff !important;
+    border: 1px solid #6E26B5 !important;
+    border-top: 4px solid #6E26B5 !important;
   }
-  .mkt-print-area .mkt-title {
-    font-size: 14pt;
+  .mkt-print-kpi-val {
+    font-size: 28pt;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin-bottom: 3mm;
     color: #1a1a2e !important;
   }
-  .mkt-print-area .mkt-uf {
-    color: #4B6CE2 !important;
-    font-size: 0.7em;
+  .mkt-print-kpi-now  .mkt-print-kpi-val { color: #4B6CE2 !important; }
+  .mkt-print-kpi-cap  .mkt-print-kpi-val { color: #4a5273 !important; }
+  .mkt-print-kpi-gap  .mkt-print-kpi-val { color: #128C8A !important; }
+  .mkt-print-kpi-prem .mkt-print-kpi-val { color: #6E26B5 !important; }
+  .mkt-print-kpi-lbl {
+    font-size: 8.5pt;
+    font-weight: 600;
+    color: #555 !important;
+    line-height: 1.3;
+    letter-spacing: 0.01em;
   }
-  .mkt-print-area .mkt-sub {
-    font-size: 9.5pt;
-    color: #555;
+  .mkt-print-summary-line {
+    background: #fafbff !important;
+    border-left: 4pt solid #4B6CE2 !important;
+    padding: 4mm 6mm;
+    font-size: 10.5pt;
+    line-height: 1.6;
+    color: #1a1a2e !important;
+    margin: 0;
+  }
+  .mkt-print-summary-line strong {
+    color: #4B6CE2 !important;
+    font-weight: 800;
+  }
+
+  /* ============================================================
+     ANÁLISE DETALHADA — clone do .mkt-report
+     ============================================================ */
+  .mkt-print-detail .mkt-report,
+  .mkt-print-detail .mkt-report * {
+    color: #1a1a2e;
+    background: transparent;
   }
   .mkt-print-area .mkt-tier-tag {
     background: #eef0ff !important;
@@ -6061,46 +6200,32 @@ body.quiz-open { overflow: hidden; }
     font-size: 7.5pt;
   }
 
-  /* Ranking badge */
-  .mkt-print-area .mkt-rank-badge {
-    background: #f0f8ff !important;
-    border: 1px solid #c5cef5 !important;
-    color: #1a1a2e !important;
-    margin-top: 8px;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 9pt;
-  }
-  .mkt-print-area .mkt-rank-pos {
-    color: #4B6CE2 !important;
-    -webkit-text-fill-color: #4B6CE2 !important;
-    background: none !important;
-    -webkit-background-clip: initial !important;
-    background-clip: initial !important;
-    font-size: 11pt;
-  }
-  .mkt-print-area .mkt-rank-aux {
-    color: #555 !important;
-    font-size: 8.5pt;
-  }
-
-  /* Composição do mercado */
+  /* Bloco composição (65%/35%) */
   .mkt-print-area .mkt-composition {
     background: #f7f8fc !important;
     border: 1px solid #cdd2e0 !important;
     color: #1a1a2e !important;
-    padding: 10px 14px !important;
-    margin: 10px 0 14px !important;
+    padding: 4mm 5mm !important;
+    margin: 0 0 6mm !important;
+    border-radius: 3pt;
     page-break-inside: avoid;
   }
-  .mkt-print-area .mkt-composition-eyebrow { color: #555 !important; font-size: 7.5pt; }
-  .mkt-print-area .mkt-composition-bar { height: 28px !important; }
+  .mkt-print-area .mkt-composition-eyebrow {
+    color: #555 !important;
+    font-size: 7.5pt;
+    letter-spacing: 0.18em;
+  }
+  .mkt-print-area .mkt-composition-bar {
+    height: 24pt !important;
+    border-radius: 3pt;
+    overflow: hidden;
+  }
   .mkt-print-area .mkt-composition-cafe {
     background: #6b4f3a !important;
     color: #fff !important;
   }
   .mkt-print-area .mkt-composition-avend {
-    background: #4B6CE2 !important;
+    background: linear-gradient(90deg, #128C8A 0%, #4B6CE2 50%, #6E26B5 100%) !important;
     color: #fff !important;
   }
   .mkt-print-area .mkt-composition-pct { font-size: 9pt !important; color: #fff !important; }
@@ -6108,17 +6233,20 @@ body.quiz-open { overflow: hidden; }
   .mkt-print-area .mkt-composition-note {
     color: #555 !important;
     font-size: 8.5pt !important;
+    margin-top: 2mm !important;
   }
   .mkt-print-area .mkt-composition-note strong { color: #128C8A !important; }
 
-  /* Tier banner */
+  /* Tier banner (cidade pequena) */
   .mkt-print-area .mkt-tier-banner.mkt-tier-warn {
     background: #fff7e6 !important;
     border: 1px solid #ffb020 !important;
+    border-left: 4pt solid #ffb020 !important;
     color: #8a5a00 !important;
     font-size: 9pt;
-    padding: 8px 12px;
-    margin: 10px 0 14px;
+    padding: 4mm 5mm !important;
+    margin: 0 0 6mm !important;
+    border-radius: 3pt;
     page-break-inside: avoid;
   }
   .mkt-print-area .mkt-tier-banner.mkt-tier-warn * {
@@ -6126,20 +6254,20 @@ body.quiz-open { overflow: hidden; }
   }
   .mkt-print-area .mkt-tier-icon { color: #ffb020 !important; }
 
-  /* Bloco do gap (donut + stats) — gráfico canvas vira imagem */
+  /* Bloco do gap (donut + 3 stats) */
   .mkt-print-area .mkt-gap-block {
-    grid-template-columns: 200px 1fr !important;
-    gap: 18px !important;
-    margin-bottom: 12px;
+    grid-template-columns: 60mm 1fr !important;
+    gap: 6mm !important;
+    margin-bottom: 6mm !important;
     page-break-inside: avoid;
   }
   .mkt-print-area .mkt-gap-chart-wrap {
-    width: 200px !important;
-    height: 200px !important;
+    width: 60mm !important;
+    height: 60mm !important;
   }
   .mkt-print-area .mkt-gap-chart-wrap canvas {
-    width: 200px !important;
-    height: 200px !important;
+    width: 60mm !important;
+    height: 60mm !important;
   }
   .mkt-print-area .mkt-gap-pct {
     color: #4B6CE2 !important;
@@ -6147,7 +6275,7 @@ body.quiz-open { overflow: hidden; }
     background: none !important;
     -webkit-background-clip: initial !important;
     background-clip: initial !important;
-    font-size: 28pt !important;
+    font-size: 22pt !important;
   }
   .mkt-print-area .mkt-gap-lbl {
     color: #666 !important;
@@ -6156,8 +6284,9 @@ body.quiz-open { overflow: hidden; }
   .mkt-print-area .mkt-stat {
     background: #f7f8fc !important;
     border: 1px solid #cdd2e0 !important;
+    border-radius: 3pt;
     color: #1a1a2e !important;
-    padding: 8px 12px 8px 30px !important;
+    padding: 3mm 4mm 3mm 8mm !important;
     page-break-inside: avoid;
   }
   .mkt-print-area .mkt-stat-lbl { color: #555 !important; font-size: 8.5pt; }
@@ -6172,10 +6301,10 @@ body.quiz-open { overflow: hidden; }
   .mkt-print-area .mkt-stat-aux { color: #888 !important; font-size: 7.5pt; }
   .mkt-print-area .mkt-stat-current .mkt-stat-dot { background: #4B6CE2 !important; }
   .mkt-print-area .mkt-stat-max     .mkt-stat-dot { background: #aaa !important; }
-  .mkt-print-area .mkt-stat-gap     .mkt-stat-dot { background: #3DD9D6 !important; }
+  .mkt-print-area .mkt-stat-gap     .mkt-stat-dot { background: #128C8A !important; }
   .mkt-print-area .mkt-stat-gap {
     background: #ecfaf9 !important;
-    border-color: #3DD9D6 !important;
+    border-color: #128C8A !important;
   }
   .mkt-print-area .mkt-stat-gap .mkt-stat-val {
     color: #128C8A !important;
@@ -6186,13 +6315,15 @@ body.quiz-open { overflow: hidden; }
   .mkt-print-area .mkt-scenarios {
     background: #f7f8fc !important;
     border: 1px solid #cdd2e0 !important;
-    padding: 12px 14px !important;
-    margin: 14px 0 !important;
+    border-radius: 3pt;
+    padding: 4mm 5mm !important;
+    margin: 0 0 6mm !important;
     page-break-inside: avoid;
   }
   .mkt-print-area .mkt-scenarios-title {
     font-size: 11pt;
     color: #1a1a2e !important;
+    line-height: 1.3;
   }
   .mkt-print-area .mkt-scenarios-sub {
     font-size: 8.5pt;
@@ -6200,16 +6331,17 @@ body.quiz-open { overflow: hidden; }
   }
   .mkt-print-area .mkt-scenarios-grid {
     grid-template-columns: repeat(4, 1fr) !important;
-    gap: 8px !important;
+    gap: 3mm !important;
   }
   .mkt-print-area .mkt-scen {
     background: #fff !important;
     border: 1px solid #cdd2e0 !important;
+    border-radius: 3pt;
     color: #1a1a2e !important;
-    padding: 8px 10px !important;
+    padding: 3mm !important;
     page-break-inside: avoid;
   }
-  .mkt-print-area .mkt-scen-flag { font-size: 14pt; }
+  .mkt-print-area .mkt-scen-flag { font-size: 12pt; }
   .mkt-print-area .mkt-scen-role { color: #888 !important; font-size: 6.5pt; }
   .mkt-print-area .mkt-scen-country { color: #1a1a2e !important; font-size: 8.5pt; }
   .mkt-print-area .mkt-scen-ratio { color: #666 !important; font-size: 7.5pt; }
@@ -6224,32 +6356,34 @@ body.quiz-open { overflow: hidden; }
   }
   .mkt-print-area .mkt-scen-unit { color: #888 !important; }
   .mkt-print-area .mkt-scen-alvo {
-    border-color: #3DD9D6 !important;
+    border-color: #128C8A !important;
     background: #ecfaf9 !important;
   }
   .mkt-print-area .mkt-scen-alvo .mkt-scen-val { color: #128C8A !important; -webkit-text-fill-color: #128C8A !important; }
   .mkt-print-area .mkt-scen-topo {
-    border-color: #8B30E6 !important;
+    border-color: #6E26B5 !important;
     background: #f7f0ff !important;
   }
-  .mkt-print-area .mkt-scen-topo .mkt-scen-val { color: #8B30E6 !important; -webkit-text-fill-color: #8B30E6 !important; }
+  .mkt-print-area .mkt-scen-topo .mkt-scen-val { color: #6E26B5 !important; -webkit-text-fill-color: #6E26B5 !important; }
 
-  /* Bloco de urgência */
+  /* Bloco urgência */
   .mkt-print-area .mkt-urgency {
     background: #fff7e6 !important;
     border: 1px solid #ffb020 !important;
+    border-left: 4pt solid #ffb020 !important;
+    border-radius: 3pt;
     color: #8a5a00 !important;
-    padding: 10px 14px !important;
-    margin: 12px 0 14px !important;
+    padding: 4mm 5mm !important;
+    margin: 0 0 6mm !important;
     font-size: 9.5pt;
     page-break-inside: avoid;
   }
   .mkt-print-area .mkt-urgency * { color: #8a5a00 !important; }
 
   /* Pontos premium */
-  .mkt-print-area .mkt-points-head { margin-bottom: 10px; }
+  .mkt-print-area .mkt-points-head { margin-bottom: 4mm; }
   .mkt-print-area .mkt-points-title {
-    font-size: 11pt;
+    font-size: 12pt;
     color: #1a1a2e !important;
   }
   .mkt-print-area .mkt-points-sub {
@@ -6258,21 +6392,23 @@ body.quiz-open { overflow: hidden; }
   }
   .mkt-print-area .mkt-points-sub strong { color: #128C8A !important; }
   .mkt-print-area .mkt-points-bars {
-    gap: 6px !important;
-    margin-bottom: 14px;
+    gap: 2mm !important;
+    margin-bottom: 6mm !important;
   }
   .mkt-print-area .mkt-pt-row {
     background: #f7f8fc !important;
     border: 1px solid #cdd2e0 !important;
-    padding: 8px 12px !important;
-    grid-template-columns: 32px 1fr !important;
+    border-radius: 3pt;
+    padding: 3mm 4mm !important;
+    grid-template-columns: 28pt 1fr !important;
     page-break-inside: avoid;
   }
   .mkt-print-area .mkt-pt-icon {
     background: #eef0ff !important;
-    width: 32px !important;
-    height: 32px !important;
-    font-size: 14pt !important;
+    width: 28pt !important;
+    height: 28pt !important;
+    font-size: 13pt !important;
+    border-radius: 3pt;
   }
   .mkt-print-area .mkt-pt-title { color: #1a1a2e !important; font-size: 9.5pt; }
   .mkt-print-area .mkt-pt-count { color: #4B6CE2 !important; font-size: 12pt; }
@@ -6280,18 +6416,19 @@ body.quiz-open { overflow: hidden; }
     background: #e3e7f0 !important;
     border: 1px solid #cdd2e0 !important;
   }
-  .mkt-print-area .mkt-pt-bar { background: #4B6CE2 !important; animation: none !important; }
+  .mkt-print-area .mkt-pt-bar { background: #4B6CE2 !important; }
   .mkt-print-area .mkt-pt-desc { color: #888 !important; font-size: 7.5pt; }
 
   /* Total premium */
   .mkt-print-area .mkt-points-total {
-    background: #f0f8ff !important;
+    background: linear-gradient(135deg, #f0f4ff 0%, #f7f0ff 100%) !important;
     border: 1px solid #4B6CE2 !important;
+    border-radius: 3pt;
     color: #1a1a2e !important;
-    padding: 12px 16px !important;
+    padding: 5mm 6mm !important;
     page-break-inside: avoid;
   }
-  .mkt-print-area .mkt-points-total-eyebrow { color: #555 !important; font-size: 7.5pt; }
+  .mkt-print-area .mkt-points-total-eyebrow { color: #555 !important; font-size: 7.5pt; letter-spacing: 0.18em; }
   .mkt-print-area .mkt-points-total-city { color: #1a1a2e !important; font-size: 10pt; }
   .mkt-print-area .mkt-points-total-val {
     color: #4B6CE2 !important;
@@ -6299,22 +6436,120 @@ body.quiz-open { overflow: hidden; }
     background: none !important;
     -webkit-background-clip: initial !important;
     background-clip: initial !important;
-    font-size: 22pt !important;
+    font-size: 24pt !important;
   }
 
-  /* Disclaimer */
+  /* Disclaimer no fim do clone */
   .mkt-print-area .mkt-disclaimer {
     color: #999 !important;
     font-size: 7.5pt !important;
-    text-align: left;
-    margin-top: 10px;
+    margin-top: 4mm;
+    line-height: 1.4;
   }
 
-  /* Quebra de página inteligente */
-  .mkt-print-area .mkt-scenarios,
-  .mkt-print-area .mkt-points-head,
-  .mkt-print-area .mkt-urgency {
-    page-break-after: avoid;
+  /* ============================================================
+     PRÓXIMOS PASSOS — checklist + contato
+     ============================================================ */
+  .mkt-print-next-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 8mm;
   }
-  .mkt-print-area .mkt-points-bars { page-break-before: avoid; }
+  .mkt-print-next-list li {
+    position: relative;
+    padding: 4mm 4mm 4mm 14mm;
+    margin-bottom: 3mm;
+    background: #f7f8fc !important;
+    border: 1px solid #cdd2e0 !important;
+    border-left: 4pt solid #4B6CE2 !important;
+    border-radius: 3pt;
+    font-size: 10pt;
+    color: #1a1a2e !important;
+    line-height: 1.5;
+    page-break-inside: avoid;
+  }
+  .mkt-print-next-list li::before {
+    content: "";
+    position: absolute;
+    left: 5mm;
+    top: 5.5mm;
+    width: 6mm;
+    height: 6mm;
+    border: 2px solid #4B6CE2;
+    border-radius: 50%;
+    background: #fff;
+  }
+  .mkt-print-next-list li::after {
+    content: "✓";
+    position: absolute;
+    left: 5mm;
+    top: 4.5mm;
+    width: 6mm;
+    height: 6mm;
+    text-align: center;
+    line-height: 6mm;
+    color: #4B6CE2 !important;
+    font-weight: 800;
+    font-size: 9pt;
+  }
+  .mkt-print-next-list strong { color: #4B6CE2 !important; font-weight: 700; }
+
+  .mkt-print-contact {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4mm;
+    background: linear-gradient(135deg, #07082a 0%, #4B6CE2 70%, #8B30E6 100%) !important;
+    color: #fff !important;
+    padding: 6mm;
+    border-radius: 4pt;
+    page-break-inside: avoid;
+  }
+  .mkt-print-contact-item {
+    display: flex;
+    flex-direction: column;
+    gap: 1mm;
+  }
+  .mkt-print-contact-lbl {
+    font-size: 7.5pt;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: #3DD9D6 !important;
+  }
+  .mkt-print-contact-val {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #fff !important;
+  }
+
+  /* ============================================================
+     FOOTER — 3 colunas (brand · disclaimer · código)
+     ============================================================ */
+  .mkt-print-footer {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 6mm;
+    align-items: center;
+    margin: 10mm 12mm 0;
+    padding-top: 4mm;
+    border-top: 2px solid #4B6CE2;
+    font-size: 8pt;
+    color: #555 !important;
+  }
+  .mkt-print-footer-brand strong {
+    color: #4B6CE2 !important;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+  }
+  .mkt-print-footer-disclaimer {
+    text-align: center;
+    font-style: italic;
+    line-height: 1.4;
+  }
+  .mkt-print-footer-code {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: #4B6CE2 !important;
+    letter-spacing: 0.04em;
+  }
 }

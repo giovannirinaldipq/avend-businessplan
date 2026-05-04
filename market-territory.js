@@ -677,7 +677,7 @@
       const canvas = container.querySelector("#mkt-donut");
       if (canvas) renderDonut(canvas, data);
       runCountUps(container);
-      wireReportActions(container, { cidade, uf, populacao: pop });
+      wireReportActions(container, { cidade, uf, populacao: pop, data: data, ranking: null });
       if (root.TELEMETRY && typeof root.TELEMETRY.track === "function") {
         root.TELEMETRY.track("market_territory_manual", {
           cidade, uf, populacao: pop,
@@ -710,52 +710,168 @@
         const cidade = ctx.cidade || "";
         const uf = ctx.uf || "";
         const pop = ctx.populacao || 0;
+        const data = ctx.data || calculate(pop, cidade, uf);
+        const ranking = ctx.ranking || null;
         const reportEl = container.querySelector(".mkt-report");
         if (!reportEl) return;
 
-        // ESTRATÉGIA: clonar o relatório pra um container ISOLADO no body,
-        // esconder o resto do body inteiro via CSS print, e imprimir só
-        // esse container. Evita páginas em branco do resto da árvore DOM.
+        const m = data.analise_mercado;
+        const p = data.mapeamento_pontos;
+        const tier = getMarketTier(pop);
+        const gapPct = m.capacidade_maxima > 0
+          ? Math.round((m.gap_oportunidade / m.capacidade_maxima) * 100)
+          : 0;
 
+        // Código único do relatório (4 chars) — para auditoria/tracking visual
+        const codigo = (Date.now().toString(36) + Math.random().toString(36).slice(2, 4))
+          .slice(-4).toUpperCase();
+
+        // Clone do relatório (parte da análise detalhada)
         const clone = reportEl.cloneNode(true);
+        clone.querySelectorAll(".mkt-info, .mkt-actions").forEach(el => el.remove());
+        // O cabeçalho da seção interna fica redundante com a capa
+        const innerHead = clone.querySelector(".mkt-head");
+        if (innerHead) innerHead.remove();
+        const innerRank = clone.querySelector(".mkt-rank-badge");
+        if (innerRank) innerRank.remove();
 
-        // Remove do clone o que não faz sentido em PDF
-        clone.querySelectorAll(".mkt-info, .mkt-actions, .mkt-rank-badge[title]")
-          .forEach(el => {
-            if (el.classList.contains("mkt-info")) el.remove();
-            else if (el.classList.contains("mkt-actions")) el.remove();
-          });
-
-        // Constrói o print-area com header AVEND e footer
         const dataStr = new Date().toLocaleDateString("pt-BR", {
-          day: "2-digit", month: "2-digit", year: "numeric"
+          day: "2-digit", month: "long", year: "numeric"
         });
+
+        // === MONTAGEM DO PDF ===
         const printArea = document.createElement("div");
         printArea.className = "mkt-print-area";
-        printArea.innerHTML =
-          '<header class="mkt-print-header">' +
-            '<div class="mkt-print-brand">AVEND</div>' +
-            '<div class="mkt-print-brand-sub">Vending Machines &amp; Franchising</div>' +
-            '<h1 class="mkt-print-title">Diagnóstico de Mercado e Território</h1>' +
-            '<div class="mkt-print-meta">' +
-              '<strong>' + escapeHtml(cidade) + (uf ? ' / ' + escapeHtml(uf) : '') + '</strong>' +
-              ' · População ' + fmtNum(pop) + ' hab' +
-              ' · Gerado em ' + dataStr +
+
+        // 1) CAPA — banner gradient + logo + título + meta
+        const cover =
+          '<header class="mkt-print-cover">' +
+            '<div class="mkt-print-cover-bg" aria-hidden="true"></div>' +
+            '<div class="mkt-print-cover-watermark" aria-hidden="true">AVEND</div>' +
+            '<div class="mkt-print-cover-inner">' +
+              '<div class="mkt-print-brand-row">' +
+                '<div class="mkt-print-logo">AVEND</div>' +
+                '<div class="mkt-print-tagline">Vending Machines &amp; Franchising</div>' +
+              '</div>' +
+              '<div class="mkt-print-cover-body">' +
+                '<div class="mkt-print-eyebrow">Diagnóstico Executivo de Mercado</div>' +
+                '<h1 class="mkt-print-h1">Mercado &amp; Território</h1>' +
+                '<h2 class="mkt-print-h2">' +
+                  escapeHtml(cidade) + (uf ? '<span class="mkt-print-h2-uf">/' + escapeHtml(uf) + '</span>' : '') +
+                '</h2>' +
+              '</div>' +
+              '<div class="mkt-print-cover-meta">' +
+                '<div class="mkt-print-cover-meta-item">' +
+                  '<span class="mkt-print-cover-meta-lbl">População</span>' +
+                  '<span class="mkt-print-cover-meta-val">' + fmtNum(pop) + ' hab</span>' +
+                '</div>' +
+                '<div class="mkt-print-cover-meta-item">' +
+                  '<span class="mkt-print-cover-meta-lbl">Perfil</span>' +
+                  '<span class="mkt-print-cover-meta-val">' + escapeHtml(tier.label) + '</span>' +
+                '</div>' +
+                (ranking ? (
+                  '<div class="mkt-print-cover-meta-item">' +
+                    '<span class="mkt-print-cover-meta-lbl">Ranking BR</span>' +
+                    '<span class="mkt-print-cover-meta-val">#' + fmtNum(ranking.posicao) + ' de ' + fmtNum(ranking.total) + '</span>' +
+                  '</div>'
+                ) : '') +
+                '<div class="mkt-print-cover-meta-item">' +
+                  '<span class="mkt-print-cover-meta-lbl">Gerado em</span>' +
+                  '<span class="mkt-print-cover-meta-val">' + dataStr + '</span>' +
+                '</div>' +
+              '</div>' +
             '</div>' +
           '</header>';
-        printArea.appendChild(clone);
-        printArea.insertAdjacentHTML("beforeend",
+
+        // 2) SUMÁRIO EXECUTIVO — 4 KPIs grandes
+        const summary =
+          '<section class="mkt-print-section mkt-print-summary">' +
+            '<header class="mkt-print-section-head">' +
+              '<span class="mkt-print-section-num">01</span>' +
+              '<h3 class="mkt-print-section-title">Sumário Executivo</h3>' +
+            '</header>' +
+            '<div class="mkt-print-kpi-grid">' +
+              '<div class="mkt-print-kpi mkt-print-kpi-now">' +
+                '<div class="mkt-print-kpi-val">' + fmtNum(m.maquinas_atuais) + '</div>' +
+                '<div class="mkt-print-kpi-lbl">máquinas AVEND<br/>operando hoje</div>' +
+              '</div>' +
+              '<div class="mkt-print-kpi mkt-print-kpi-cap">' +
+                '<div class="mkt-print-kpi-val">' + fmtNum(m.capacidade_maxima) + '</div>' +
+                '<div class="mkt-print-kpi-lbl">capacidade total<br/>da cidade</div>' +
+              '</div>' +
+              '<div class="mkt-print-kpi mkt-print-kpi-gap">' +
+                '<div class="mkt-print-kpi-val">' + fmtNum(m.gap_oportunidade) + '</div>' +
+                '<div class="mkt-print-kpi-lbl">vagas<br/>disponíveis</div>' +
+              '</div>' +
+              '<div class="mkt-print-kpi mkt-print-kpi-prem">' +
+                '<div class="mkt-print-kpi-val">' + fmtNum(p.total_premium) + '</div>' +
+                '<div class="mkt-print-kpi-lbl">pontos premium<br/>identificados</div>' +
+              '</div>' +
+            '</div>' +
+            '<p class="mkt-print-summary-line">' +
+              '<strong>' + gapPct + '%</strong> do mercado de <strong>' + escapeHtml(cidade) + '</strong> ainda está disponível para a AVEND. ' +
+              'Hoje há <strong>' + fmtNum(m.maquinas_atuais) + ' máquinas</strong> AVEND operando — ' +
+              'espaço bruto para mais <strong>' + fmtNum(m.gap_oportunidade) + '</strong>, sendo ' +
+              '<strong>' + fmtNum(p.total_premium) + ' em pontos premium</strong> de maior retorno.' +
+            '</p>' +
+          '</section>';
+
+        // 3) ANÁLISE DETALHADA — clone do relatório
+        const detailHead =
+          '<section class="mkt-print-section mkt-print-detail">' +
+            '<header class="mkt-print-section-head">' +
+              '<span class="mkt-print-section-num">02</span>' +
+              '<h3 class="mkt-print-section-title">Análise Detalhada</h3>' +
+            '</header>';
+        const detailFoot = '</section>';
+
+        // 4) PRÓXIMOS PASSOS — call to action + contato
+        const nextSteps =
+          '<section class="mkt-print-section mkt-print-next">' +
+            '<header class="mkt-print-section-head">' +
+              '<span class="mkt-print-section-num">03</span>' +
+              '<h3 class="mkt-print-section-title">Próximos Passos</h3>' +
+            '</header>' +
+            '<ul class="mkt-print-next-list">' +
+              '<li><strong>Avaliação dos pontos premium</strong> da cidade pela Diretoria de Pontos da AVEND</li>' +
+              '<li><strong>Plano de implantação</strong> personalizado conforme perfil do investidor</li>' +
+              '<li><strong>Projeção financeira</strong> realista no simulador AVEND, com tributação real</li>' +
+            '</ul>' +
+            '<div class="mkt-print-contact">' +
+              '<div class="mkt-print-contact-item">' +
+                '<span class="mkt-print-contact-lbl">DIAGNÓSTICO ONLINE</span>' +
+                '<span class="mkt-print-contact-val">avend.com.br/?cidade=' + slug(cidade) + (uf ? '-' + uf.toLowerCase() : '') + '</span>' +
+              '</div>' +
+              '<div class="mkt-print-contact-item">' +
+                '<span class="mkt-print-contact-lbl">SAIBA MAIS</span>' +
+                '<span class="mkt-print-contact-val">avend.com.br</span>' +
+              '</div>' +
+            '</div>' +
+          '</section>';
+
+        // 5) FOOTER — 3 colunas
+        const footer =
           '<footer class="mkt-print-footer">' +
-            'AVEND · Diagnóstico inicial baseado em densidade IBGE 2025 e benchmarks da rede. ' +
-            'Não substitui o relatório de mercado oficial. ' +
-            '<span class="mkt-print-url">avend.com.br</span>' +
-          '</footer>'
-        );
+            '<div class="mkt-print-footer-col mkt-print-footer-brand">' +
+              '<strong>AVEND</strong> · Vending Machines &amp; Franchising' +
+            '</div>' +
+            '<div class="mkt-print-footer-col mkt-print-footer-disclaimer">' +
+              'Diagnóstico inicial · base IBGE 2025 + benchmarks da rede. ' +
+              'Não substitui relatório de mercado oficial.' +
+            '</div>' +
+            '<div class="mkt-print-footer-col mkt-print-footer-code">' +
+              'AV-' + codigo + ' · ' + dataStr +
+            '</div>' +
+          '</footer>';
+
+        printArea.innerHTML = cover + summary + detailHead;
+        printArea.querySelector(".mkt-print-detail").appendChild(clone);
+        printArea.insertAdjacentHTML("beforeend", nextSteps + footer);
 
         document.body.appendChild(printArea);
         document.body.classList.add("is-mkt-printing");
 
-        // Nome de arquivo amigável (vira nome do PDF salvo)
+        // Nome de arquivo amigável
         const prevTitle = document.title;
         const safeName = slug(cidade) + (uf ? "-" + uf.toLowerCase() : "");
         document.title = "Diagnostico-AVEND-" + (safeName || "mercado");
@@ -767,11 +883,10 @@
           window.removeEventListener("afterprint", cleanup);
         };
         window.addEventListener("afterprint", cleanup);
-        // Pequeno delay pro layout calcular antes do dialog
-        setTimeout(() => window.print(), 100);
+        setTimeout(() => window.print(), 120);
 
         if (root.TELEMETRY && typeof root.TELEMETRY.track === "function") {
-          root.TELEMETRY.track("market_territory_print", { cidade, uf });
+          root.TELEMETRY.track("market_territory_print", { cidade, uf, codigo });
         }
       });
     }
@@ -850,7 +965,7 @@
     const canvas = container.querySelector("#mkt-donut");
     if (canvas) renderDonut(canvas, data);
     runCountUps(container);
-    wireReportActions(container, { cidade: city.n, uf: city.uf, populacao: city.pop });
+    wireReportActions(container, { cidade: city.n, uf: city.uf, populacao: city.pop, data: data, ranking: ranking });
 
     // Atualiza URL pra deep-link
     updateURL(slugStr);
