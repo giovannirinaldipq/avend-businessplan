@@ -2861,6 +2861,42 @@ function maybeShowAdmin() {
   } catch (e) { console.error("Admin panel error:", e); }
 }
 
+/* ============================================================
+   REVEAL-ON-SCROLL · IntersectionObserver
+   Elementos com [data-reveal] ou [data-reveal-stagger] entram com
+   fade-up quando aparecem no viewport. Uma vez por elemento.
+   ============================================================ */
+function bindReveals() {
+  if (!("IntersectionObserver" in window)) {
+    // Fallback: revela tudo (sem animação)
+    document.querySelectorAll("[data-reveal], [data-reveal-stagger]")
+      .forEach(el => el.classList.add("is-revealed"));
+    return;
+  }
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add("is-revealed");
+        obs.unobserve(e.target);
+      }
+    });
+  }, { rootMargin: "0px 0px -10% 0px", threshold: 0.05 });
+
+  document.querySelectorAll("[data-reveal], [data-reveal-stagger]")
+    .forEach(el => obs.observe(el));
+}
+
+/* ============================================================
+   STICKY CTA mobile · botão "Diagnóstico" sempre visível em mobile
+   ============================================================ */
+function bindStickyCTA() {
+  const cta = document.getElementById("sticky-cta");
+  if (!cta) return;
+  cta.addEventListener("click", () => {
+    if (typeof openQuiz === "function") openQuiz(true);
+  });
+}
+
 /* ---------- Setup do bloco standalone de Mercado/Território ---------- */
 function bindMarketTerritory() {
   const form     = document.getElementById("mkt-territory-search");
@@ -2953,6 +2989,8 @@ document.addEventListener("DOMContentLoaded", () => {
   bindVsl();
   bindMarketTerritory();
   bindTour();
+  bindReveals();
+  bindStickyCTA();
   maybeAutoOpenQuiz();
   maybeAutoOpenTour();
   maybeShowAdmin();

@@ -1129,13 +1129,40 @@
       const value = String(inputEl.value || "").trim();
       if (!value) return;
       containerEl.hidden = false;
-      render(containerEl, value);
-      // Scroll suave pra resposta — agradável em reunião de vendas.
+
+      // Skeleton loader: dá feedback visual ANTES do render real
+      // (humaniza a busca, sensação de "computando")
+      containerEl.innerHTML = renderSkeleton();
       if (options.scrollIntoView !== false) {
         try { containerEl.scrollIntoView({ behavior: "smooth", block: "center" }); }
-        catch (e2) { /* navegadores antigos */ }
+        catch (e2) { /* ignore */ }
       }
+
+      // Pequeno delay (~250ms) pra o skeleton aparecer brevemente
+      // antes do conteúdo real — UX de "trabalhando".
+      setTimeout(function () {
+        render(containerEl, value);
+      }, 280);
     });
+  }
+
+  // Renderiza skeleton placeholder enquanto o diagnóstico carrega
+  function renderSkeleton() {
+    return (
+      '<div class="mkt-skeleton" aria-busy="true" aria-label="Carregando diagnóstico">' +
+        '<div class="mkt-skeleton-line lg"></div>' +
+        '<div class="mkt-skeleton-line sm"></div>' +
+        '<div class="mkt-skeleton-grid">' +
+          '<div class="mkt-skeleton-circle"></div>' +
+          '<div style="display:grid; gap: 12px;">' +
+            '<div class="mkt-skeleton-block"></div>' +
+            '<div class="mkt-skeleton-block"></div>' +
+            '<div class="mkt-skeleton-block"></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="mkt-skeleton-block" style="height:120px;"></div>' +
+      '</div>'
+    );
   }
 
   // Popula um <datalist> com cidades da base — autocomplete nativo.
