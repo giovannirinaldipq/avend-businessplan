@@ -271,12 +271,22 @@ function activateTab(name) {
   document.querySelectorAll(".page").forEach(p => p.classList.toggle("active", p.id === name));
   window.scrollTo({ top: 0, behavior: "smooth" });
 
-  // Re-render charts that may have been initialized while hidden
+  // Re-render charts que podem ter sido inicializados enquanto a aba estava hidden
   if (name === "mercado") {
     requestAnimationFrame(() => {
       if (state.charts.density) state.charts.density.resize();
       else renderMarketChart();
     });
+  } else {
+    // Saiu da aba Mercado — limpa o ?cidade= da URL pra não ficar "viciada"
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("cidade")) {
+        url.searchParams.delete("cidade");
+        const newUrl = url.pathname + (url.search || "") + (url.hash || "");
+        window.history.replaceState({}, "", newUrl);
+      }
+    } catch (e) { /* ignore */ }
   }
 
   // Telemetria
@@ -1966,14 +1976,9 @@ function bindVsl() {
 }
 
 function maybeAutoOpenQuiz() {
-  try {
-    const completed = localStorage.getItem("avend-quiz-completed");
-    if (!completed) {
-      // OBRIGATÓRIO: abre o quiz na 1ª visita e em retornos sem completar.
-      // Sem timeout — abre imediatamente pra impor o fluxo.
-      requestAnimationFrame(() => openQuiz(true));
-    }
-  } catch (e) { /* ignore */ }
+  // Quiz é OPCIONAL — não abre automaticamente.
+  // Acesso pelos botões "Diagnóstico" no header e no hero.
+  return;
 }
 
 /* ============================================================
