@@ -55,19 +55,26 @@
       <span class="brand-title">AVEND</span>
     </a>
 
-    <nav class="tabs" role="tablist" aria-label="Seções do plano">
-      <button class="tab active" data-tab="overview" role="tab">Resumo</button>
-      <button class="tab tab-spotlight" data-tab="porque" role="tab">
-        <span class="tab-spotlight-dot" aria-hidden="true"></span>
-        Por&nbsp;que&nbsp;AVEND?
+    <nav class="nav-main" role="tablist" aria-label="Jornada de avaliação">
+      <button class="nav-group active" data-group="visao" type="button">
+        <span class="nav-group-step">01</span>
+        <span class="nav-group-label">Visão</span>
       </button>
-      <button class="tab" data-tab="simulador" role="tab">Simulador</button>
-      <button class="tab" data-tab="timeline" role="tab">Expansão</button>
-      <button class="tab" data-tab="modelos" role="tab">Modelos</button>
-      <button class="tab" data-tab="recebe" role="tab">O&nbsp;que&nbsp;você&nbsp;recebe</button>
-      <button class="tab" data-tab="mercado" role="tab">Mercado</button>
-      <button class="tab" data-tab="rede" role="tab">Nossa&nbsp;Rede</button>
-      <button class="tab" data-tab="faq" role="tab">Dúvidas</button>
+      <span class="nav-group-arrow" aria-hidden="true">›</span>
+      <button class="nav-group" data-group="numeros" type="button">
+        <span class="nav-group-step">02</span>
+        <span class="nav-group-label">Números</span>
+      </button>
+      <span class="nav-group-arrow" aria-hidden="true">›</span>
+      <button class="nav-group" data-group="operacao" type="button">
+        <span class="nav-group-step">03</span>
+        <span class="nav-group-label">Operação</span>
+      </button>
+      <span class="nav-group-arrow" aria-hidden="true">›</span>
+      <button class="nav-group" data-group="decidir" type="button">
+        <span class="nav-group-step">04</span>
+        <span class="nav-group-label">Decidir</span>
+      </button>
     </nav>
 
     <button class="topbar-quiz" id="open-quiz-header" type="button" aria-label="Abrir diagnóstico personalizado">
@@ -75,6 +82,9 @@
       <span class="topbar-quiz-text">Diagnóstico</span>
     </button>
   </header>
+
+  <!-- Sub-navegação: pills do grupo ativo, preenchidas via JS -->
+  <nav class="nav-sub" id="nav-sub" role="tablist" aria-label="Seções do grupo"></nav>
 
   <main class="stage">
     <!-- ==================== OVERVIEW ==================== -->
@@ -1979,8 +1989,32 @@
     </div>
   </div>
 
-  <script src="cities-data.js?v=17"></script>
-  <script src="market-territory.js?v=17"></script>
-  <script src="app.js?v=17"></script>
+  <!-- ==================== TOUR GUIADO (60s, primeira visita) ==================== -->
+  <div id="tour-overlay" class="tour-overlay" hidden aria-hidden="true">
+    <div class="tour-card" role="dialog" aria-modal="true" aria-labelledby="tour-title">
+      <button type="button" class="tour-close" id="tour-close" aria-label="Fechar tour">&times;</button>
+      <div class="tour-progress">
+        <span class="tour-progress-bar" id="tour-progress-bar"></span>
+      </div>
+      <div class="tour-step-meta">
+        <span class="tour-step-num" id="tour-step-num">1</span>
+        <span class="tour-step-total">de <strong id="tour-step-total">5</strong></span>
+        <span class="tour-step-time" id="tour-step-time">⏱ ~60s no total</span>
+      </div>
+      <div class="tour-icon" id="tour-icon" aria-hidden="true">👋</div>
+      <h2 class="tour-title" id="tour-title">Bem-vindo ao plano AVEND</h2>
+      <p class="tour-body" id="tour-body">Em 60 segundos, vou te mostrar o que tem aqui dentro.</p>
+      <div class="tour-actions">
+        <button type="button" class="tour-btn tour-btn-skip" id="tour-skip">Pular</button>
+        <button type="button" class="tour-btn tour-btn-next" id="tour-next">
+          <span id="tour-next-label">Começar</span> <span aria-hidden="true">→</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="cities-data.js?v=18"></script>
+  <script src="market-territory.js?v=18"></script>
+  <script src="app.js?v=18"></script>
 </body>
 </html>

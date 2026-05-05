@@ -266,9 +266,62 @@ function currentParams() {
 }
 
 /* ---------- Tab nav ---------- */
+/* Mapeamento das 9 páginas em 4 grupos de jornada (Visão · Números ·
+   Operação · Decidir). Reduz a fricção cognitiva da nav horizontal de
+   9 tabs e dá sensação de stepper de avaliação. */
+const TAB_GROUPS = {
+  visao: [
+    { id: "overview", label: "Resumo" },
+    { id: "porque",   label: "Por que AVEND?" }
+  ],
+  numeros: [
+    { id: "simulador", label: "Simulador" },
+    { id: "mercado",   label: "Mercado" },
+    { id: "timeline",  label: "Expansão" }
+  ],
+  operacao: [
+    { id: "modelos",   label: "Modelos" },
+    { id: "recebe",    label: "O que você recebe" },
+    { id: "rede",      label: "Nossa Rede" }
+  ],
+  decidir: [
+    { id: "faq",       label: "Dúvidas" }
+  ]
+};
+
+const PAGE_TO_GROUP = {};
+Object.entries(TAB_GROUPS).forEach(([groupKey, pages]) => {
+  pages.forEach(p => { PAGE_TO_GROUP[p.id] = groupKey; });
+});
+
+function renderSubNav(groupKey, activeTabId) {
+  const subNav = document.getElementById("nav-sub");
+  if (!subNav) return;
+  const pages = TAB_GROUPS[groupKey] || [];
+  const target = activeTabId || pages[0]?.id;
+  // Esconde sub-nav se grupo tem apenas 1 página (ex: Decidir)
+  subNav.classList.toggle("nav-sub-single", pages.length <= 1);
+  subNav.innerHTML = pages.map(p => (
+    '<button type="button" class="nav-sub-item' +
+    (p.id === target ? ' active' : '') +
+    '" data-tab="' + p.id + '" role="tab">' +
+    p.label +
+    '</button>'
+  )).join("");
+}
+
 function activateTab(name) {
-  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === name));
   document.querySelectorAll(".page").forEach(p => p.classList.toggle("active", p.id === name));
+
+  // Sincroniza grupo + sub-nav com a página ativa
+  const groupKey = PAGE_TO_GROUP[name];
+  if (groupKey) {
+    document.querySelectorAll(".nav-group").forEach(b => {
+      b.classList.toggle("active", b.dataset.group === groupKey);
+    });
+    renderSubNav(groupKey, name);
+  }
+
   window.scrollTo({ top: 0, behavior: "smooth" });
 
   // Re-render charts que podem ter sido inicializados enquanto a aba estava hidden
@@ -292,13 +345,37 @@ function activateTab(name) {
   // Telemetria
   if (typeof TELEMETRY !== "undefined") TELEMETRY.setTab(name);
 }
+
 function bindTabs() {
-  document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => activateTab(t.dataset.tab)));
+  // Grupos primários (Visão, Números, Operação, Decidir)
+  document.querySelectorAll(".nav-group").forEach(g => {
+    g.addEventListener("click", () => {
+      const groupKey = g.dataset.group;
+      const pages = TAB_GROUPS[groupKey] || [];
+      if (pages.length === 0) return;
+      // Vai pra primeira página do grupo (re-render da sub-nav segue via activateTab)
+      activateTab(pages[0].id);
+    });
+  });
+
+  // Sub-nav (delegação — itens são dinâmicos)
+  const subNav = document.getElementById("nav-sub");
+  if (subNav) {
+    subNav.addEventListener("click", (e) => {
+      const btn = e.target.closest(".nav-sub-item");
+      if (!btn) return;
+      activateTab(btn.dataset.tab);
+    });
+  }
+
+  // CTAs do tipo data-goto (botões internos: "Abrir Simulador" etc)
   document.querySelectorAll("[data-goto]").forEach(el => el.addEventListener("click", (e) => {
-    // se for link <a>, prevenir o jump pra "#"
     if (el.tagName === "A") e.preventDefault();
     activateTab(el.dataset.goto);
   }));
+
+  // Render inicial: ativa a primeira sub-tab do grupo "visao" (overview)
+  renderSubNav("visao", "overview");
 }
 
 /* ---------- Sliders ---------- */
@@ -1982,6 +2059,141 @@ function maybeAutoOpenQuiz() {
 }
 
 /* ============================================================
+   TOUR GUIADO — 60 segundos, primeira visita
+   ============================================================
+   Modal sequencial com 5 passos curtos explicando o site.
+   Estado em localStorage ("avend-tour-done"). Pode ser reaberto
+   manualmente futuramente. Cada step pode ativar uma tab ao avançar.
+   ============================================================ */
+const TOUR_STEPS = [
+  {
+    icon: "👋",
+    title: "Bem-vindo ao plano AVEND",
+    body: "Em 60 segundos vou te mostrar o que tem aqui dentro. Você pode pular a qualquer momento.",
+    nextLabel: "Começar",
+    activateTab: "overview"
+  },
+  {
+    icon: "📊",
+    title: "01 · Visão",
+    body: "Aqui você entende o modelo num panorama: KPIs principais, unit economics e o pitch da AVEND. Comece sempre por aqui.",
+    nextLabel: "Próximo",
+    activateTab: "overview"
+  },
+  {
+    icon: "🎚",
+    title: "02 · Números",
+    body: "Simulador interativo, diagnóstico de mercado da sua cidade e linha de expansão. Mexa nos sliders pra ver o flywheel da AVEND.",
+    nextLabel: "Próximo",
+    activateTab: "simulador"
+  },
+  {
+    icon: "⚙",
+    title: "03 · Operação",
+    body: "Modelos de aquisição, suporte que você recebe, e um olhar por dentro da rede AVEND.",
+    nextLabel: "Próximo",
+    activateTab: "modelos"
+  },
+  {
+    icon: "🎯",
+    title: "04 · Decidir",
+    body: "Dúvidas frequentes e o Diagnóstico Personalizado (10 perguntas → plano sob medida). Pronto pra explorar?",
+    nextLabel: "Explorar livremente",
+    activateTab: "faq"
+  }
+];
+
+const tourState = { current: 0, total: TOUR_STEPS.length };
+
+function openTour() {
+  tourState.current = 0;
+  const ov = document.getElementById("tour-overlay");
+  if (!ov) return;
+  ov.hidden = false;
+  ov.setAttribute("aria-hidden", "false");
+  document.body.classList.add("tour-open");
+  renderTourStep();
+  if (typeof TELEMETRY !== "undefined") TELEMETRY.track("tour_started", {});
+}
+
+function closeTour(reason) {
+  const ov = document.getElementById("tour-overlay");
+  if (!ov) return;
+  ov.hidden = true;
+  ov.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("tour-open");
+  try { localStorage.setItem("avend-tour-done", "1"); } catch (e) {}
+  if (typeof TELEMETRY !== "undefined") {
+    TELEMETRY.track("tour_closed", { reason: reason || "completed", step: tourState.current });
+  }
+}
+
+function renderTourStep() {
+  const step = TOUR_STEPS[tourState.current];
+  if (!step) return;
+  const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setText("tour-step-num", String(tourState.current + 1));
+  setText("tour-step-total", String(tourState.total));
+  setText("tour-icon", step.icon);
+  setText("tour-title", step.title);
+  setText("tour-body", step.body);
+  setText("tour-next-label", step.nextLabel);
+  // progress bar
+  const pct = ((tourState.current + 1) / tourState.total) * 100;
+  const bar = document.getElementById("tour-progress-bar");
+  if (bar) bar.style.width = pct + "%";
+  // ativa a tab associada (se houver), pra sincronizar fundo
+  if (step.activateTab && typeof activateTab === "function") {
+    activateTab(step.activateTab);
+  }
+  // skip button label muda no último step
+  const skipBtn = document.getElementById("tour-skip");
+  if (skipBtn) skipBtn.textContent = (tourState.current === tourState.total - 1) ? "Voltar" : "Pular";
+}
+
+function bindTour() {
+  const overlay = document.getElementById("tour-overlay");
+  if (!overlay) return;
+
+  document.getElementById("tour-close")?.addEventListener("click", () => closeTour("close"));
+  document.getElementById("tour-skip")?.addEventListener("click", () => {
+    if (tourState.current === tourState.total - 1) {
+      // Última: "Voltar" volta um step
+      tourState.current = Math.max(0, tourState.current - 1);
+      renderTourStep();
+    } else {
+      closeTour("skipped");
+    }
+  });
+  document.getElementById("tour-next")?.addEventListener("click", () => {
+    if (tourState.current < tourState.total - 1) {
+      tourState.current++;
+      renderTourStep();
+    } else {
+      closeTour("completed");
+    }
+  });
+  // ESC pra fechar
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !overlay.hidden) closeTour("esc");
+  });
+  // Click no backdrop (fora do card)
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeTour("backdrop");
+  });
+}
+
+function maybeAutoOpenTour() {
+  try {
+    const done = localStorage.getItem("avend-tour-done");
+    if (!done) {
+      // Pequeno delay pra dar tempo do site renderizar
+      setTimeout(() => openTour(), 1200);
+    }
+  } catch (e) { /* ignore */ }
+}
+
+/* ============================================================
    TELEMETRY — sessão, tempo, interações
    Persistência: localStorage + (opcional) POST para Apps Script
    Configure TELEMETRY_ENDPOINT abaixo com a URL do seu Web App.
@@ -2719,8 +2931,7 @@ function bindMarketTerritory() {
         wrap.hidden = false;
         MarketTerritory.render(wrap, city.n, city.uf);
         // Ativa a tab Mercado pra o usuário ver direto
-        const mercadoTab = document.querySelector('.tab[data-tab="mercado"]');
-        if (mercadoTab) mercadoTab.click();
+        if (typeof activateTab === "function") activateTab("mercado");
         // Scroll após pequeno delay (depois da troca de tab)
         setTimeout(() => {
           try { wrap.scrollIntoView({ behavior: "smooth", block: "start" }); }
@@ -2741,7 +2952,9 @@ document.addEventListener("DOMContentLoaded", () => {
   bindQuiz();
   bindVsl();
   bindMarketTerritory();
+  bindTour();
   maybeAutoOpenQuiz();
+  maybeAutoOpenTour();
   maybeShowAdmin();
   TELEMETRY.track("page_loaded", { url: location.href });
 });
