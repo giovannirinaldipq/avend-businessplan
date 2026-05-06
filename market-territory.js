@@ -402,7 +402,7 @@
             <span class="mkt-stat-dot" aria-hidden="true"></span>
             <span class="mkt-stat-lbl">
               Gap de oportunidade
-              ${info("Capacidade total da cidade menos máquinas AVEND operando hoje. É o espaço bruto que a cidade ainda comporta — onde a AVEND pode crescer.")}
+              ${info("Capacidade total da cidade menos as máquinas em média instaladas operando hoje no segmento (snacks/bebidas). É o espaço bruto que a cidade ainda comporta — onde a AVEND pode crescer.")}
             </span>
             <span class="mkt-stat-val">${num(m.gap_oportunidade)}</span>
             <span class="mkt-stat-aux">vagas que a cidade ainda comporta</span>
@@ -930,7 +930,7 @@
         '<div class="mkt-print-kpi-grid">' +
           '<div class="mkt-print-kpi mkt-print-kpi-now">' +
             '<div class="mkt-print-kpi-val">' + fmtNum(m.maquinas_atuais) + '</div>' +
-            '<div class="mkt-print-kpi-lbl">máquinas AVEND<br/>operando hoje</div>' +
+            '<div class="mkt-print-kpi-lbl">máquinas em média<br/>instaladas operando hoje</div>' +
           '</div>' +
           '<div class="mkt-print-kpi mkt-print-kpi-cap">' +
             '<div class="mkt-print-kpi-val">' + fmtNum(m.capacidade_maxima) + '</div>' +
@@ -947,7 +947,7 @@
         '</div>' +
         '<p class="mkt-print-summary-line">' +
           '<strong>' + gapPct + '%</strong> do mercado de <strong>' + escapeHtml(cidade) + '</strong> ainda está disponível para a AVEND. ' +
-          'Hoje há <strong>' + fmtNum(m.maquinas_atuais) + ' máquinas</strong> AVEND operando — ' +
+          'Hoje há em média <strong>' + fmtNum(m.maquinas_atuais) + ' máquinas</strong> instaladas operando — ' +
           'espaço bruto para mais <strong>' + fmtNum(m.gap_oportunidade) + '</strong>, sendo ' +
           '<strong>' + fmtNum(p.total_premium) + ' em pontos premium</strong> de maior retorno.' +
         '</p>' +
