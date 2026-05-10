@@ -29,21 +29,29 @@
     unidadeMin: 4001,
     unidadeMax: 4099,
 
-    // Pool de produtos da rede AVEND
+    // Pool de produtos AVEND com gramatura/volume reais do mercado
+    // gen: "m" → "vendeu um" · gen: "f" → "vendeu uma"
     produtos: [
-      { nome: "Coca-Cola Zero lata 350ml", icon: "🥤" },
-      { nome: "Fanta lata 350ml",          icon: "🥤" },
-      { nome: "Guaraná Antarctica lata",   icon: "🥤" },
-      { nome: "Del Valle Uva lata",        icon: "🧃" },
-      { nome: "Del Valle Laranja lata",    icon: "🧃" },
-      { nome: "Snickers",                  icon: "🍫" },
-      { nome: "Kit Kat",                   icon: "🍫" },
-      { nome: "Twix",                      icon: "🍫" },
-      { nome: "M&M's",                     icon: "🍬" },
-      { nome: "Ruffles Churrasco",         icon: "🍟" },
-      { nome: "Ruffles Tradicional",       icon: "🍟" },
-      { nome: "Água sem gás 500ml",        icon: "💧" },
-      { nome: "Água com gás 500ml",        icon: "💧" }
+      // Refrigerantes em lata (350ml padrão)
+      { nome: "Coca-Cola Zero lata 350ml",        icon: "🥤", gen: "f" },
+      { nome: "Coca-Cola Original lata 350ml",    icon: "🥤", gen: "f" },
+      { nome: "Fanta Laranja lata 350ml",         icon: "🥤", gen: "f" },
+      { nome: "Guaraná Antarctica lata 350ml",    icon: "🥤", gen: "m" },
+      { nome: "Sprite lata 350ml",                icon: "🥤", gen: "m" },
+      // Sucos em lata (290ml é o padrão Del Valle Frut)
+      { nome: "Del Valle Frut Uva lata 290ml",    icon: "🧃", gen: "m" },
+      { nome: "Del Valle Frut Laranja lata 290ml",icon: "🧃", gen: "m" },
+      // Águas
+      { nome: "Crystal sem gás 500ml",            icon: "💧", gen: "f" },
+      { nome: "Crystal com gás 500ml",            icon: "💧", gen: "f" },
+      // Chocolates (gramaturas padrão Brasil)
+      { nome: "Snickers 45g",                     icon: "🍫", gen: "m" },
+      { nome: "Twix 45g",                         icon: "🍫", gen: "m" },
+      { nome: "Kit Kat 4 Dedos 41,5g",            icon: "🍫", gen: "m" },
+      { nome: "M&M's Chocolate 49g",              icon: "🍬", gen: "m" },
+      // Salgadinhos
+      { nome: "Ruffles Churrasco 76g",            icon: "🍟", gen: "m" },
+      { nome: "Ruffles Tradicional 76g",          icon: "🍟", gen: "m" }
     ],
 
     // Mistura dos 3 tipos de evento
@@ -89,11 +97,12 @@
     const produto = pickProduto();
     const minAtras = 1 + Math.floor(Math.random() * 3); // 1-3 min
     const tempo = minAtras === 1 ? "agora há pouco" : "há " + minAtras + " min";
+    const artigo = produto.gen === "f" ? "uma" : "um";
     return {
       _type: "atividade",
       icon: produto.icon,
       title: "Unidade #" + unidade,
-      body: "vendeu uma " + produto.nome,
+      body: "vendeu " + artigo + " " + produto.nome,
       time: tempo
     };
   }
