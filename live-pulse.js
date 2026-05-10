@@ -288,9 +288,34 @@
     init();
   }
 
+  /* Helper de debug: empilha vários toasts SEM o cleanup automático.
+     Uso: criar toast direto sem chamar showEvent (que dismissa o anterior). */
+  function showStacked(evt) {
+    const c = ensureContainer();
+    const toast = document.createElement("div");
+    toast.className = "live-pulse-toast live-pulse-toast-" + evt._type;
+    toast.innerHTML =
+      '<div class="live-pulse-icon" aria-hidden="true">' + evt.icon + '</div>' +
+      '<div class="live-pulse-body">' +
+        '<div class="live-pulse-title">' + escapeHtml(evt.title) + '</div>' +
+        '<div class="live-pulse-text">' + escapeHtml(evt.body) + '</div>' +
+        (evt.time
+          ? '<div class="live-pulse-time">' + escapeHtml(evt.time) + '</div>'
+          : '') +
+      '</div>' +
+      '<button type="button" class="live-pulse-close" aria-label="Fechar">×</button>' +
+      '<div class="live-pulse-disclaimer">exemplos da atividade típica da rede</div>';
+    c.appendChild(toast);
+    toast.querySelector(".live-pulse-close").addEventListener("click", function () {
+      dismissToast(toast);
+    });
+    // Auto-dismiss um pouco mais longo no modo debug (12s)
+    setTimeout(function () { dismissToast(toast); }, 12000);
+  }
+
   // Expor API mínima pra debug/futuro
   root.AvendLivePulse = {
-    show: function () { showEvent(buildEvent()); },     // força um agora
+    show: function () { showEvent(buildEvent()); },     // força um agora (substitui anterior)
     pause: function () { document.body.classList.add("live-pulse-off"); },
     resume: function () { document.body.classList.remove("live-pulse-off"); },
     disablePermanently: function () {
@@ -300,6 +325,26 @@
     enableAgain: function () {
       try { localStorage.removeItem("avend-live-pulse-off"); } catch (e) {}
       document.body.classList.remove("live-pulse-off");
+    },
+
+    /* ----- DEBUG / DEMO -----
+       demo(n)  → mostra n toasts em SEQUÊNCIA (1.2s entre cada).
+                  Cada novo dismissa o anterior — vê todas as variantes
+                  em ordem natural.
+       stack(n) → mostra n toasts EMPILHADOS ao mesmo tempo (forçado).
+                  Útil pra avaliar tipografia/cores lado-a-lado.
+                  Default n=4. Ignora a regra de "1 por vez".              */
+    demo: function (n) {
+      n = n || 6;
+      for (let i = 0; i < n; i++) {
+        setTimeout(function () { showEvent(buildEvent()); }, i * 1200);
+      }
+    },
+    stack: function (n) {
+      n = n || 4;
+      for (let i = 0; i < n; i++) {
+        setTimeout(function () { showStacked(buildEvent()); }, i * 120);
+      }
     }
   };
 })(typeof window !== "undefined" ? window : this);
