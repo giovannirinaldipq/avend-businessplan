@@ -7360,3 +7360,210 @@ body.is-mkt-printing .sticky-cta {
   border-radius: 2px;
   opacity: 0.7;
 }
+
+
+/* ============================================================
+   LIVE PULSE - notificacoes de atividade da rede
+   Toast pequeno no canto inferior esquerdo, glassmorphism,
+   slide-in suave, auto-dismiss 6.5s.
+   ============================================================ */
+.live-pulse-container {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 89;             /* abaixo do sticky-cta (90) e modais */
+  pointer-events: none;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 10px;
+  max-width: 320px;
+}
+
+.live-pulse-toast {
+  position: relative;
+  display: grid;
+  grid-template-columns: 38px 1fr 24px;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "icon body close"
+    "icon disclaimer disclaimer";
+  align-items: center;
+  gap: 10px 12px;
+  width: 290px;
+  padding: 11px 12px 9px;
+  background: rgba(13, 14, 54, 0.94);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(61, 217, 214, 0.25);
+  border-radius: 14px;
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  pointer-events: all;
+  animation: live-pulse-enter 0.42s cubic-bezier(0.2, 0.8, 0.3, 1);
+  cursor: default;
+  isolation: isolate;
+}
+
+/* Glow sutil cyan no canto esquerdo (acento de "vivo") */
+.live-pulse-toast::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  background: linear-gradient(180deg, #3DD9D6, #4B6CE2);
+  border-radius: 2px;
+  z-index: 1;
+  opacity: 0.85;
+}
+
+.live-pulse-toast-leaving {
+  animation: live-pulse-leave 0.3s ease-in forwards;
+}
+
+@keyframes live-pulse-enter {
+  from { opacity: 0; transform: translateX(-32px) scale(0.94); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes live-pulse-leave {
+  to { opacity: 0; transform: translateX(-24px) scale(0.94); }
+}
+
+.live-pulse-icon {
+  grid-area: icon;
+  font-size: 20px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(61, 217, 214, 0.12);
+  border: 1px solid rgba(61, 217, 214, 0.18);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.live-pulse-body {
+  grid-area: body;
+  min-width: 0;
+}
+
+.live-pulse-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #3DD9D6;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.live-pulse-text {
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.94);
+  font-weight: 500;
+  line-height: 1.3;
+  margin-top: 3px;
+  /* Permite quebra em duas linhas, sem cortar palavra */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.live-pulse-time {
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 3px;
+  letter-spacing: 0.02em;
+}
+
+.live-pulse-close {
+  grid-area: close;
+  background: transparent;
+  border: 0;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: start;
+  margin-top: -2px;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.live-pulse-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.live-pulse-disclaimer {
+  grid-area: disclaimer;
+  font-size: 9.5px;
+  color: rgba(255, 255, 255, 0.32);
+  letter-spacing: 0.02em;
+  font-style: italic;
+  line-height: 1.2;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: 2px;
+}
+
+/* Variacoes por tipo - acentos sutis */
+.live-pulse-toast-marco {
+  border-color: rgba(255, 176, 32, 0.32);
+}
+.live-pulse-toast-marco::before {
+  background: linear-gradient(180deg, #ffb020, #ff8a3d);
+}
+.live-pulse-toast-marco .live-pulse-title {
+  color: #ffb020;
+}
+.live-pulse-toast-marco .live-pulse-icon {
+  background: rgba(255, 176, 32, 0.12);
+  border-color: rgba(255, 176, 32, 0.22);
+}
+
+.live-pulse-toast-conversor {
+  border-color: rgba(139, 48, 230, 0.32);
+}
+.live-pulse-toast-conversor::before {
+  background: linear-gradient(180deg, #8B30E6, #4B6CE2);
+}
+.live-pulse-toast-conversor .live-pulse-title {
+  color: #c089ff;
+}
+.live-pulse-toast-conversor .live-pulse-icon {
+  background: rgba(139, 48, 230, 0.14);
+  border-color: rgba(139, 48, 230, 0.24);
+}
+
+/* Mobile - sobe acima do sticky-cta, encolhe pra largura quase total */
+@media (max-width: 720px) {
+  .live-pulse-container {
+    bottom: 84px;          /* acima do sticky-cta (76 + margem) */
+    left: 12px;
+    right: 12px;
+    max-width: none;
+  }
+  .live-pulse-toast {
+    width: 100%;
+  }
+}
+
+/* User desligou via API */
+body.live-pulse-off .live-pulse-container { display: none !important; }
+
+/* prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .live-pulse-toast { animation: none; }
+  .live-pulse-toast-leaving { animation: none; opacity: 0; }
+}
