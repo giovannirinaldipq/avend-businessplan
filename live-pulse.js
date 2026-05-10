@@ -31,27 +31,28 @@
 
     // Pool de produtos AVEND com gramatura/volume reais do mercado
     // gen: "m" → "vendeu um" · gen: "f" → "vendeu uma"
+    // preco: valor médio praticado em vending no Brasil 2026
     produtos: [
       // Refrigerantes em lata (350ml padrão)
-      { nome: "Coca-Cola Zero lata 350ml",        icon: "🥤", gen: "f" },
-      { nome: "Coca-Cola Original lata 350ml",    icon: "🥤", gen: "f" },
-      { nome: "Fanta Laranja lata 350ml",         icon: "🥤", gen: "f" },
-      { nome: "Guaraná Antarctica lata 350ml",    icon: "🥤", gen: "m" },
-      { nome: "Sprite lata 350ml",                icon: "🥤", gen: "m" },
+      { nome: "Coca-Cola Zero lata 350ml",        icon: "🥤", gen: "f", preco: 7.00 },
+      { nome: "Coca-Cola Original lata 350ml",    icon: "🥤", gen: "f", preco: 7.00 },
+      { nome: "Fanta Laranja lata 350ml",         icon: "🥤", gen: "f", preco: 6.50 },
+      { nome: "Guaraná Antarctica lata 350ml",    icon: "🥤", gen: "m", preco: 6.50 },
+      { nome: "Sprite lata 350ml",                icon: "🥤", gen: "m", preco: 6.50 },
       // Sucos em lata (290ml é o padrão Del Valle Frut)
-      { nome: "Del Valle Frut Uva lata 290ml",    icon: "🧃", gen: "m" },
-      { nome: "Del Valle Frut Laranja lata 290ml",icon: "🧃", gen: "m" },
+      { nome: "Del Valle Frut Uva lata 290ml",    icon: "🧃", gen: "m", preco: 7.50 },
+      { nome: "Del Valle Frut Laranja lata 290ml",icon: "🧃", gen: "m", preco: 7.50 },
       // Águas
-      { nome: "Crystal sem gás 500ml",            icon: "💧", gen: "f" },
-      { nome: "Crystal com gás 500ml",            icon: "💧", gen: "f" },
+      { nome: "Crystal sem gás 500ml",            icon: "💧", gen: "f", preco: 4.50 },
+      { nome: "Crystal com gás 500ml",            icon: "💧", gen: "f", preco: 5.00 },
       // Chocolates (gramaturas padrão Brasil)
-      { nome: "Snickers 45g",                     icon: "🍫", gen: "m" },
-      { nome: "Twix 45g",                         icon: "🍫", gen: "m" },
-      { nome: "Kit Kat 4 Dedos 41,5g",            icon: "🍫", gen: "m" },
-      { nome: "M&M's Chocolate 49g",              icon: "🍬", gen: "m" },
+      { nome: "Snickers 45g",                     icon: "🍫", gen: "m", preco: 6.00 },
+      { nome: "Twix 45g",                         icon: "🍫", gen: "m", preco: 6.00 },
+      { nome: "Kit Kat 4 Dedos 41,5g",            icon: "🍫", gen: "m", preco: 6.50 },
+      { nome: "M&M's Chocolate 49g",              icon: "🍬", gen: "m", preco: 7.00 },
       // Salgadinhos
-      { nome: "Ruffles Churrasco 76g",            icon: "🍟", gen: "m" },
-      { nome: "Ruffles Tradicional 76g",          icon: "🍟", gen: "m" }
+      { nome: "Ruffles Churrasco 76g",            icon: "🍟", gen: "m", preco: 9.50 },
+      { nome: "Ruffles Tradicional 76g",          icon: "🍟", gen: "m", preco: 9.50 }
     ],
 
     // Mistura dos 3 tipos de evento
@@ -91,6 +92,12 @@
     });
   }
 
+  // Formato BRL pt-BR (R$ 7,00)
+  const NF_BRL = new Intl.NumberFormat("pt-BR", {
+    style: "currency", currency: "BRL"
+  });
+  function fmtBRL(v) { return NF_BRL.format(Number(v) || 0); }
+
   /* ---------- EVENT BUILDERS -------------------------------- */
   function buildAtividade() {
     const unidade = pickUnidade();
@@ -98,12 +105,16 @@
     const minAtras = 1 + Math.floor(Math.random() * 3); // 1-3 min
     const tempo = minAtras === 1 ? "agora há pouco" : "há " + minAtras + " min";
     const artigo = produto.gen === "f" ? "uma" : "um";
+    // Valor em R$ no campo "time" — destaque visual sutil pro investidor
+    // somar mentalmente as vendas ao longo da sessão.
+    const valor = produto.preco ? fmtBRL(produto.preco) : null;
     return {
       _type: "atividade",
       icon: produto.icon,
       title: "Unidade #" + unidade,
       body: "vendeu " + artigo + " " + produto.nome,
-      time: tempo
+      time: tempo,
+      valor: valor  // renderizado em destaque cyan
     };
   }
 
@@ -179,6 +190,20 @@
   }
 
   /* ---------- RENDER ---------------------------------------- */
+  // Helper: monta a linha "valor + tempo" com destaque cyan no preço.
+  // Compartilhado entre showEvent (modo real) e showStacked (modo debug).
+  function renderTimeLine(evt) {
+    if (!evt.valor && !evt.time) return "";
+    let html = '<div class="live-pulse-time">';
+    if (evt.valor) {
+      html += '<span class="live-pulse-valor">' + escapeHtml(evt.valor) + '</span>';
+      if (evt.time) html += ' · ';
+    }
+    if (evt.time) html += escapeHtml(evt.time);
+    html += '</div>';
+    return html;
+  }
+
   function ensureContainer() {
     if (state.container) return state.container;
     const c = document.createElement("div");
@@ -212,9 +237,7 @@
       '<div class="live-pulse-body">' +
         '<div class="live-pulse-title">' + escapeHtml(evt.title) + '</div>' +
         '<div class="live-pulse-text">' + escapeHtml(evt.body) + '</div>' +
-        (evt.time
-          ? '<div class="live-pulse-time">' + escapeHtml(evt.time) + '</div>'
-          : '') +
+        renderTimeLine(evt) +
       '</div>' +
       '<button type="button" class="live-pulse-close" aria-label="Fechar">×</button>' +
       '<div class="live-pulse-disclaimer">exemplos da atividade típica da rede</div>';
@@ -308,9 +331,7 @@
       '<div class="live-pulse-body">' +
         '<div class="live-pulse-title">' + escapeHtml(evt.title) + '</div>' +
         '<div class="live-pulse-text">' + escapeHtml(evt.body) + '</div>' +
-        (evt.time
-          ? '<div class="live-pulse-time">' + escapeHtml(evt.time) + '</div>'
-          : '') +
+        renderTimeLine(evt) +
       '</div>' +
       '<button type="button" class="live-pulse-close" aria-label="Fechar">×</button>' +
       '<div class="live-pulse-disclaimer">exemplos da atividade típica da rede</div>';
