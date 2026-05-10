@@ -2134,6 +2134,26 @@
     </div>
   </div>
 
+  <!-- ==================== ⌘K PALETTE ==================== -->
+  <div id="cmdk-overlay" class="cmdk-overlay" hidden aria-hidden="true">
+    <div class="cmdk-modal" role="dialog" aria-modal="true" aria-labelledby="cmdk-title">
+      <div class="cmdk-input-wrap">
+        <span class="cmdk-input-icon" aria-hidden="true">⌘</span>
+        <input type="text" id="cmdk-input" class="cmdk-input"
+               placeholder="O que você quer fazer? (digite ou navegue ↑↓)"
+               autocomplete="off" spellcheck="false"
+               aria-label="Buscar comando" />
+        <button type="button" id="cmdk-close" class="cmdk-close" aria-label="Fechar">esc</button>
+      </div>
+      <ul id="cmdk-list" class="cmdk-list" role="listbox" aria-label="Comandos"></ul>
+      <div class="cmdk-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> navegar</span>
+        <span><kbd>↵</kbd> executar</span>
+        <span><kbd>esc</kbd> fechar</span>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== STICKY CTA mobile ==================== -->
   <button type="button" class="sticky-cta" id="sticky-cta" aria-label="Abrir diagnóstico personalizado">
     <span aria-hidden="true">🎯</span>
@@ -2165,9 +2185,9 @@
     </div>
   </div>
 
-  <script src="cities-data.js?v=29"></script>
-  <script src="market-territory.js?v=29"></script>
-  <script src="live-pulse.js?v=29" defer></script>
-  <script src="app.js?v=29"></script>
+  <script src="cities-data.js?v=30"></script>
+  <script src="market-territory.js?v=30"></script>
+  <script src="live-pulse.js?v=30" defer></script>
+  <script src="app.js?v=30"></script>
 </body>
 </html>

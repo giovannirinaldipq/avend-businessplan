@@ -3028,6 +3028,175 @@ function bindReveals() {
 }
 
 /* ============================================================
+   MAGNETIC BUTTONS · cursor "puxa" o CTA suavemente
+   Aplica em CTAs primários — só desktop, só se NÃO há
+   prefers-reduced-motion. Combina sem brigar com :hover existente.
+   ============================================================ */
+function bindMagneticButtons() {
+  // Mobile não precisa (não tem cursor flutuante)
+  if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) return;
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const selectors = [
+    ".btn-quiz", ".topbar-quiz", ".btn-primary",
+    ".vsl-cta-btn", ".mkt-territory-btn", ".mkt-gate-btn",
+    ".tour-btn-next", ".sticky-cta"
+  ];
+  const targets = document.querySelectorAll(selectors.join(","));
+
+  const STRENGTH = 0.22;     // 22% do offset do mouse
+  const RESTORE = 220;        // ms pra restaurar suavemente
+
+  targets.forEach(el => {
+    let raf = null;
+    const onMove = (e) => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const rect = el.getBoundingClientRect();
+        const x = e.clientX - rect.left - rect.width / 2;
+        const y = e.clientY - rect.top  - rect.height / 2;
+        el.style.transform = "translate(" + (x * STRENGTH).toFixed(1) + "px," +
+                                            (y * STRENGTH).toFixed(1) + "px)";
+        el.style.transition = "transform 80ms ease-out";
+      });
+    };
+    const onLeave = () => {
+      if (raf) cancelAnimationFrame(raf);
+      el.style.transition = "transform " + RESTORE + "ms cubic-bezier(0.2, 0.8, 0.3, 1)";
+      el.style.transform = "";
+    };
+    el.addEventListener("mousemove", onMove);
+    el.addEventListener("mouseleave", onLeave);
+  });
+}
+
+/* ============================================================
+   ⌘K PALETTE · navegação rápida estilo Linear/Stripe
+   Atalho: Ctrl+K (Win) / Cmd+K (Mac).
+   Modal full-screen com input de busca + lista de comandos.
+   Setas e Enter pra navegar. ESC fecha.
+   ============================================================ */
+const CMDK_COMMANDS = [
+  // Navegação principal
+  { id: "go-overview",  label: "Ir para Resumo",          keywords: "home início kpi visão geral",       icon: "📊", action: () => activateTab("overview") },
+  { id: "go-porque",    label: "Por que AVEND?",          keywords: "vsl vídeo motivos diferencial",     icon: "🎬", action: () => activateTab("porque") },
+  { id: "go-simulador", label: "Simulador de escala",     keywords: "calcular flywheel projeção números", icon: "🎚",  action: () => activateTab("simulador") },
+  { id: "go-mercado",   label: "Mercado e território",    keywords: "cidade diagnóstico cidade pontos premium", icon: "🗺",  action: () => activateTab("mercado") },
+  { id: "go-timeline",  label: "Linha do tempo de expansão", keywords: "expansão milestones",            icon: "📈", action: () => activateTab("timeline") },
+  { id: "go-modelos",   label: "Modelos de aquisição",    keywords: "comprar 1ª 2ª aluguel comparativo", icon: "🏷",  action: () => activateTab("modelos") },
+  { id: "go-recebe",    label: "O que você recebe",       keywords: "suporte treinamento entregáveis",   icon: "📦", action: () => activateTab("recebe") },
+  { id: "go-rede",      label: "Nossa rede",              keywords: "franqueados máquina vídeos",        icon: "🏢", action: () => activateTab("rede") },
+  { id: "go-faq",       label: "Dúvidas frequentes",      keywords: "perguntas ajuda contrato",          icon: "❓", action: () => activateTab("faq") },
+  // Ações rápidas
+  { id: "open-quiz",    label: "Abrir Diagnóstico Personalizado", keywords: "quiz perfil 10 perguntas plano sob medida", icon: "🎯", action: () => { if (typeof openQuiz === "function") openQuiz(true); } },
+  { id: "open-tour",    label: "Refazer tour guiado",     keywords: "tour ajuda como funciona onboarding", icon: "👋", action: () => { try { localStorage.removeItem("avend-tour-done"); } catch (e) {} if (typeof openTour === "function") openTour(); } }
+];
+
+const cmdkState = { open: false, selectedIdx: 0, filtered: [] };
+
+function bindCmdK() {
+  const overlay = document.getElementById("cmdk-overlay");
+  const input   = document.getElementById("cmdk-input");
+  const list    = document.getElementById("cmdk-list");
+  if (!overlay || !input || !list) return;
+
+  function renderList() {
+    const q = input.value.trim().toLowerCase();
+    cmdkState.filtered = CMDK_COMMANDS.filter(c => {
+      if (!q) return true;
+      return (c.label + " " + c.keywords).toLowerCase().includes(q);
+    });
+    if (cmdkState.selectedIdx >= cmdkState.filtered.length) {
+      cmdkState.selectedIdx = Math.max(0, cmdkState.filtered.length - 1);
+    }
+    list.innerHTML = cmdkState.filtered.map((c, i) => (
+      '<li class="cmdk-item' + (i === cmdkState.selectedIdx ? ' is-active' : '') +
+      '" role="option" data-id="' + c.id + '">' +
+        '<span class="cmdk-item-icon" aria-hidden="true">' + c.icon + '</span>' +
+        '<span class="cmdk-item-label">' + c.label + '</span>' +
+        '<span class="cmdk-item-arrow" aria-hidden="true">↵</span>' +
+      '</li>'
+    )).join("") || '<li class="cmdk-empty">Nenhum comando encontrado</li>';
+  }
+
+  function execute(cmd) {
+    if (!cmd) return;
+    closeCmdK();
+    setTimeout(() => { try { cmd.action(); } catch (e) { console.warn(e); } }, 80);
+    if (typeof TELEMETRY !== "undefined") TELEMETRY.track("cmdk_executed", { id: cmd.id });
+  }
+
+  function openCmdK() {
+    cmdkState.open = true;
+    cmdkState.selectedIdx = 0;
+    overlay.hidden = false;
+    overlay.setAttribute("aria-hidden", "false");
+    document.body.classList.add("cmdk-open");
+    input.value = "";
+    renderList();
+    setTimeout(() => input.focus(), 30);
+    if (typeof TELEMETRY !== "undefined") TELEMETRY.track("cmdk_opened", {});
+  }
+  function closeCmdK() {
+    cmdkState.open = false;
+    overlay.hidden = true;
+    overlay.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("cmdk-open");
+  }
+
+  // Atalho global Ctrl+K / Cmd+K
+  document.addEventListener("keydown", (e) => {
+    const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+    const trigger = (isMac && e.metaKey && e.key.toLowerCase() === "k") ||
+                    (!isMac && e.ctrlKey && e.key.toLowerCase() === "k");
+    if (trigger) {
+      e.preventDefault();
+      cmdkState.open ? closeCmdK() : openCmdK();
+      return;
+    }
+    if (!cmdkState.open) return;
+    if (e.key === "Escape") { e.preventDefault(); closeCmdK(); }
+    else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      cmdkState.selectedIdx = Math.min(cmdkState.filtered.length - 1, cmdkState.selectedIdx + 1);
+      renderList();
+    }
+    else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      cmdkState.selectedIdx = Math.max(0, cmdkState.selectedIdx - 1);
+      renderList();
+    }
+    else if (e.key === "Enter") {
+      e.preventDefault();
+      execute(cmdkState.filtered[cmdkState.selectedIdx]);
+    }
+  });
+
+  // Input filtra a lista em tempo real
+  input.addEventListener("input", () => {
+    cmdkState.selectedIdx = 0;
+    renderList();
+  });
+
+  // Click em item executa
+  list.addEventListener("click", (e) => {
+    const li = e.target.closest(".cmdk-item");
+    if (!li) return;
+    const cmd = CMDK_COMMANDS.find(c => c.id === li.dataset.id);
+    execute(cmd);
+  });
+
+  // Click no backdrop fecha
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeCmdK();
+  });
+
+  // Botão fechar (×)
+  const closeBtn = document.getElementById("cmdk-close");
+  if (closeBtn) closeBtn.addEventListener("click", closeCmdK);
+}
+
+/* ============================================================
    STICKY CTA mobile · botão "Diagnóstico" sempre visível em mobile
    ============================================================ */
 function bindStickyCTA() {
@@ -3135,6 +3304,8 @@ document.addEventListener("DOMContentLoaded", () => {
   startTopbarLiveCounter();
   applyTopbarGreeting();
   bindTopbarScroll();
+  bindMagneticButtons();
+  bindCmdK();
   maybeAutoOpenQuiz();
   maybeAutoOpenTour();
   maybeShowAdmin();

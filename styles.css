@@ -7809,3 +7809,188 @@ body.live-pulse-off .live-pulse-container { display: none !important; }
   .topbar-live { display: none; }
   .topbar-greeting { display: none; }
 }
+
+
+/* ============================================================
+   CMD+K PALETTE - navegacao rapida estilo Linear/Stripe
+   ============================================================ */
+.cmdk-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9997;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 80px 20px 20px;
+  background: rgba(7, 8, 42, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: cmdkFade 0.18s ease-out;
+}
+@keyframes cmdkFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+body.cmdk-open { overflow: hidden; }
+
+.cmdk-modal {
+  width: 100%;
+  max-width: 580px;
+  background: linear-gradient(180deg, #0f1140 0%, #0a0c2e 100%);
+  border: 1px solid rgba(75, 108, 226, 0.4);
+  border-radius: 16px;
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(61, 217, 214, 0.14) inset;
+  overflow: hidden;
+  animation: cmdkRise 0.28s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+@keyframes cmdkRise {
+  from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cmdk-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.cmdk-input-icon {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 700;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.cmdk-input {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: #fff;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.cmdk-input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 400;
+}
+.cmdk-close {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.55);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  text-transform: lowercase;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.cmdk-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.cmdk-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+.cmdk-list::-webkit-scrollbar { width: 6px; }
+.cmdk-list::-webkit-scrollbar-track { background: transparent; }
+.cmdk-list::-webkit-scrollbar-thumb { background: rgba(75, 108, 226, 0.25); border-radius: 3px; }
+
+.cmdk-item {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+  font-size: 14px;
+}
+.cmdk-item-icon {
+  font-size: 18px;
+  text-align: center;
+  line-height: 1;
+}
+.cmdk-item-label {
+  font-weight: 500;
+}
+.cmdk-item-arrow {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+.cmdk-item:hover,
+.cmdk-item.is-active {
+  background: rgba(61, 217, 214, 0.10);
+  color: #fff;
+}
+.cmdk-item.is-active {
+  background: linear-gradient(90deg, rgba(61, 217, 214, 0.14), rgba(75, 108, 226, 0.10));
+}
+.cmdk-item.is-active .cmdk-item-arrow,
+.cmdk-item:hover .cmdk-item-arrow {
+  opacity: 1;
+  color: #3DD9D6;
+}
+.cmdk-empty {
+  list-style: none;
+  padding: 24px 14px;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+}
+
+.cmdk-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 10px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(7, 8, 42, 0.4);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+}
+.cmdk-foot span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.cmdk-foot kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+@media (max-width: 600px) {
+  .cmdk-overlay { padding-top: 30px; padding-left: 12px; padding-right: 12px; }
+  .cmdk-foot { flex-wrap: wrap; gap: 10px; padding: 8px 12px; font-size: 10.5px; }
+}
