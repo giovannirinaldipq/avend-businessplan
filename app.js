@@ -2900,49 +2900,6 @@ function bootLoader() {
 bootLoader();
 
 /* ============================================================
-   COUNTER "AVEND hoje" no topbar — número simulado subindo lento.
-   Cálculo realista:
-   - ~150 unidades operando
-   - ~50 vendas/dia/unidade · ticket médio R$ 7
-   - = R$ 52.500/dia base
-   Variar com hora (pico no almoço/fim de tarde).
-   ============================================================ */
-function startTopbarLiveCounter() {
-  const el = document.getElementById("topbar-live-value");
-  if (!el) return;
-
-  const horaAtual = new Date().getHours();
-  const minutoAtual = new Date().getMinutes();
-  // Curva de horas: vendas crescem ao longo do dia, pico 12-14h e 17-19h.
-  // Modelo simples: % do dia decorrido + bônus nos horários de pico.
-  const decorrido = (horaAtual + minutoAtual / 60) / 24;
-  const bonusPico =
-    (horaAtual >= 12 && horaAtual <= 14) ? 0.08 :
-    (horaAtual >= 17 && horaAtual <= 19) ? 0.06 : 0;
-  // Valor base do dia varia entre R$ 8k (madrugada) e R$ 65k (fim do dia)
-  let valor = 8000 + decorrido * 55000 + bonusPico * 8000 + Math.random() * 500;
-
-  const fmt = new Intl.NumberFormat("pt-BR", {
-    style: "currency", currency: "BRL", maximumFractionDigits: 0
-  });
-
-  function tick() {
-    // Incremento aleatório R$ 0,50 a R$ 8,50 (1 venda média)
-    valor += 0.5 + Math.random() * 8;
-    el.textContent = fmt.format(valor);
-  }
-  tick();
-
-  // Tick em intervalo aleatório (0.8s a 2.5s) — simula vendas reais
-  // Não cadência fixa pra parecer orgânico.
-  function scheduleNext() {
-    const delay = 800 + Math.random() * 1700;
-    setTimeout(() => { tick(); scheduleNext(); }, delay);
-  }
-  scheduleNext();
-}
-
-/* ============================================================
    GREETING PERSONALIZADO no topbar
    Mostra "Olá, [Nome]" se o user já completou identidade do quiz
    ou foi pré-identificado por ?name= na URL.
@@ -3301,7 +3258,6 @@ document.addEventListener("DOMContentLoaded", () => {
   bindTour();
   bindReveals();
   bindStickyCTA();
-  startTopbarLiveCounter();
   applyTopbarGreeting();
   bindTopbarScroll();
   bindMagneticButtons();

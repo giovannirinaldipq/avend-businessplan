@@ -7685,56 +7685,6 @@ body.live-pulse-off .live-pulse-container { display: none !important; }
 }
 
 /* ============================================================
-   TOPBAR LIVE COUNTER - "AVEND hoje · R$ X" subindo
-   ============================================================ */
-.topbar-live {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 14px;
-  background: rgba(61, 217, 214, 0.06);
-  border: 1px solid rgba(61, 217, 214, 0.22);
-  border-radius: 999px;
-  flex-shrink: 0;
-  transition: opacity 0.25s ease, transform 0.25s ease;
-}
-.topbar-live-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #39e887;
-  box-shadow: 0 0 0 0 rgba(57, 232, 135, 0.5);
-  animation: livePulse 1.8s ease-out infinite;
-  flex-shrink: 0;
-}
-@keyframes livePulse {
-  0%   { box-shadow: 0 0 0 0 rgba(57, 232, 135, 0.55); }
-  70%  { box-shadow: 0 0 0 8px rgba(57, 232, 135, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(57, 232, 135, 0); }
-}
-.topbar-live-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  line-height: 1;
-}
-.topbar-live-label {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
-}
-.topbar-live-value {
-  font-size: 13px;
-  font-weight: 800;
-  color: #3DD9D6;
-  font-variant-numeric: tabular-nums;
-  margin-top: 2px;
-  letter-spacing: 0;
-}
-
-/* ============================================================
    TOPBAR GREETING personalizado - "Ola, Joao"
    ============================================================ */
 .topbar-greeting {
@@ -7784,15 +7734,6 @@ body.live-pulse-off .live-pulse-container { display: none !important; }
   font-size: 14px;         /* era 16px */
   transition: font-size 0.28s ease;
 }
-.topbar-compact .topbar-live {
-  padding: 4px 11px;
-}
-.topbar-compact .topbar-live-label {
-  display: none;           /* economiza espaco quando compact */
-}
-.topbar-compact .topbar-live-value {
-  font-size: 12px;
-}
 .topbar-compact .nav-group {
   padding: 6px 12px;
   font-size: 13px;
@@ -7804,9 +7745,8 @@ body.live-pulse-off .live-pulse-container { display: none !important; }
   font-size: 12px;
 }
 
-/* Mobile: counter e greeting somem (espaco apertado) */
+/* Mobile: greeting some (espaco apertado) */
 @media (max-width: 900px) {
-  .topbar-live { display: none; }
   .topbar-greeting { display: none; }
 }
 
