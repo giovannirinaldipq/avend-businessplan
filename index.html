@@ -170,11 +170,29 @@
     <span class="orb orb-3"></span>
   </div>
 
+  <!-- ==================== LOADER CINEMÁTICO ==================== -->
+  <div id="avend-loader" class="avend-loader" aria-hidden="true">
+    <div class="avend-loader-inner">
+      <div class="avend-loader-mark">AVEND</div>
+      <div class="avend-loader-tagline">Vending Machines &amp; Franchising</div>
+      <div class="avend-loader-bar"><span class="avend-loader-bar-fill"></span></div>
+    </div>
+  </div>
+
   <header class="topbar">
     <a class="brand" href="#" data-goto="overview" aria-label="AVEND — voltar ao Resumo">
       <img class="brand-logo" src="assets/logo-full.png" alt="AVEND" />
       <span class="brand-title">AVEND</span>
     </a>
+
+    <!-- Counter "AVEND hoje" — número subindo lento, sensação de rede viva -->
+    <div class="topbar-live" id="topbar-live" aria-label="Atividade da rede AVEND hoje">
+      <span class="topbar-live-dot" aria-hidden="true"></span>
+      <div class="topbar-live-text">
+        <span class="topbar-live-label">AVEND hoje</span>
+        <strong class="topbar-live-value" id="topbar-live-value">R$ —</strong>
+      </div>
+    </div>
 
     <nav class="nav-main" role="tablist" aria-label="Jornada de avaliação">
       <button class="nav-group active" data-group="visao" type="button">
@@ -197,6 +215,12 @@
         <span class="nav-group-label">Decidir</span>
       </button>
     </nav>
+
+    <!-- Greeting personalizado: aparece se localStorage tem nome do user -->
+    <div class="topbar-greeting" id="topbar-greeting" hidden>
+      <span class="topbar-greeting-prefix" id="topbar-greeting-prefix">Olá,</span>
+      <strong class="topbar-greeting-name" id="topbar-greeting-name">—</strong>
+    </div>
 
     <button class="topbar-quiz" id="open-quiz-header" type="button" aria-label="Abrir diagnóstico personalizado">
       <span class="topbar-quiz-icon" aria-hidden="true">🎯</span>
@@ -2141,9 +2165,9 @@
     </div>
   </div>
 
-  <script src="cities-data.js?v=28"></script>
-  <script src="market-territory.js?v=28"></script>
-  <script src="live-pulse.js?v=28" defer></script>
-  <script src="app.js?v=28"></script>
+  <script src="cities-data.js?v=29"></script>
+  <script src="market-territory.js?v=29"></script>
+  <script src="live-pulse.js?v=29" defer></script>
+  <script src="app.js?v=29"></script>
 </body>
 </html>

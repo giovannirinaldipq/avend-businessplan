@@ -7594,3 +7594,218 @@ body.live-pulse-off .live-pulse-container { display: none !important; }
   .live-pulse-toast { animation: none; }
   .live-pulse-toast-leaving { animation: none; opacity: 0; }
 }
+
+
+/* ============================================================
+   LOADER CINEMATICO - brand reveal 2.4s na 1a visita
+   ============================================================ */
+.avend-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at top right, rgba(139, 48, 230, 0.30), transparent 55%),
+    radial-gradient(ellipse at bottom left, rgba(61, 217, 214, 0.22), transparent 55%),
+    linear-gradient(135deg, #07082a 0%, #161844 50%, #0a0c2e 100%);
+  transition: opacity 0.55s cubic-bezier(0.2, 0.8, 0.3, 1),
+              visibility 0.55s ease;
+  -webkit-font-smoothing: antialiased;
+}
+.avend-loader-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.avend-loader-inner {
+  text-align: center;
+  padding: 32px;
+  animation: avendLoaderIn 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+@keyframes avendLoaderIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.avend-loader-mark {
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  font-size: clamp(48px, 9vw, 86px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  background: linear-gradient(90deg, #3DD9D6 0%, #4B6CE2 50%, #8B30E6 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  line-height: 1;
+  margin-bottom: 14px;
+  animation: avendShimmer 2.4s ease-in-out;
+}
+@keyframes avendShimmer {
+  0%   { background-position: 200% 0; }
+  60%  { background-position: 0% 0; }
+  100% { background-position: -50% 0; }
+}
+.avend-loader-tagline {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 28px;
+  animation: avendLoaderFade 0.6s ease 0.4s backwards;
+}
+@keyframes avendLoaderFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.avend-loader-bar {
+  width: 220px;
+  height: 2px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.avend-loader-bar-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #3DD9D6, #4B6CE2, #8B30E6);
+  border-radius: 1px;
+  animation: avendLoaderBar 2.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes avendLoaderBar {
+  0%   { width: 0; }
+  100% { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .avend-loader { display: none !important; }
+}
+
+/* ============================================================
+   TOPBAR LIVE COUNTER - "AVEND hoje · R$ X" subindo
+   ============================================================ */
+.topbar-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: rgba(61, 217, 214, 0.06);
+  border: 1px solid rgba(61, 217, 214, 0.22);
+  border-radius: 999px;
+  flex-shrink: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.topbar-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #39e887;
+  box-shadow: 0 0 0 0 rgba(57, 232, 135, 0.5);
+  animation: livePulse 1.8s ease-out infinite;
+  flex-shrink: 0;
+}
+@keyframes livePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(57, 232, 135, 0.55); }
+  70%  { box-shadow: 0 0 0 8px rgba(57, 232, 135, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(57, 232, 135, 0); }
+}
+.topbar-live-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  line-height: 1;
+}
+.topbar-live-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+.topbar-live-value {
+  font-size: 13px;
+  font-weight: 800;
+  color: #3DD9D6;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+  letter-spacing: 0;
+}
+
+/* ============================================================
+   TOPBAR GREETING personalizado - "Ola, Joao"
+   ============================================================ */
+.topbar-greeting {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+  flex-shrink: 0;
+  margin-right: 4px;
+  animation: greetingFade 0.5s ease 0.3s backwards;
+}
+@keyframes greetingFade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.topbar-greeting-prefix {
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.5);
+}
+.topbar-greeting-name {
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ============================================================
+   HEADER INTELIGENTE - compacta no scroll
+   ============================================================ */
+.topbar {
+  transition: padding 0.28s cubic-bezier(0.2, 0.8, 0.3, 1),
+              background 0.28s ease,
+              border-color 0.28s ease,
+              box-shadow 0.28s ease;
+}
+.topbar-compact {
+  padding: 7px 32px;       /* era 12px - encolheu */
+  background: rgba(7, 8, 42, 0.88);    /* mais opaco quando compact */
+  border-bottom-color: rgba(139, 48, 230, 0.32);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+}
+.topbar-compact .brand-logo {
+  width: 28px;             /* era 36px */
+  height: 28px;
+  transition: width 0.28s ease, height 0.28s ease;
+}
+.topbar-compact .brand-title {
+  font-size: 14px;         /* era 16px */
+  transition: font-size 0.28s ease;
+}
+.topbar-compact .topbar-live {
+  padding: 4px 11px;
+}
+.topbar-compact .topbar-live-label {
+  display: none;           /* economiza espaco quando compact */
+}
+.topbar-compact .topbar-live-value {
+  font-size: 12px;
+}
+.topbar-compact .nav-group {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.topbar-compact .nav-group-step {
+  display: none;           /* esconde "01/02/03/04" quando compacta */
+}
+.topbar-compact .topbar-greeting {
+  font-size: 12px;
+}
+
+/* Mobile: counter e greeting somem (espaco apertado) */
+@media (max-width: 900px) {
+  .topbar-live { display: none; }
+  .topbar-greeting { display: none; }
+}

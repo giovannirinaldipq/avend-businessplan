@@ -2865,6 +2865,144 @@ function maybeShowAdmin() {
 }
 
 /* ============================================================
+   LOADER CINEMÁTICO · brand reveal nos primeiros 2-3s
+   Roda apenas na 1ª visita (localStorage flag). Respeita
+   prefers-reduced-motion (skip imediato).
+   ============================================================ */
+function bootLoader() {
+  const loader = document.getElementById("avend-loader");
+  if (!loader) return;
+
+  // Skip se: já viu (sessão atual), ou usuário pediu reduced-motion,
+  // ou se a URL tem ?cidade= (deep-link, não devemos atrasar)
+  let skip = false;
+  try {
+    if (sessionStorage.getItem("avend-loader-shown") === "1") skip = true;
+  } catch (e) {}
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) skip = true;
+  if (location.search.includes("cidade=")) skip = true;
+
+  if (skip) {
+    loader.remove();
+    return;
+  }
+
+  // Marca pra não repetir nesta sessão
+  try { sessionStorage.setItem("avend-loader-shown", "1"); } catch (e) {}
+
+  // Após 2.4s, fade-out (transição CSS), e remove
+  setTimeout(() => {
+    loader.classList.add("avend-loader-out");
+    setTimeout(() => { loader.remove(); }, 600);
+  }, 2400);
+}
+// Roda imediato (não espera DOMContentLoaded)
+bootLoader();
+
+/* ============================================================
+   COUNTER "AVEND hoje" no topbar — número simulado subindo lento.
+   Cálculo realista:
+   - ~150 unidades operando
+   - ~50 vendas/dia/unidade · ticket médio R$ 7
+   - = R$ 52.500/dia base
+   Variar com hora (pico no almoço/fim de tarde).
+   ============================================================ */
+function startTopbarLiveCounter() {
+  const el = document.getElementById("topbar-live-value");
+  if (!el) return;
+
+  const horaAtual = new Date().getHours();
+  const minutoAtual = new Date().getMinutes();
+  // Curva de horas: vendas crescem ao longo do dia, pico 12-14h e 17-19h.
+  // Modelo simples: % do dia decorrido + bônus nos horários de pico.
+  const decorrido = (horaAtual + minutoAtual / 60) / 24;
+  const bonusPico =
+    (horaAtual >= 12 && horaAtual <= 14) ? 0.08 :
+    (horaAtual >= 17 && horaAtual <= 19) ? 0.06 : 0;
+  // Valor base do dia varia entre R$ 8k (madrugada) e R$ 65k (fim do dia)
+  let valor = 8000 + decorrido * 55000 + bonusPico * 8000 + Math.random() * 500;
+
+  const fmt = new Intl.NumberFormat("pt-BR", {
+    style: "currency", currency: "BRL", maximumFractionDigits: 0
+  });
+
+  function tick() {
+    // Incremento aleatório R$ 0,50 a R$ 8,50 (1 venda média)
+    valor += 0.5 + Math.random() * 8;
+    el.textContent = fmt.format(valor);
+  }
+  tick();
+
+  // Tick em intervalo aleatório (0.8s a 2.5s) — simula vendas reais
+  // Não cadência fixa pra parecer orgânico.
+  function scheduleNext() {
+    const delay = 800 + Math.random() * 1700;
+    setTimeout(() => { tick(); scheduleNext(); }, delay);
+  }
+  scheduleNext();
+}
+
+/* ============================================================
+   GREETING PERSONALIZADO no topbar
+   Mostra "Olá, [Nome]" se o user já completou identidade do quiz
+   ou foi pré-identificado por ?name= na URL.
+   ============================================================ */
+function applyTopbarGreeting() {
+  const wrap = document.getElementById("topbar-greeting");
+  const nameEl = document.getElementById("topbar-greeting-name");
+  const prefixEl = document.getElementById("topbar-greeting-prefix");
+  if (!wrap || !nameEl) return;
+
+  let name = null;
+  // 1) De quizState (se quiz já rolou nesta sessão)
+  try {
+    const saved = JSON.parse(localStorage.getItem("avend-quiz-data") || "{}");
+    if (saved && saved.identity && saved.identity.name) name = saved.identity.name;
+  } catch (e) {}
+  // 2) Da telemetria de visitor (sessão atual)
+  if (!name && typeof TELEMETRY !== "undefined" && TELEMETRY.session && TELEMETRY.session.visitorName) {
+    name = TELEMETRY.session.visitorName;
+  }
+  if (!name) return;
+
+  const firstName = String(name).trim().split(/\s+/)[0];
+  if (firstName.length < 2) return;
+
+  // Saudação por horário
+  const h = new Date().getHours();
+  if (prefixEl) {
+    if (h < 6)       prefixEl.textContent = "Boa madrugada,";
+    else if (h < 12) prefixEl.textContent = "Bom dia,";
+    else if (h < 18) prefixEl.textContent = "Boa tarde,";
+    else             prefixEl.textContent = "Boa noite,";
+  }
+  nameEl.textContent = firstName;
+  wrap.hidden = false;
+}
+
+/* ============================================================
+   HEADER INTELIGENTE · compacta no scroll, expande no topo
+   Adiciona class .topbar-compact quando user rola > 80px.
+   ============================================================ */
+function bindTopbarScroll() {
+  const topbar = document.querySelector(".topbar");
+  if (!topbar) return;
+  let ticking = false;
+  function update() {
+    if (window.scrollY > 80) topbar.classList.add("topbar-compact");
+    else topbar.classList.remove("topbar-compact");
+    ticking = false;
+  }
+  window.addEventListener("scroll", () => {
+    if (!ticking) {
+      requestAnimationFrame(update);
+      ticking = true;
+    }
+  }, { passive: true });
+  update();
+}
+
+/* ============================================================
    REVEAL-ON-SCROLL · IntersectionObserver
    Elementos com [data-reveal] ou [data-reveal-stagger] entram com
    fade-up quando aparecem no viewport. Uma vez por elemento.
@@ -2994,6 +3132,9 @@ document.addEventListener("DOMContentLoaded", () => {
   bindTour();
   bindReveals();
   bindStickyCTA();
+  startTopbarLiveCounter();
+  applyTopbarGreeting();
+  bindTopbarScroll();
   maybeAutoOpenQuiz();
   maybeAutoOpenTour();
   maybeShowAdmin();
