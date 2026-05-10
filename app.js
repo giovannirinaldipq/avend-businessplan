@@ -2270,6 +2270,8 @@ const TELEMETRY = (() => {
     visitorPhone: null,
     visitorCity: null,
     visitorConsultor: null,
+    accessToken: (typeof window !== "undefined" && window.AVEND_ACCESS_TOKEN) || null,
+    accessLabel: (typeof window !== "undefined" && window.AVEND_ACCESS_LABEL) || null,
     visitNumber: visitNumber,    // 1ª visita = 1, retornos = 2+
     events: [],
     tabTime: {},
@@ -2331,7 +2333,8 @@ const TELEMETRY = (() => {
     "returning_visitor", "deep_engagement", "dwell_milestone_5m",
     "dwell_milestone_10m", "dwell_milestone_15m",
     "lead_intent",                  // 🔥 lead clicou em "conversar com a AVEND"
-    "market_territory_pdf_lead"     // 📄 lead baixou PDF do diagnóstico de mercado
+    "market_territory_pdf_lead",    // 📄 lead baixou PDF do diagnóstico de mercado
+    "access_token_used"             // 🏷 entrou via ?k= (rastreio de canal/campanha)
   ]);
 
   function postJSON_(payload) {
@@ -2995,6 +2998,22 @@ document.addEventListener("DOMContentLoaded", () => {
   maybeAutoOpenTour();
   maybeShowAdmin();
   TELEMETRY.track("page_loaded", { url: location.href });
+
+  // Rastreio de origem: se o usuário entrou agora (1ª visita) via ?k=,
+  // dispara evento crítico identificando o canal (pra Telegram/Sheets).
+  try {
+    const stored = JSON.parse(localStorage.getItem("avend-access-v2") || "null");
+    if (stored && stored.firstAccess) {
+      TELEMETRY.track("access_token_used", {
+        token: stored.t,
+        label: stored.label,
+        firstAccess: true
+      });
+      // Marca como já notificado pra não disparar de novo nas próximas visitas
+      stored.firstAccess = false;
+      localStorage.setItem("avend-access-v2", JSON.stringify(stored));
+    }
+  } catch (e) { /* ignore */ }
 });
 
 /* Expor para debug no console (opcional) */

@@ -19,22 +19,42 @@
        ============================================================ -->
   <script>
     (function () {
-      var KEY = "avend-access-v1";
-      var VALID_TOKENS = [
-        "av26",         // launch 2026 (geral)
-        "av26-feira"    // feiras 2026
-        // adicionar mais conforme necessário (1 por consultor/campanha)
-      ];
+      var KEY = "avend-access-v2";
+      // Map de tokens válidos → label legível.
+      // Label aparece na telemetria/Sheets/Telegram pra rastreio de origem.
+      var VALID_TOKENS = {
+        "avend2":        "Acesso geral 2026",
+        "avend2-feira":  "Feira de empreendedorismo",
+        "avend2-direto": "Consultor direto"
+        // adicionar mais conforme campanha/consultor:
+        // "avend2-pedro": "Consultor Pedro",
+        // "avend2-linkedin": "LinkedIn",
+      };
       var WHATSAPP = "5517996003377";
+
+      function exposeAccess(tokenKey) {
+        // Disponibiliza globalmente pro app.js usar na telemetria
+        window.AVEND_ACCESS_TOKEN = tokenKey;
+        window.AVEND_ACCESS_LABEL = VALID_TOKENS[tokenKey] || tokenKey;
+      }
 
       function isValid() {
         try {
           var stored = JSON.parse(localStorage.getItem(KEY) || "null");
-          if (stored && VALID_TOKENS.indexOf(stored.t) !== -1) return true;
+          if (stored && stored.t && VALID_TOKENS.hasOwnProperty(stored.t)) {
+            exposeAccess(stored.t);
+            return true;
+          }
           var match = (location.search || "").match(/[?&]k=([^&#]+)/);
           var k = match ? decodeURIComponent(match[1]) : null;
-          if (k && VALID_TOKENS.indexOf(k) !== -1) {
-            localStorage.setItem(KEY, JSON.stringify({ t: k, d: Date.now() }));
+          if (k && VALID_TOKENS.hasOwnProperty(k)) {
+            localStorage.setItem(KEY, JSON.stringify({
+              t: k,
+              label: VALID_TOKENS[k],
+              d: Date.now(),
+              firstAccess: true  // sinaliza pro app.js que veio via ?k= (1ª vez)
+            }));
+            exposeAccess(k);
             // Remove ?k= da URL pra link parecer limpo nas próximas visitas
             try {
               var clean = location.pathname +
@@ -2121,8 +2141,8 @@
     </div>
   </div>
 
-  <script src="cities-data.js?v=21"></script>
-  <script src="market-territory.js?v=21"></script>
-  <script src="app.js?v=21"></script>
+  <script src="cities-data.js?v=22"></script>
+  <script src="market-territory.js?v=22"></script>
+  <script src="app.js?v=22"></script>
 </body>
 </html>

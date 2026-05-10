@@ -85,6 +85,7 @@ const SESSION_HEADERS = [
   "session_id", "started_at", "last_seen", "total_time_min",
   "visitor_id", "visitor_name", "visitor_email", "visitor_phone", "visitor_city",
   "visitor_consultor",
+  "access_token", "access_label",
   "quiz_completed", "profile", "score",
   "tabs_visited", "presets_clicked", "sliders_changed",
   "user_agent", "referrer", "raw_json"
@@ -255,6 +256,8 @@ function saveSessionLocked_(s) {
     s.visitorPhone || "",
     s.visitorCity  || "",
     s.visitorConsultor || "",
+    s.accessToken || "",
+    s.accessLabel || "",
     s.quizCompleted ? "yes" : "no",
     s.profile || "",
     computeLeadScore_(s),    // 0-10
@@ -422,6 +425,7 @@ function buildLeadSummary_(s) {
   }
   if (s.visitorCity)      contact.push("📍 " + s.visitorCity);
   if (s.visitorConsultor) contact.push("🤝 Consultor: " + s.visitorConsultor);
+  if (s.accessLabel)      contact.push("🏷 Origem: " + s.accessLabel);
 
   // Quiz answers — mapeamento de valores curtos pra texto legível
   const ANSWER_LABELS = {
@@ -512,7 +516,8 @@ function buildLeadSummary_(s) {
 function saveHotLead_(s) {
   const headers = [
     "received_at", "session_id", "name", "email", "phone", "city",
-    "consultor", "profile", "time_min", "user_agent", "referrer"
+    "consultor", "access_token", "access_label",
+    "profile", "time_min", "user_agent", "referrer"
   ];
   const sheet = getSheet_(SHEET_NAME_LEADS, headers);
   sheet.appendRow([
@@ -523,6 +528,8 @@ function saveHotLead_(s) {
     s.visitorPhone || "",
     s.visitorCity || "",
     s.visitorConsultor || "",
+    s.accessToken || "",
+    s.accessLabel || "",
     s.profile || "",
     ((s.totalTimeMs || 0) / 60000).toFixed(1),
     s.userAgent || "",
@@ -1171,7 +1178,8 @@ const NOTIFY_SPECIAL_EVENTS = {
   "dwell_milestone_15m":         true,
   "deep_engagement":             true,
   "quiz_abandoned":              false,  // vira ruído se ligar
-  "market_territory_pdf_lead":   true    // 📄 baixou PDF do diagnóstico de mercado (flow próprio)
+  "market_territory_pdf_lead":   true,   // 📄 baixou PDF do diagnóstico de mercado (flow próprio)
+  "access_token_used":           false   // só registra (sem ruído de notif a cada entrada)
 };
 
 function maybeNotifySpecialEvent_(sessionId, evt, visitor) {
