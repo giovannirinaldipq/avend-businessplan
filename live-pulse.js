@@ -190,16 +190,22 @@
   }
 
   /* ---------- RENDER ---------------------------------------- */
-  // Helper: monta a linha "valor + tempo" com destaque cyan no preço.
+  // Helper: monta a linha "valor + tempo + ⓘ" com destaque cyan no preço
+  // e disclaimer compactado num ⓘ com tooltip nativo.
   // Compartilhado entre showEvent (modo real) e showStacked (modo debug).
   function renderTimeLine(evt) {
-    if (!evt.valor && !evt.time) return "";
+    if (!evt.valor && !evt.time) {
+      return '<div class="live-pulse-time"><span class="live-pulse-info" ' +
+             'title="exemplos da atividade típica da rede AVEND" aria-label="info">ⓘ</span></div>';
+    }
     let html = '<div class="live-pulse-time">';
     if (evt.valor) {
       html += '<span class="live-pulse-valor">' + escapeHtml(evt.valor) + '</span>';
       if (evt.time) html += ' · ';
     }
     if (evt.time) html += escapeHtml(evt.time);
+    html += ' <span class="live-pulse-info" ' +
+            'title="exemplos da atividade típica da rede AVEND" aria-label="info">ⓘ</span>';
     html += '</div>';
     return html;
   }
@@ -239,8 +245,7 @@
         '<div class="live-pulse-text">' + escapeHtml(evt.body) + '</div>' +
         renderTimeLine(evt) +
       '</div>' +
-      '<button type="button" class="live-pulse-close" aria-label="Fechar">×</button>' +
-      '<div class="live-pulse-disclaimer">exemplos da atividade típica da rede</div>';
+      '<button type="button" class="live-pulse-close" aria-label="Fechar">×</button>';
 
     c.appendChild(toast);
     state.shown++;
