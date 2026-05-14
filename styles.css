@@ -4485,3 +4485,14 @@ input[type="range"]::-moz-range-thumb {
 /* Size variants */
 .sm { font-size: 12px; }
 .lg { font-size: 18px; }
+
+/* ============================================================
+   HIDDEN ATTRIBUTE — must override display rules
+   ============================================================ */
+[hidden] { display: none !important; }
+.quiz-overlay[hidden],
+.quiz-result-overlay[hidden],
+.cmdk-overlay[hidden],
+.tour-overlay[hidden] {
+  display: none !important;
+}
