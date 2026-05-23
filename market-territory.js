@@ -78,7 +78,7 @@
   function normalize(s) {
     return String(s || "")
       .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")  // remove acentos
+      .replace(/[̀-ͯ]/g, "")  // combining marks (acentos)
       .toLowerCase()
       .trim()
       .replace(/[^a-z0-9\s]/g, " ")
@@ -703,10 +703,16 @@
 
   /* ---------- WIRING DOS BOTÕES DE AÇÃO (PDF, WhatsApp) ------ */
 
+  // Flag global do módulo — bloqueia múltiplos cliques no print enquanto
+  // a janela nativa ainda está aberta. Sem isso, dois cliques empilham
+  // dois .mkt-print-area no DOM e o PDF sai duplicado.
+  let _isPrintingPdf = false;
+
   function wireReportActions(container, ctx) {
     const printBtn = container.querySelector('[data-action="print-report"]');
     if (printBtn) {
       printBtn.addEventListener("click", () => {
+        if (_isPrintingPdf) return;  // dedup de cliques duplos
         const cidade = ctx.cidade || "";
         const uf = ctx.uf || "";
         const pop = ctx.populacao || 0;
@@ -1037,13 +1043,23 @@
     const safeName = slug(cidade) + (uf ? "-" + uf.toLowerCase() : "");
     document.title = "Diagnostico-AVEND-" + (safeName || "mercado");
 
+    _isPrintingPdf = true;
+    let _cleanedUp = false;
     const cleanup = function () {
+      if (_cleanedUp) return;
+      _cleanedUp = true;
+      _isPrintingPdf = false;
       document.body.classList.remove("is-mkt-printing");
       if (printArea.parentNode) printArea.parentNode.removeChild(printArea);
       document.title = prevTitle;
       window.removeEventListener("afterprint", cleanup);
+      if (_safetyTimer) { clearTimeout(_safetyTimer); _safetyTimer = null; }
     };
     window.addEventListener("afterprint", cleanup);
+    // Safety net: Safari/iOS e alguns Chromium não disparam afterprint
+    // quando o usuário cancela o diálogo. Sem fallback, printArea fica
+    // grudado no DOM e a flag _isPrintingPdf trava o botão pra sempre.
+    let _safetyTimer = setTimeout(cleanup, 60000);
     setTimeout(function () { window.print(); }, 120);
 
     if (root.TELEMETRY && typeof root.TELEMETRY.track === "function") {

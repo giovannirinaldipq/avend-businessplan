@@ -626,18 +626,20 @@ function renderComparador(sim) {
   const fat = state.faturamentoPorMaquina;
   const m1 = calcularMes(1, fat);
   const m2 = calcularMes(2, fat);
-  const paybackM1 = MODEL.custoPrimeiraMaquina / m1.lucroLiquido;
-  const paybackM2 = sim.custoNovaMaquina / m2.lucroLiquido;
+  // Guard contra divisão por zero/lucro negativo — evita render "Infinity meses".
+  const paybackM1 = m1.lucroLiquido > 0 ? MODEL.custoPrimeiraMaquina / m1.lucroLiquido : null;
+  const paybackM2 = m2.lucroLiquido > 0 ? sim.custoNovaMaquina / m2.lucroLiquido : null;
+  const fmtPayback = (p) => p && isFinite(p) ? `${Math.round(p)} meses` : "—";
 
   const el = (id, v) => { const n = document.getElementById(id); if (n) n.textContent = v; };
 
   el("cmp-m1-invest",  fmtBRL(MODEL.custoPrimeiraMaquina));
-  el("cmp-m1-payback", `${Math.round(paybackM1)} meses`);
+  el("cmp-m1-payback", fmtPayback(paybackM1));
   el("cmp-m1-lucro",   fmtBRL(m1.lucroLiquido));
   el("cmp-m1-regime",  m1.imposto.regime.split(" (")[0]);
 
   el("cmp-m2-invest",  fmtBRL(sim.custoNovaMaquina));
-  el("cmp-m2-payback", `${Math.round(paybackM2)} meses`);
+  el("cmp-m2-payback", fmtPayback(paybackM2));
   el("cmp-m2-lucro",   fmtBRL(m2.lucroLiquido));
   el("cmp-m2-regime",  m2.imposto.regime.split(" (")[0]);
 
@@ -1801,8 +1803,8 @@ function showQuizResult() {
   const firstName = (quizState.identity.name || "").split(/\s+/)[0];
   const labelEl = document.getElementById("quiz-result-label");
   labelEl.innerHTML = firstName
-    ? `${firstName}, seu perfil é<br><span class="qr-profile-name">${profile.label}</span>`
-    : profile.label;
+    ? `${escapeAttr(firstName)}, seu perfil é<br><span class="qr-profile-name">${escapeAttr(profile.label)}</span>`
+    : escapeAttr(profile.label);
   document.getElementById("quiz-result-desc").textContent  = profile.desc;
   document.getElementById("quiz-result-modal").dataset.profile = profile.key;
 
@@ -2765,8 +2767,10 @@ function maybeShowAdmin() {
           <div class="admin-list">
             ${enriched.map(({ s, score, heat }) => {
               const dur = (s.totalTimeMs || (Date.now() - s.startedAt));
-              const visitorTag = s.visitorName || s.visitorEmail || s.visitorId || "anônimo";
-              const subTag = [s.visitorEmail, s.visitorPhone, s.visitorCity].filter(Boolean).join(" · ");
+              // Escapa: nome/email/telefone/cidade vêm de input de visitante
+              // (potencial XSS no painel admin do consultor).
+              const visitorTag = escapeAttr(s.visitorName || s.visitorEmail || s.visitorId || "anônimo");
+              const subTag = escapeAttr([s.visitorEmail, s.visitorPhone, s.visitorCity].filter(Boolean).join(" · "));
               const profileTag = s.quizCompleted
                 ? `<span class="admin-tag admin-tag-ok">${(s.profile || "completou").toUpperCase()}</span>`
                 : (s.events||[]).some(e=>e.type==="quiz_opened")
@@ -3284,7 +3288,14 @@ document.addEventListener("DOMContentLoaded", () => {
   } catch (e) { /* ignore */ }
 });
 
-/* Expor para debug no console (opcional) */
+/* Expor para debug no console — APENAS em ?admin=1.
+   Em produção (links de investidor) o motor de cálculo + MODEL não
+   ficam acessíveis via window.AVEND, evitando extração trivial por
+   concorrentes via DevTools. */
 if (typeof window !== "undefined") {
-  window.AVEND = { simulate, calcularMes, calcImpostoMensal, MODEL, state };
+  try {
+    if (new URLSearchParams(location.search).has("admin")) {
+      window.AVEND = { simulate, calcularMes, calcImpostoMensal, MODEL, state };
+    }
+  } catch (e) { /* ignore */ }
 }

@@ -18,110 +18,78 @@
          todo localStorage com versão antiga vira inválido
        ============================================================ -->
   <script>
+    /* ============================================================
+       ATRIBUIÇÃO DE TRÁFEGO (substitui o antigo "access gate").
+
+       Esse bloco NÃO é gate de segurança — é só captura da origem
+       do visitante pra telemetria (sabe de onde o lead chegou).
+       O site é público; qualquer um acessa com ou sem parâmetro.
+
+       Formato preferido (UTM-like, não desperta suspeita):
+         simulador.grupoavend.com.br/?ref=pedro
+         simulador.grupoavend.com.br/?ref=feira
+         simulador.grupoavend.com.br/?ref=linkedin
+
+       Compatibilidade: ?k=avend2 / ?k=avend2-feira / ?k=avend2-direto
+       (links já distribuídos no WhatsApp/materiais antigos) continuam
+       funcionando — mapeados pra ref="geral" / "feira" / "direto".
+
+       Persistência: salva em localStorage pra que próximas visitas
+       do mesmo navegador mantenham a atribuição. URL é limpa pro
+       investidor não ver os params nas visitas subsequentes.
+       ============================================================ */
     (function () {
-      var KEY = "avend-access-v2";
-      // Map de tokens válidos → label legível.
-      // Label aparece na telemetria/Sheets/Telegram pra rastreio de origem.
-      var VALID_TOKENS = {
-        "avend2":        "Acesso geral 2026",
-        "avend2-feira":  "Feira de empreendedorismo",
-        "avend2-direto": "Consultor direto"
-        // adicionar mais conforme campanha/consultor:
-        // "avend2-pedro": "Consultor Pedro",
-        // "avend2-linkedin": "LinkedIn",
+      var KEY = "avend-access-v3";
+      var LEGACY = {
+        "avend2":        "geral",
+        "avend2-feira":  "feira",
+        "avend2-direto": "direto"
       };
-      var WHATSAPP = "5517996003377";
 
-      function exposeAccess(tokenKey) {
-        // Disponibiliza globalmente pro app.js usar na telemetria
-        window.AVEND_ACCESS_TOKEN = tokenKey;
-        window.AVEND_ACCESS_LABEL = VALID_TOKENS[tokenKey] || tokenKey;
+      function expose(ref) {
+        window.AVEND_ACCESS_TOKEN = ref || "";
+        window.AVEND_ACCESS_LABEL = ref || "direto";
       }
 
-      function isValid() {
-        try {
-          var stored = JSON.parse(localStorage.getItem(KEY) || "null");
-          if (stored && stored.t && VALID_TOKENS.hasOwnProperty(stored.t)) {
-            exposeAccess(stored.t);
-            return true;
-          }
-          var match = (location.search || "").match(/[?&]k=([^&#]+)/);
-          var k = match ? decodeURIComponent(match[1]) : null;
-          if (k && VALID_TOKENS.hasOwnProperty(k)) {
+      function sanitize(v) {
+        // só letras, dígitos e hífen — evita injection / dados sujos
+        return String(v || "").replace(/[^a-z0-9-]/gi, "").slice(0, 32).toLowerCase();
+      }
+
+      try {
+        var params = new URLSearchParams(location.search || "");
+        var ref = sanitize(params.get("ref"));
+        var legacyK = params.get("k");
+
+        if (!ref && legacyK && Object.prototype.hasOwnProperty.call(LEGACY, legacyK)) {
+          ref = LEGACY[legacyK];
+        }
+
+        if (ref) {
+          try {
             localStorage.setItem(KEY, JSON.stringify({
-              t: k,
-              label: VALID_TOKENS[k],
-              d: Date.now(),
-              firstAccess: true  // sinaliza pro app.js que veio via ?k= (1ª vez)
+              ref: ref, d: Date.now(), firstAccess: true
             }));
-            exposeAccess(k);
-            // Remove ?k= da URL pra link parecer limpo nas próximas visitas
-            try {
-              var clean = location.pathname +
-                location.search.replace(/([?&])k=[^&#]*/, "$1").replace(/[?&]$/, "").replace(/\?&/, "?") +
-                location.hash;
-              if (history.replaceState) history.replaceState({}, "", clean);
-            } catch (e) {}
-            return true;
-          }
-        } catch (e) {}
-        return false;
+          } catch (e) { /* private mode pode bloquear */ }
+
+          // Limpa ?ref= e ?k= da URL — fica visualmente "produto", sem cara de campanha
+          try {
+            params.delete("ref");
+            params.delete("k");
+            var qs = params.toString();
+            var cleanUrl = location.pathname + (qs ? "?" + qs : "") + location.hash;
+            if (history.replaceState) history.replaceState({}, "", cleanUrl);
+          } catch (e) { /* ignore */ }
+
+          expose(ref);
+        } else {
+          var stored = null;
+          try { stored = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
+          expose(stored && stored.ref ? stored.ref : "");
+        }
+      } catch (e) {
+        expose("");
       }
-
-      if (isValid()) return;
-
-      // BLOQUEIA: cancela load pendente e substitui o documento
-      if (window.stop) window.stop();
-
-      var waLink = "https://wa.me/" + WHATSAPP +
-        "?text=" + encodeURIComponent("Olá! Tentei acessar o plano de negócios AVEND mas o link expirou. Pode me enviar um novo?");
-
-      var html =
-        '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
-        '<meta name="viewport" content="width=device-width,initial-scale=1.0">' +
-        '<title>Link expirado · AVEND</title>' +
-        '<meta name="robots" content="noindex,nofollow">' +
-        '<style>' +
-        '*{box-sizing:border-box;margin:0;padding:0}' +
-        'html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;' +
-          'background:radial-gradient(ellipse at top right,rgba(139,48,230,.18),transparent 55%),' +
-          'radial-gradient(ellipse at bottom left,rgba(61,217,214,.14),transparent 55%),' +
-          'linear-gradient(135deg,#07082a 0%,#161844 50%,#0a0c2e 100%);' +
-          'color:#fff;display:flex;align-items:center;justify-content:center;padding:20px}' +
-        '.gate{max-width:480px;width:100%;text-align:center;padding:48px 36px 38px;' +
-          'background:linear-gradient(180deg,#0f1140 0%,#0a0c2e 100%);' +
-          'border:1px solid rgba(75,108,226,.42);border-radius:22px;' +
-          'box-shadow:0 30px 80px rgba(0,0,0,.5),0 0 0 1px rgba(61,217,214,.18) inset;' +
-          'animation:rise .45s cubic-bezier(.2,.8,.3,1)}' +
-        '@keyframes rise{from{opacity:0;transform:translateY(20px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}' +
-        '.gate-brand{font-size:13px;font-weight:800;letter-spacing:.22em;' +
-          'background:linear-gradient(90deg,#3DD9D6,#4B6CE2,#8B30E6);' +
-          '-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:32px}' +
-        '.gate-icon{font-size:52px;line-height:1;margin-bottom:16px;filter:drop-shadow(0 6px 18px rgba(75,108,226,.4))}' +
-        '.gate h1{font-size:24px;font-weight:800;margin-bottom:14px;letter-spacing:-.01em;line-height:1.2}' +
-        '.gate p{font-size:15px;line-height:1.6;color:rgba(255,255,255,.78);margin-bottom:26px}' +
-        '.gate p strong{color:#3DD9D6;font-weight:700}' +
-        '.gate-cta{display:inline-flex;align-items:center;gap:8px;padding:14px 26px;' +
-          'background:linear-gradient(135deg,#25D366 0%,#128C7E 100%);color:#fff;' +
-          'text-decoration:none;font-weight:700;border-radius:999px;font-size:14px;' +
-          'box-shadow:0 8px 22px rgba(37,211,102,.32);' +
-          'transition:transform .2s ease,box-shadow .2s ease}' +
-        '.gate-cta:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(37,211,102,.45)}' +
-        '.gate-foot{margin-top:22px;font-size:11px;color:rgba(255,255,255,.4);letter-spacing:.04em}' +
-        '</style></head><body>' +
-        '<div class="gate">' +
-        '<div class="gate-brand">AVEND · VENDING MACHINES &amp; FRANCHISING</div>' +
-        '<div class="gate-icon">🔒</div>' +
-        '<h1>Este link expirou</h1>' +
-        '<p>O acesso ao plano de negócios AVEND foi <strong>atualizado</strong>. Para continuar, solicite um novo link com o consultor que te apresentou a oportunidade.</p>' +
-        '<a href="' + waLink + '" class="gate-cta" target="_blank" rel="noopener">' +
-        '<span>💬</span><span>Solicitar novo link no WhatsApp</span><span>→</span></a>' +
-        '<div class="gate-foot">Se você é consultor AVEND, entre em contato com o time pra obter o link atualizado.</div>' +
-        '</div></body></html>';
-
-      document.open();
-      document.write(html);
-      document.close();
     })();
   </script>
 
@@ -131,7 +99,7 @@
   <meta name="theme-color" content="#0d0e36" />
   <meta name="keywords" content="franquia vending machines, AVEND, simulador franquia, microfranquia, varejo automatizado, investimento renda passiva, BOM FRANQUEADO" />
 
-  <link rel="canonical" href="https://giovannirinaldipq.github.io/avend-businessplan/" />
+  <link rel="canonical" href="https://simulador.grupoavend.com.br/" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
 
   <!-- Open Graph (WhatsApp, LinkedIn, Facebook) -->
@@ -139,13 +107,13 @@
   <meta property="og:site_name" content="AVEND · Vending Machines &amp; Franchising" />
   <meta property="og:title" content="Quanto sua 1ª máquina AVEND pode virar em 5 anos?" />
   <meta property="og:description" content="Diagnóstico personalizado em 2 minutos. Veja payback, lucro, patrimônio e tributação real (MEI → Simples → LP) sob medida pro seu perfil. +100 franqueados ativos · 14 estados." />
-  <meta property="og:image" content="https://giovannirinaldipq.github.io/avend-businessplan/assets/og-image.png?v=2" />
-  <meta property="og:image:secure_url" content="https://giovannirinaldipq.github.io/avend-businessplan/assets/og-image.png?v=2" />
+  <meta property="og:image" content="https://simulador.grupoavend.com.br/assets/og-image.png?v=2" />
+  <meta property="og:image:secure_url" content="https://simulador.grupoavend.com.br/assets/og-image.png?v=2" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="AVEND — Simulador interativo de franquia com diagnóstico personalizado" />
   <meta property="og:image:type" content="image/png" />
-  <meta property="og:url" content="https://giovannirinaldipq.github.io/avend-businessplan/" />
+  <meta property="og:url" content="https://simulador.grupoavend.com.br/" />
   <meta property="og:locale" content="pt_BR" />
 
   <!-- Twitter/X -->
@@ -153,7 +121,7 @@
   <meta name="twitter:site" content="@grupoavend" />
   <meta name="twitter:title" content="Quanto sua 1ª máquina AVEND pode virar em 5 anos?" />
   <meta name="twitter:description" content="Diagnóstico personalizado em 2 minutos. Payback, patrimônio e tributação real sob medida pro seu perfil." />
-  <meta name="twitter:image" content="https://giovannirinaldipq.github.io/avend-businessplan/assets/og-image.png?v=2" />
+  <meta name="twitter:image" content="https://simulador.grupoavend.com.br/assets/og-image.png?v=2" />
   <meta name="twitter:image:alt" content="AVEND — Simulador interativo de franquia" />
 
   <!-- Favicon -->
@@ -164,8 +132,11 @@
   <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
   <link href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&f[]=satoshi@300,400,500,700,900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles.css?v=36" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="styles.css?v=37" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
+          integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4"
+          crossorigin="anonymous"
+          defer></script>
 </head>
 <body>
   <div class="bg-orbs" aria-hidden="true">
@@ -2181,9 +2152,9 @@
     </div>
   </div>
 
-  <script src="cities-data.js?v=31"></script>
-  <script src="market-territory.js?v=32"></script>
+  <script src="cities-data.js?v=32" defer></script>
+  <script src="market-territory.js?v=33" defer></script>
   <script src="live-pulse.js?v=31" defer></script>
-  <script src="app.js?v=31"></script>
+  <script src="app.js?v=32" defer></script>
 </body>
 </html>
