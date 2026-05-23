@@ -4608,10 +4608,22 @@ body.mkt-gate-open { overflow: hidden; }
 
 /* ============================================================
    PRINT STYLES — Diagnóstico de Mercado (PDF)
-   Renderiza apenas a área .mkt-print-area quando o body recebe
-   .is-mkt-printing. Esconde no on-screen.
+   Renderiza apenas a área .mkt-print-area no print.
+   Na tela fica fora do viewport (NÃO usamos display:none pois
+   alguns navegadores — Opera/Chromium em anônimo — calculam o
+   print preview a partir da árvore on-screen e ignoram elementos
+   com display:none, resultando em preview totalmente em branco).
    ============================================================ */
-.mkt-print-area { display: none; }
+.mkt-print-area {
+  position: fixed;
+  left: -100vw;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+}
 
 @media print {
   @page {
@@ -4619,7 +4631,7 @@ body.mkt-gate-open { overflow: hidden; }
     margin: 12mm 10mm;
   }
 
-  /* Força reprodução de cores (Chrome/Edge) */
+  /* Força reprodução de cores (Chrome/Edge/Opera) */
   html, body, .mkt-print-area, .mkt-print-area * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -4638,7 +4650,16 @@ body.mkt-gate-open { overflow: hidden; }
     overflow: visible !important;
   }
 
+  /* Print: traz o print-area pra fluxo normal e visível */
   .mkt-print-area {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
     display: block !important;
     background: #fff;
     color: #111;
