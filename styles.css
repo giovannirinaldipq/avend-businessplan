@@ -4866,6 +4866,20 @@ body.mkt-gate-open { overflow: hidden; }
   .mkt-print-detail .mkt-report .mkt-points-total-val,
   .mkt-print-detail .mkt-report .mkt-gap-pct { color: #050614 !important; }
 
+  /* Reset do truque gradient-text (background-clip: text + color: transparent)
+     que deixa números invisíveis no PDF. Força fill sólido em TODO o relatório. */
+  .mkt-print-detail .mkt-report * {
+    -webkit-background-clip: initial !important;
+    background-clip: initial !important;
+    -webkit-text-fill-color: currentColor !important;
+  }
+  .mkt-print-detail .mkt-report .mkt-gap-pct,
+  .mkt-print-detail .mkt-report .mkt-stat-gap .mkt-stat-val {
+    background: none !important;
+    color: #050614 !important;
+    -webkit-text-fill-color: #050614 !important;
+  }
+
   .mkt-print-detail .mkt-report .mkt-composition-bar { border: 1px solid #d8dbe8 !important; }
   .mkt-print-detail .mkt-report .mkt-composition-cafe {
     background: #e8eaf5 !important;
