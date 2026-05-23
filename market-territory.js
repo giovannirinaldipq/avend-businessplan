@@ -872,6 +872,28 @@
     const innerRank = clone.querySelector(".mkt-rank-badge");
     if (innerRank) innerRank.remove();
 
+    // cloneNode(true) NÃO copia o bitmap do <canvas> — vira um canvas vazio.
+    // Convertemos o donut original em PNG via toDataURL() e substituímos
+    // o canvas clonado por um <img>, que renderiza fielmente no PDF.
+    try {
+      const origCanvas = reportEl.querySelector("#mkt-donut");
+      const cloneCanvas = clone.querySelector("#mkt-donut");
+      if (origCanvas && cloneCanvas && origCanvas.width > 0) {
+        const img = document.createElement("img");
+        img.src = origCanvas.toDataURL("image/png");
+        img.alt = "Gráfico do mercado disponível vs. ocupado";
+        img.className = "mkt-donut-img";
+        cloneCanvas.parentNode.replaceChild(img, cloneCanvas);
+      }
+    } catch (e) { /* canvas pode estar vazio se Chart.js não carregou */ }
+
+    // Force o valor final dos count-ups no clone — se o usuário imprimir
+    // antes da animação terminar, o clone congelaria em "0".
+    clone.querySelectorAll(".mkt-count-up").forEach(function (el) {
+      const target = parseInt(el.dataset.target || "0", 10) || 0;
+      el.textContent = NF.format(target);
+    });
+
     const dataStr = new Date().toLocaleDateString("pt-BR", {
       day: "2-digit", month: "long", year: "numeric"
     });
